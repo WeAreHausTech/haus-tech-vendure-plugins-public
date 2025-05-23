@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/packages/add-note-to-order-plugin",
+    "rootDir": "./src",
+    "types": ["node"]
+  },
+  "ignorePatterns": ["!**/*", "*.config.ts"],
+  "include": ["src/**/*"]
+}

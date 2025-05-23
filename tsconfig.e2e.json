@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["es2015"],
+    "outDir": "dist/e2e",
+    "rootDir": ".",
+    "useDefineForClassFields": false,
+    "skipLibCheck": true,
+    "inlineSourceMap": false,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true
+  },
+  "include": ["packages/**/*.e2e-spec.ts"]
+}

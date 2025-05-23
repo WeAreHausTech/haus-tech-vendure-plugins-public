@@ -1,0 +1,13 @@
+{
+  "extends": ["../../.eslintrc.json"],
+  "ignorePatterns": ["!**/*"],
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parserOptions": {
+        "project": ["packages/add-note-to-order-plugin/tsconfig.json"]
+      },
+      "rules": {}
+    }
+  ]
+}

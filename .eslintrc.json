@@ -1,0 +1,17 @@
+{
+  "root": true,
+  "ignorePatterns": ["**/node_modules", "**/dist"],
+  "plugins": ["@typescript-eslint"],
+  "extends": ["plugin:@typescript-eslint/recommended"],
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": ["tsconfig.base.json"],
+        "sourceType": "module"
+      },
+      "rules": {}
+    }
+  ]
+}

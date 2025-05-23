@@ -1,0 +1,118 @@
+<div style="display: flex; justify-content: flex-start; align-items: center; gap: 4px">
+  <button
+    class="button-small"
+    [ngClass]="{ primary: (currentView$ | async) === 'unread' }"
+    (click)="setCurrentView('unread')"
+    [textContent]="'order-note-plugin.unreadMessagesTab' | translate"
+  >
+  </button>
+  <button
+    class="button-small"
+    [ngClass]="{ primary: (currentView$ | async) === 'all' }"
+    (click)="setCurrentView('all')"
+    [textContent]="'order-note-plugin.allMessagesTab' | translate"
+  >
+  </button>
+</div>
+
+<vdr-data-table-2
+  [items]="unreadMessages$ | async"
+  id="latest-orders-widget-list"
+  *ngIf="(currentView$ | async) === 'unread'"
+>
+  <vdr-dt2-column [heading]="'order-note-plugin.code' | translate" id="code">
+    <ng-template let-order="item.order">
+      <a class="button-ghost" [routerLink]="['/orders/', order.id]"
+        ><span>{{ order.code }}</span>
+        <clr-icon shape="arrow right"></clr-icon>
+      </a>
+    </ng-template>
+  </vdr-dt2-column>
+  <vdr-dt2-column [heading]="'order-note-plugin.unreadMessages' | translate" id="unreadMessages">
+    <ng-template let-order="item">
+      <vdr-order-state-label [state]="order.numUnreadMessages"></vdr-order-state-label>
+    </ng-template>
+  </vdr-dt2-column>
+  <vdr-dt2-column
+    [heading]="'customer.customer' | translate"
+    id="customer"
+    [hiddenByDefault]="true"
+  >
+    <ng-template let-order="item">
+      <vdr-customer-label [customer]="order.order.customer"></vdr-customer-label>
+    </ng-template>
+  </vdr-dt2-column>
+  <vdr-dt2-column [heading]="'order.note' | translate" id="note">
+    <ng-template let-order="item">
+      <span
+        style="
+          width: 100%;
+          max-width: 20lvw;
+          display: block;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        "
+      >
+        {{ order.note }}
+      </span>
+    </ng-template>
+  </vdr-dt2-column>
+  <vdr-dt2-column
+    [heading]="'order-note-plugin.latestNoteRecievedAt' | translate"
+    id="latestNoteRecievedAt"
+  >
+    <ng-template let-message="item">
+      {{ message.createdAt | timeAgo }}
+    </ng-template>
+  </vdr-dt2-column>
+  <vdr-dt2-column id="markNoteAsRead">
+    <ng-template let-order="item"></ng-template>
+  </vdr-dt2-column>
+</vdr-data-table-2>
+
+<vdr-data-table-2
+  [items]="allMessages$ | async"
+  [itemsPerPage]="itemsPerPage$ | async"
+  [totalItems]="totalItems$ | async"
+  [currentPage]="currentPage$ | async"
+  (pageChange)="setPageNumber($event)"
+  (itemsPerPageChange)="setItemsPerPage($event)"
+  id="latest-orders-widget-list"
+  *ngIf="(currentView$ | async) === 'all' && (totalItems$ | async) > 0"
+>
+  <vdr-dt2-column [heading]="'order-note-plugin.code' | translate" id="code">
+    <ng-template let-order="item.order">
+      <a class="button-ghost" [routerLink]="['/orders/', order.id]"
+        ><span>{{ order.code }}</span>
+        <clr-icon shape="arrow right"></clr-icon>
+      </a>
+    </ng-template>
+  </vdr-dt2-column>
+
+  <vdr-dt2-column [heading]="'order.note' | translate" id="note">
+    <ng-template let-message="item">
+      <span
+        style="
+          width: 100%;
+          max-width: 20lvw;
+          display: block;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        "
+      >
+        {{ message.note }}
+      </span>
+    </ng-template>
+  </vdr-dt2-column>
+
+  <vdr-dt2-column
+    [heading]="'order-note-plugin.latestNoteRecievedAt' | translate"
+    id="latestNoteRecievedAt"
+  >
+    <ng-template let-message="item">
+      {{ message.createdAt | timeAgo }}
+    </ng-template>
+  </vdr-dt2-column>
+</vdr-data-table-2>
