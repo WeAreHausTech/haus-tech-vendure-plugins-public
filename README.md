@@ -30,21 +30,6 @@ We only take major and minor version into account. For example, if Vendure v2.2.
 
 ---
 
-## 📦 Available npm Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run build` | Build all plugins (excluding `example-plugin`) |
-| `npm run build:affected` | Build only plugins affected by recent changes |
-| `npm run lint` | Lint all plugins |
-| `npm run lint:affected` | Lint only affected plugins |
-| `npm run upgrade:vendure` | Run `upgrade:vendure` target for all plugins |
-| `npm run upgrade:vendure:all` | Globally upgrade all `@vendure/*` dependencies |
-| `npm run remove-node-modules` | Recursively delete all `node_modules` folders |
-| `npm run bump-all-versions` | Bump all plugin `package.json` versions |
-
----
-
 ## 🧠 Useful `npx nx` Commands
 
 Below is a list of useful `npx nx` commands tailored for this monorepo setup:
@@ -63,16 +48,6 @@ npx nx run-many --target=lint --all
 
 # Lint one plugin
 npx nx lint plugin-name 
-```
-
-### 🧪 Test Commands
-
-```bash
-# Test all plugins
-npx nx run-many --target=test --all
-
-# Test one plugin
-npx nx test plugin-name
 ```
 
 ### 🔄 Upgrade Vendure
@@ -116,6 +91,16 @@ npx nx graph
 
 Each plugin uses [Vitest](https://vitest.dev/) for unit testing.  
 Ensure that each plugin’s `project.json` includes a `test` target with an executor like `@nx/vite:test`.
+
+### 🧪 Test Commands
+
+```bash
+# Test all plugins
+npx nx run-many --target=test --all
+
+# Test one plugin
+npx nx test plugin-name
+```
 
 ---
 
