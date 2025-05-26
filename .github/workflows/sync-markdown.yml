@@ -1,0 +1,54 @@
+name: Sync Plugin Markdown Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**.md'
+
+jobs:
+  sync-md:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up SSH for wearehaustech.github.io
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.WEAREHAUSTECH_GITHUB_IO_DEPLOY_KEY }}
+
+      - name: Clone wearehaustech.github.io
+        run: |
+          git clone git@github.com:WeAreHausTech/wearehaustech.github.io.git ../wearehaustech.github.io
+
+      - name: Copy changed Markdown files
+        run: |
+          mkdir -p ../wearehaustech.github.io/docs
+
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^packages/.*\.md$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed markdown files to process."
+            exit 0
+          fi
+
+          for file in $CHANGED_FILES; do
+            echo "Processing $file"
+            plugin_name=$(echo "$file" | cut -d'/' -f2)
+            mkdir -p ../wearehaustech.github.io/docs/$plugin_name
+            cp "$file" ../wearehaustech.github.io/docs/$plugin_name/
+          done
+
+      - name: Commit and Push to wearehaustech.github.io
+        run: |
+          cd ../wearehaustech.github.io
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "docs: update markdown files from haus-vendure-plugins-public" || echo "No changes to commit"
+          git push

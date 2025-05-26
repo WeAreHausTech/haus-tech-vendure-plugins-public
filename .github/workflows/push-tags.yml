@@ -1,0 +1,23 @@
+name: Push Tags
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  push-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Push Tags
+        run: |
+          git push --follow-tags
