@@ -10,23 +10,75 @@ We only take major and minor version into account. For example, if Vendure v2.2.
 
 ---
 
-## 📁 Create a new plugin
+## 🛠️ Monorepo Structure
 
-1. `cd packages`
-2. `wget https://github.com/vendure-ecommerce/plugin-template/archive/refs/heads/master.zip`
-3. `unzip master.zip`
-4. `rm master.zip`
-5. Follow the README in `plugin-template-master`
+This monorepo is structured using Nx, which allows for efficient management of multiple plugins. The main directories are:
+
+```text
+.
+├── packages/              # Plugin packages
+├── scripts/               # Utility scripts
+├── .yarnrc.yml            # Yarn configuration file
+├── .npmrc                 # NPM configuration
+├── .eslintrc.json         # ESLint configuration
+├── .prettierrc            # Prettier configuration
+├── .gitignore             # Git ignore file
+├── nx.json                # Nx configuration
+├── package.json           # Root package.json
+├── README.md              # This README file
+├── tsconfig.base.json     # Base TypeScript configuration
+├── tsconfig.e2e.json      # E2E test TypeScript configuration
+├── vitest.config.ts       # Vitest test configuration
+```
 
 ---
 
-## Publish a plugin
+## 🧩 Plugin Structure
 
-1. Ensure that the plugin name is `@haus-tech/name-of-plugin` in its `package.json`.
-2. Login to NPM: `npm login`
-3. `cd packages/plugin-to-publish`
-4. `yarn build`
-5. `yarn npm publish`
+Each plugin in this monorepo follows a standard structure:
+
+```text
+packages/
+├── plugin-name/
+│   ├── src/                  # Source code for the plugin
+│   ├── package.json          # Plugin metadata and dependencies
+│   ├── project.json          # Nx project configuration
+│   ├── README.md             # Plugin documentation
+│   ├── CHANGELOG.md          # Plugin changelog
+│   ├── tsconfig.json         # TypeScript configuration
+│   ├── tsconfig.spec.json    # TypeScript configuration for compiling and running test files
+│   ├── .eslintrc.json        # ESLint configuration
+│   └── ...                   # Other configuration files
+```
+
+---
+
+## 🏃‍♂️ Running Scripts with Yarn
+
+You can run any of the scripts defined in the root `package.json` using `yarn <script>`.  
+For example, to build all plugins:
+
+```bash
+yarn build
+```
+
+Here are all available scripts:
+
+| Script                     | Description                                                                                 |
+|----------------------------|---------------------------------------------------------------------------------------------|
+| `yarn build`               | Build all plugins (except `example-plugin`)                                                 |
+| `yarn build:affected`      | Build only affected plugins (except `example-plugin`)                                       |
+| `yarn test`                | Run tests for all plugins (except `example-plugin` and the monorepo package itself)         |
+| `yarn test:affected`       | Run tests only for affected plugins (except `example-plugin` and the monorepo package)      |
+| `yarn lint`                | Lint all plugins (except `example-plugin`)                                                  |
+| `yarn lint:affected`       | Lint only affected plugins (except `example-plugin`)                                        |
+| `yarn upgrade:vendure`     | Run the Vendure upgrade target for all plugins                                              |
+| `yarn upgrade:vendure:all` | Update all Vendure dependencies in the root package                                         |
+| `yarn remove-node-modules` | Remove all `node_modules` folders recursively                                               |
+| `yarn bump-all-versions`   | Bump all plugin versions to match the current Vendure version (major.minor.x)               |
+| `yarn update-readmes`      | Update all plugin READMEs to match their current version in their package.json              |
+
+You can see and modify these scripts in the root `package.json`.
 
 ---
 
@@ -98,9 +150,32 @@ Ensure that each plugin’s `project.json` includes a `test` target with an exec
 # Test all plugins
 npx nx run-many --target=test --all
 
+# Test only affected plugins
+npx nx affected --target=test
+
 # Test one plugin
 npx nx test plugin-name
 ```
+
+---
+
+## 📁 Create a new plugin
+
+1. `cd packages`
+2. `wget https://github.com/vendure-ecommerce/plugin-template/archive/refs/heads/master.zip`
+3. `unzip master.zip`
+4. `rm master.zip`
+5. Follow the README in `plugin-template-master`
+
+---
+
+## Publish a plugin
+
+1. Ensure that the plugin name is `@haus-tech/name-of-plugin` in its `package.json`.
+2. Login to NPM: `npm login`
+3. `cd packages/plugin-to-publish`
+4. `yarn build`
+5. `yarn npm publish`
 
 ---
 
