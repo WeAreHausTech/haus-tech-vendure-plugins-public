@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.14",
+    "apollo-angular": "^10.0.3",
     "lodash": "^4.17.21"
   }
 }
