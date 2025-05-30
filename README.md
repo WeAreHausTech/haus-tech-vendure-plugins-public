@@ -159,26 +159,6 @@ npx nx test plugin-name
 
 ---
 
-## 📁 Create a new plugin
-
-1. `cd packages`
-2. `wget https://github.com/vendure-ecommerce/plugin-template/archive/refs/heads/master.zip`
-3. `unzip master.zip`
-4. `rm master.zip`
-5. Follow the README in `plugin-template-master`
-
----
-
-## Publish a plugin
-
-1. Ensure that the plugin name is `@haus-tech/name-of-plugin` in its `package.json`.
-2. Login to NPM: `npm login`
-3. `cd packages/plugin-to-publish`
-4. `yarn build`
-5. `yarn npm publish`
-
----
-
 ## 🚀 Releasing a Plugin with Nx Release
 
 This repository uses the Nx Release workflow to automate plugin releases, changelog updates, and version tagging. All plugins follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard for commit messages, which helps in generating changelogs and determining version bumps.
@@ -241,26 +221,6 @@ This repository uses the Nx Release workflow to automate plugin releases, change
 - Only `feat`, `fix`, and `perf` commit types are included in the changelog.
 - The process is mostly automated, but you control the version bump for each release.
 - Always use `--dry-run` first to preview changes before releasing!
-
----
-
-## Setting Up SSH Authentication for HausTechTeam
-
-To set up authentication with your SSH key and ensure that HausTechTeam is credited for the commits you make, follow these steps:
-
-1. **Add your public SSH key to your account settings.**
-2. **Clone the repository using SSH.**
-
-   Then, execute the following commands:
-
-   ```bash
-   cd <folder with repo>
-   git config user.name "HausTechTeam"
-   git config user.email "tech.services@haus.se"
-   git config user.username "HausTechTeam"
-   ```
-
-This sets the correct Git user for the repository.
 
 ---
 

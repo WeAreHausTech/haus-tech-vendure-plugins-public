@@ -5,6 +5,6 @@
     "rootDir": "./src",
     "types": ["node"]
   },
-  "ignorePatterns": ["!**/*", "*.config.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.config.ts"],
   "include": ["src/**/*"]
 }

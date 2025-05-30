@@ -2,7 +2,7 @@
   "name": "@haus-tech/haus-vendure-plugins-public",
   "author": "Haus Tech",
   "license": "ISC",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Plugins for the Vendure ecommerce platform that provide extended functionality",
   "scripts": {
     "test": "nx run-many --target=test --all --exclude=@haus-tech/haus-vendure-plugins-public",
