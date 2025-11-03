@@ -1,4 +1,4 @@
-# 🧩 Haus Tech Vendure Plugins Monorepo
+# Haus Tech Vendure Plugins Monorepo
 
 This repository is an [Nx](https://nx.dev/) monorepo that contains multiple custom plugins for [Vendure](https://www.vendure.io/). Each plugin lives in the `packages/` directory and is developed, built, tested, and versioned independently.
 
@@ -33,7 +33,7 @@ This monorepo is structured using Nx, which allows for efficient management of m
 
 ---
 
-## 🧩 Plugin Structure
+## Plugin Structure
 
 Each plugin in this monorepo follows a standard structure:
 
@@ -53,7 +53,7 @@ packages/
 
 ---
 
-## 🏃‍♂️ Running Scripts with Yarn
+## Running Scripts with Yarn
 
 You can run any of the scripts defined in the root `package.json` using `yarn <script>`.  
 For example, to build all plugins:
@@ -82,7 +82,7 @@ You can see and modify these scripts in the root `package.json`.
 
 ---
 
-## 🧠 Useful `npx nx` Commands
+## Useful `npx nx` Commands
 
 Below is a list of useful `npx nx` commands tailored for this monorepo setup:
 
@@ -102,7 +102,7 @@ npx nx run-many --target=lint --all
 npx nx lint plugin-name 
 ```
 
-### 🔄 Upgrade Vendure
+### Upgrade Vendure
 
 ```bash
 # Upgrade Vendure for all plugins
@@ -112,7 +112,7 @@ npx nx run-many --target=upgrade:vendure --all
 npx nx run plugin-name:upgrade:vendure
 ```
 
-### 🧠 Affected (CI / partial rebuilds)
+### Affected (CI / partial rebuilds)
 
 These commands require Nx to detect changes against a base branch like main.
 
@@ -139,12 +139,12 @@ npx nx graph
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Each plugin uses [Vitest](https://vitest.dev/) for unit testing.  
 Ensure that each plugin’s `project.json` includes a `test` target with an executor like `@nx/vite:test`.
 
-### 🧪 Test Commands
+### Test Commands
 
 ```bash
 # Test all plugins
@@ -159,7 +159,7 @@ npx nx test plugin-name
 
 ---
 
-## 🚀 Releasing a Plugin with Nx Release
+## Releasing a Plugin with Nx Release
 
 This repository uses the Nx Release workflow to automate plugin releases, changelog updates, and version tagging. All plugins follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard for commit messages, which helps in generating changelogs and determining version bumps.
 
