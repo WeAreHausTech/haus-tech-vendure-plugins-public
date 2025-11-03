@@ -17,6 +17,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Update README versions with package.json
+        run: yarn update-readmes
+
       - name: Set up SSH for wearehaustech.github.io
         uses: webfactory/ssh-agent@v0.8.0
         with:
@@ -28,7 +39,8 @@ jobs:
 
       - name: Copy changed Markdown files
         run: |
-          mkdir -p ../wearehaustech.github.io/docs
+          DEST_DIR="../wearehaustech.github.io/docs/vendure-plugins"
+          mkdir -p "$DEST_DIR"
 
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^packages/.*\.md$' || true)
 
@@ -40,8 +52,8 @@ jobs:
           for file in $CHANGED_FILES; do
             echo "Processing $file"
             plugin_name=$(echo "$file" | cut -d'/' -f2)
-            mkdir -p ../wearehaustech.github.io/docs/$plugin_name
-            cp "$file" ../wearehaustech.github.io/docs/$plugin_name/
+            mkdir -p "$DEST_DIR/$plugin_name"
+            cp "$file" "$DEST_DIR/$plugin_name/"
           done
 
       - name: Commit and Push to wearehaustech.github.io
@@ -50,5 +62,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "docs: update markdown files from haus-vendure-plugins-public" || echo "No changes to commit"
+          git commit -m "docs(vendure-plugins): sync markdown files" || echo "No changes to commit"
           git push
