@@ -51,11 +51,8 @@ jobs:
           DEST_DIR="../wearehaustech.github.io/docs/vendure-plugins"
           mkdir -p "$DEST_DIR"
 
-          if [ "${{ github.event.inputs.forceFullSync }}" = "true" ]; then
-            echo "Force full sync requested."
-            CHANGED_FILES=$(find packages -type f -name "*.md")
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual run detected — syncing all markdown files."
+          if [ "${{ github.event.inputs.forceFullSync }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Full sync requested (forceFullSync or manual workflow_dispatch) — syncing all markdown files."
             CHANGED_FILES=$(find packages -type f -name "*.md")
           else
             CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^packages/.*\.md$' || true)
