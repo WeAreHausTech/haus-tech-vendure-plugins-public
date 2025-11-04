@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'packages/**/*.md'
 
 jobs:
   push-tags:
