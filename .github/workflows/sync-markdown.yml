@@ -7,6 +7,11 @@ on:
     paths:
       - 'packages/**.md'
   workflow_dispatch:
+    inputs:
+      forceFullSync:
+        description: 'Force a full sync of all markdown files'
+        required: false
+        default: 'false'
 
 jobs:
   sync-md:
@@ -46,7 +51,15 @@ jobs:
           DEST_DIR="../wearehaustech.github.io/docs/vendure-plugins"
           mkdir -p "$DEST_DIR"
 
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^packages/.*\.md$' || true)
+          if [ "${{ github.event.inputs.forceFullSync }}" = "true" ]; then
+            echo "Force full sync requested."
+            CHANGED_FILES=$(find packages -type f -name "*.md")
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run detected — syncing all markdown files."
+            CHANGED_FILES=$(find packages -type f -name "*.md")
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^packages/.*\.md$' || true)
+          fi
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changed markdown files to process."
