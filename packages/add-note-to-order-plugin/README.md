@@ -6,7 +6,7 @@ version: 3.0.0-rc1
 tags: [vendure, plugin, order, note]
 ---
 
-# Add Note to Order Plugin
+# Add Note to Order Plugin test test test
 
 The `Add Note to Order Plugin` is a Vendure plugin that enables administrators and customers to add, view, and manage notes on orders. This plugin enhances communication and record-keeping by allowing notes to be associated with specific orders.
 
