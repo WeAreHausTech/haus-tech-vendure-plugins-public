@@ -64,19 +64,19 @@ yarn build
 
 Here are all available scripts:
 
-| Script                     | Description                                                                                 |
-|----------------------------|---------------------------------------------------------------------------------------------|
-| `yarn build`               | Build all plugins (except `example-plugin`)                                                 |
-| `yarn build:affected`      | Build only affected plugins (except `example-plugin`)                                       |
-| `yarn test`                | Run tests for all plugins (except `example-plugin` and the monorepo package itself)         |
-| `yarn test:affected`       | Run tests only for affected plugins (except `example-plugin` and the monorepo package)      |
-| `yarn lint`                | Lint all plugins (except `example-plugin`)                                                  |
-| `yarn lint:affected`       | Lint only affected plugins (except `example-plugin`)                                        |
-| `yarn upgrade:vendure`     | Run the Vendure upgrade target for all plugins                                              |
-| `yarn upgrade:vendure:all` | Update all Vendure dependencies in the root package                                         |
-| `yarn remove-node-modules` | Remove all `node_modules` folders recursively                                               |
-| `yarn bump-all-versions`   | Bump all plugin versions to match the current Vendure version (major.minor.x)               |
-| `yarn update-readmes`      | Update all plugin READMEs to match their current version in their package.json              |
+| Script                     | Description                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| `yarn build`               | Build all plugins (except `example-plugin`)                                            |
+| `yarn build:affected`      | Build only affected plugins (except `example-plugin`)                                  |
+| `yarn test`                | Run tests for all plugins (except `example-plugin` and the monorepo package itself)    |
+| `yarn test:affected`       | Run tests only for affected plugins (except `example-plugin` and the monorepo package) |
+| `yarn lint`                | Lint all plugins (except `example-plugin`)                                             |
+| `yarn lint:affected`       | Lint only affected plugins (except `example-plugin`)                                   |
+| `yarn upgrade:vendure`     | Run the Vendure upgrade target for all plugins                                         |
+| `yarn upgrade:vendure:all` | Update all Vendure dependencies in the root package                                    |
+| `yarn remove-node-modules` | Remove all `node_modules` folders recursively                                          |
+| `yarn bump-all-versions`   | Bump all plugin versions to match the current Vendure version (major.minor.x)          |
+| `yarn update-readmes`      | Update all plugin READMEs to match their current version in their package.json         |
 
 You can see and modify these scripts in the root `package.json`.
 
@@ -99,7 +99,7 @@ npx nx build plugin-name
 npx nx run-many --target=lint --all
 
 # Lint one plugin
-npx nx lint plugin-name 
+npx nx lint plugin-name
 ```
 
 ### Upgrade Vendure

@@ -1,0 +1,123 @@
+<!-- product-import.component.html -->
+<vdr-page-block>
+  <vdr-card [title]="'product-import.card.title' | translate">
+    <div class="form-grid">
+      <vdr-form-field [label]="'product-import.card.description' | translate">
+        <input type="file" (change)="onFileSelected($event)" class="file-input" #fileUpload />
+
+        <div class="file-upload" style="display: flex; align-items: center; gap: 8px">
+          <button *ngIf="selectedFile" class="button-small" (click)="fileUpload.click()">
+            <clr-icon shape="file"></clr-icon>
+            {{ selectedFile?.name }}
+          </button>
+
+          <button class="button primary" *ngIf="!selectedFile" (click)="fileUpload.click()">
+            {{ 'product-import.card.button-select' | translate }}
+          </button>
+          <button
+            class="button primary"
+            *ngIf="selectedFile"
+            (click)="uploadFile()"
+            [disabled]="!selectedMainLanguage"
+          >
+            {{ 'product-import.card.button-upload' | translate }}
+          </button>
+        </div>
+      </vdr-form-field>
+    </div>
+    <div
+      class="form-grid"
+      *ngIf="selectedFile"
+      style="margin-top: 24px; border-top: 1px solid #cdcdcd"
+    >
+      <div
+        class="input-row"
+        style="margin-top: 16px"
+        *ngIf="config.visibleOptions?.includes('updateProductSlug')"
+      >
+        <label>
+          <input
+            type="checkBox"
+            name="updateProductSlug"
+            value="url"
+            [(ngModel)]="updateProductSlug"
+            style="width: fit-content"
+          />
+          {{ 'product-import.card.update-product-slugs' | translate }}
+        </label>
+      </div>
+
+      <div class="input-row" style="margin-top: 16px">
+        <div>{{ 'product-import.card.select-main-language' | translate }}</div>
+        <div *ngFor="let lang of availableLanguages">
+          <label>
+            <input
+              type="radio"
+              name="selectedMainLanguage"
+              [value]="lang"
+              [(ngModel)]="selectedMainLanguage"
+              style="width: fit-content"
+              (change)="onMainLanguageChange(lang)"
+            />
+            {{ lang }}
+          </label>
+        </div>
+        <div
+          style="
+            margin-top: 8px;
+            padding-top: 8px;
+            font-style: italic;
+            font-size: 12px;
+            line-height: 1.4;
+          "
+        >
+          <clr-icon shape="info-circle" size="16" class="is-info"></clr-icon>
+          {{ 'product-import.card.main-language-info' | translate }}
+        </div>
+      </div>
+
+      <div class="input-row" style="margin-top: 16px">
+        <div>{{ 'product-import.card.updating-strategy' | translate }}</div>
+        <div>
+          <label>
+            <input
+              type="radio"
+              name="updatingStrategy"
+              value="merge"
+              [(ngModel)]="updatingStrategy"
+              style="width: fit-content"
+            />
+            {{ 'product-import.card.merge' | translate }}
+          </label>
+        </div>
+        <div>
+          <label>
+            <input
+              type="radio"
+              name="updatingStrategy"
+              value="replace"
+              [(ngModel)]="updatingStrategy"
+              style="width: fit-content"
+            />
+            {{ 'product-import.card.overwrite' | translate }}<br />
+            <span *ngIf="updatingStrategy === 'replace'" style="color: red; font-size: 12px">{{
+              'product-import.card.overwrite-warning' | translate
+            }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </vdr-card>
+</vdr-page-block>
+
+<style>
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 1rem;
+  }
+
+  .file-input {
+    display: none;
+  }
+</style>

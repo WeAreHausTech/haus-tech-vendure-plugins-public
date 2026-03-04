@@ -1,0 +1,69 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "product-import-export-plugin",
+  "root": "packages/product-import-export-plugin",
+  "sourceRoot": "packages/product-import-export-plugin/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/product-import-export-plugin",
+        "main": "packages/product-import-export-plugin/src/index.ts",
+        "tsConfig": "packages/product-import-export-plugin/tsconfig.json",
+        "assets": [
+          "packages/product-import-export-plugin/README.md",
+          "packages/product-import-export-plugin/CHANGELOG.md",
+          {
+            "input": "packages/product-import-export-plugin/src/ui",
+            "glob": "**/*",
+            "output": "./src/ui"
+          },
+          {
+            "input": "packages/product-import-export-plugin/src/dashboard",
+            "glob": "**/*",
+            "output": "./src/dashboard"
+          }
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "config": "vitest.config.ts",
+        "passWithNoTests": true,
+        "coverage": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/product-import-export-plugin/**/*.ts"]
+      }
+    },
+    "upgrade:vendure": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm update @vendure/* --save",
+        "cwd": "packages/product-import-export-plugin"
+      }
+    },
+    "version": {
+      "executor": "@nx/workspace:version",
+      "dependsOn": ["update-readme"],
+      "options": {
+        "changelog": true,
+        "push": true
+      }
+    },
+    "update-readme": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx scripts/update-readmes.ts product-import-export-plugin"
+      }
+    }
+  }
+}

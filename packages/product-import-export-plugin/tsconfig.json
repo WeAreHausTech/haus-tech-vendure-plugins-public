@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/packages/product-import-export-plugin",
+    "rootDir": "./src",
+    "types": ["node", "Multer"],
+    "lib": ["es2022", "dom"]
+  },
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.config.ts",
+    "src/ui/**/*",
+    "src/dashboard/**/*"
+  ],
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "./tsconfig.dashboard.json"
+    }
+  ]
+}
