@@ -2,16 +2,18 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "cache": true
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/packages/{projectName}",
+        "access": "public"
+      }
     }
   },
   "release": {
-    "projects": [
-      "packages/*"
-    ],
+    "projects": ["packages/*"],
     "projectsRelationship": "independent",
     "releaseTagPattern": "{projectName}@{version}",
     "changelog": {
@@ -21,7 +23,23 @@
           "commitReferences": true,
           "versionTitleDate": false
         }
-      }
+      },
+      "automaticFromRef": true,
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    },
+    "version": {
+      "preVersionCommand": "npx nx run-many -t build",
+      "manifestRootsToUpdate": [
+        {
+          "path": "dist/packages/{projectName}",
+          "preserveLocalDependencyProtocols": false
+        },
+        {
+          "path": "packages/{projectName}",
+          "preserveLocalDependencyProtocols": true
+        }
+      ]
     }
   },
   "plugins": [

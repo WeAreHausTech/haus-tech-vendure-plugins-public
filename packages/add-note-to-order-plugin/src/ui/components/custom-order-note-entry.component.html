@@ -1,9 +1,0 @@
-<div style="display: flex; gap: 8px; align-items: center;">
-  <span *ngIf="!entry.isPublic" style="color: red">Private</span>
-  {{ entry.data.note }}
-  <button *ngIf="!entry.data.readAt && entry.data.fromCustomer" class="button-small" (click)="onMarkAsRead()">
-    <clr-icon shape="eye"></clr-icon>
-    {{ 'order-note-plugin.markAsRead' | translate }}
-  </button>
-</div>
-

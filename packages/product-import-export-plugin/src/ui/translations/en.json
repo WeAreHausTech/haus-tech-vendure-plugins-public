@@ -1,0 +1,53 @@
+{
+  "product-import": {
+    "import-products": "Import products",
+    "card": {
+      "title": "Import products from CSV",
+      "description": "Choose a CSV file to import products from",
+      "button-select": "Select file",
+      "button-upload": "Upload file",
+      "update-product-slugs": "Update product slugs based on name",
+      "select-main-language": "Select main language: ",
+      "updating-strategy": "Updating strategy for facets and assets: ",
+      "overwrite": "Overwrite",
+      "overwrite-warning": "Warning: This will remove existing facets and assets from products and variants.",
+      "merge": "Merge",
+      "main-language-info": "The main language is used as a fallback when translations are missing. It is recommended to select the language that is used the most in your system. The main language will be used to create products, the other languages will be used to fill in translations."
+    },
+    "notifications": {
+      "invalid-file-type": "Invalid file type. Please upload a CSV file.",
+      "invalid-file-structure": "Invalid file structure. Please upload a correct CSV file.",
+      "upload-success": "The file was uploaded and has been added to the import queue.",
+      "upload-error": "An error occurred while uploading the file.",
+      "no-file-selected": "No file selected.",
+      "mismatched-values": "Some fields are missing language specifications. Please fill in all languages: ",
+      "missing-base-columns": "Some columns are missing: ",
+      "missing-column": "Column is missing: ",
+      "no-lines-in-file": "The file is empty.",
+      "file-read-error": "An error occurred while reading the file.",
+      "invalid-json": "Invalid JSON structure. Please upload a correct JSON file.",
+      "missing-languages": "Your CSV file contains languages that are not available in the system. Please add the languages to the system or remove the languages that are not used and try again.",
+      "mismatched-option-values": "Some product variants are missing product options. Please fill in all options: ",
+      "missing-main-language-name": "Main language is missing for name. Please add the main language and try again.",
+      "missing-translation-values": "Some fields are missing translations for the main language that exist in other languages. These will not be imported: ",
+      "inconsistent-columns": "The columns in the file are inconsistent. Please ensure all rows have the same number of columns."
+    }
+  },
+  "product-export": {
+    "action": "Export products to CSV",
+    "dialog": {
+      "title": "Export products to CSV",
+      "label": "File name (optional)",
+      "export": "Export",
+      "cancel": "Cancel",
+      "customFieldsLabel": "Custom fields to include in the export",
+      "exportAssetsAs": "Export assets as: ",
+      "exportAssetsAsOptions": {
+        "url": "URL",
+        "json": "JSON"
+      },
+      "availableExportFieldsLabel": "Fields to export",
+      "selectAll": "Select all"
+    }
+  }
+}

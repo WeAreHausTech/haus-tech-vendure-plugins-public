@@ -1,0 +1,83 @@
+<ng-template vdrDialogTitle>{{ 'product-export.dialog.title' | translate }}</ng-template>
+<div class="input-row">
+  <vdr-form-field [label]="'product-export.dialog.label' | translate">
+    <input
+      type="text"
+      [(ngModel)]="fileName"
+      [placeholder]="config?.defaultFileName || 'products_export.csv'"
+      style="width: 100%"
+      #fileNameInput
+    />
+  </vdr-form-field>
+</div>
+
+<div class="input-row" style="margin-top: 16px">
+  <input type="checkbox" (change)="toggleSelectAll($event)" [checked]="toggleAllChecked" />
+  {{ 'product-export.dialog.selectAll' | translate }}
+</div>
+
+<div class="input-row" style="margin-top: 16px">
+  <label style="margin-bottom: 8px; display: inline-block">{{
+    'product-export.dialog.availableExportFieldsLabel' | translate
+  }}</label>
+  <div *ngFor="let field of availableExportFields">
+    <input
+      type="checkbox"
+      [value]="field"
+      (change)="toggleExportFieldSelection(field)"
+      [checked]="selectedExportFields.includes(field)"
+      [disabled]="config.requiredExportFields.includes(field)"
+    />
+    {{ field }}
+  </div>
+</div>
+
+<div class="input-row" style="margin-top: 16px">
+  <label style="margin-bottom: 8px; display: inline-block">{{
+    'product-export.dialog.customFieldsLabel' | translate
+  }}</label>
+  <div *ngFor="let field of customFields">
+    <input
+      type="checkbox"
+      [value]="field"
+      (change)="toggleFieldSelection(field)"
+      [checked]="selectedFields.includes(field)"
+    />
+    {{ field }}
+  </div>
+</div>
+
+<span style="margin-top: 16px; margin-bottom: 8px; display: block">{{
+  'product-export.dialog.exportAssetsAs' | translate
+}}</span>
+<div class="input-row" style="margin-top: 8px">
+  <label *ngIf="config?.exportAssetsAsOptions?.includes('url')">
+    <input
+      type="radio"
+      name="exportAssets"
+      value="url"
+      [(ngModel)]="exportAssetsAs"
+      style="width: fit-content"
+    />
+    {{ 'product-export.dialog.exportAssetsAsOptions.url' | translate }}
+  </label>
+  <label *ngIf="config?.exportAssetsAsOptions?.includes('json')">
+    <input
+      type="radio"
+      name="exportAssets"
+      value="json"
+      [(ngModel)]="exportAssetsAs"
+      style="width: fit-content"
+    />
+    {{ 'product-export.dialog.exportAssetsAsOptions.json' | translate }}
+  </label>
+</div>
+
+<ng-template vdrDialogButtons>
+  <button type="button" class="btn" (click)="cancel()">
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button type="button" class="btn btn-primary" (click)="export()">
+    {{ 'product-export.dialog.export' | translate }}
+  </button>
+</ng-template>

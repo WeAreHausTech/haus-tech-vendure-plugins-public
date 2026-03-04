@@ -14,5 +14,12 @@
     "allowSyntheticDefaultImports": true,
     "strictPropertyInitialization": false,
     "composite": true
-  }
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "vite.config.*.timestamp*",
+    "vitest.config.*.timestamp*",
+    "src/ui/**/*"
+  ]
 }

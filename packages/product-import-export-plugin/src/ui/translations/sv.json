@@ -1,0 +1,53 @@
+{
+  "product-import": {
+    "import-products": "Importera produkter",
+    "card": {
+      "title": "Importera produkter från CSV",
+      "description": "Välj en CSV-fil att importera produkter från",
+      "button-select": "Välj fil",
+      "button-upload": "Ladda upp fil",
+      "update-product-slugs": "Uppdatera produkt-sluggar utifrån namn",
+      "select-main-language": "Välj huvudspråk: ",
+      "updating-strategy": "Uppdateringsstrategi för etiketter och filer: ",
+      "overwrite": "Skriv över",
+      "overwrite-warning": "Varning: Detta kommer ta bort befintliga etiketter och filer från produkter och varianter.",
+      "merge": "Sammanfoga",
+      "main-language-info": "Huvudspråket används som fallback när översättningar saknas. Det rekommenderas att välja det språk som används mest i din kanal. Huvudspråket kommer användas för att skapa upp produkter, de övriga språken kommer användas för att fylla i översättningar."
+    },
+    "notifications": {
+      "invalid-file-type": "Felaktig filtyp. Vänligen ladda upp en CSV-fil.",
+      "invalid-file-structure": "Felaktig filstruktur. Vänligen ladda upp en korrekt CSV-fil.",
+      "upload-success": "Filen laddades upp och har lagts till i kön för import.",
+      "upload-error": "Ett fel uppstod vid uppladdning av filen.",
+      "no-file-selected": "Ingen fil vald.",
+      "mismatched-values": "Det saknas språkspecifikationer för vissa fält. Vänligen fyll i alla språk: ",
+      "missing-base-columns": "Vissa kolumner saknas: ",
+      "missing-column": "Kolumnen saknas: ",
+      "no-lines-in-file": "Filen är tom.",
+      "file-read-error": "Ett fel uppstod vid läsning av filen.",
+      "invalid-json": "Fältet {col} på rad {row} innehåller felaktig JSON-struktur.",
+      "missing-languages": "Din CSV-fil innehåller språk som inte är tillgängliga i den här kanalen. Vänligen lägg till språken i kanalen eller ta bort de språk som inte används och försök igen.",
+      "mismatched-option-values": "Antalet produktalternativ för vissa produktvarianter är felaktigt: ",
+      "missing-main-language-name": "Huvudspråket saknas för namn. Vänligen lägg till huvudspråket och försök igen.",
+      "missing-translation-values": "Det saknas översättningar för vissa fält för huvudspråket som existerar i andra språk. Dessa kommer inte importeras: ",
+      "inconsistent-columns": "Kolumnerna i filen är inkonsekventa. Vänligen kontrollera att alla rader har samma antal kolumner."
+    }
+  },
+  "product-export": {
+    "action": "Exportera produkter till CSV",
+    "dialog": {
+      "title": "Exportera produkter till CSV",
+      "label": "Filnamn (valfritt)",
+      "export": "Exportera",
+      "cancel": "Avbryt",
+      "customFieldsLabel": "Anpassade fält som ska inkluderas i exporten",
+      "exportAssetsAs": "Exportera filer som: ",
+      "exportAssetsAsOptions": {
+        "url": "URL",
+        "json": "JSON"
+      },
+      "availableExportFieldsLabel": "Fält att exportera",
+      "selectAll": "Välj alla"
+    }
+  }
+}
