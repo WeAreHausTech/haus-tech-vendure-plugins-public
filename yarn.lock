@@ -3671,10 +3671,15 @@ __metadata:
   resolution: "@haus-tech/product-import-export-plugin@workspace:packages/product-import-export-plugin"
   dependencies:
     "@types/fs-extra": "npm:^11.0.4"
+    axios: "npm:^1.7.0"
     bottleneck: "npm:^2.19.5"
     csv-parse: "npm:^5.6.0"
     csv-stringify: "npm:^6.6.0"
+    fs-extra: "npm:^11.2.0"
+    lodash: "npm:^4.17.21"
   peerDependencies:
+    "@vendure/core": ^2.0.0 || ^3.0.0
+    "@vendure/email-plugin": ^2.0.0 || ^3.0.0
     csv-parse: ^5.5.6
     csv-stringify: ^6.5.1
     slug: ^9.1.0
@@ -10842,6 +10847,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:^1.7.0":
+  version: 1.13.6
+  resolution: "axios@npm:1.13.6"
+  dependencies:
+    follow-redirects: "npm:^1.15.11"
+    form-data: "npm:^4.0.5"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10c0/51fb5af055c3b85662fa97df17d986ae2c37d13bf86d50b6bb36b6b3a2dec6966a1d3a14ab3774b71707b155ae3597ed9b7babdf1a1a863d1a31840cb8e7ec71
+  languageName: node
+  linkType: hard
+
 "axios@npm:^1.8.3":
   version: 1.8.4
   resolution: "axios@npm:1.8.4"
@@ -14231,6 +14247,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"follow-redirects@npm:^1.15.11":
+  version: 1.15.11
+  resolution: "follow-redirects@npm:1.15.11"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 10c0/d301f430542520a54058d4aeeb453233c564aaccac835d29d15e050beb33f339ad67d9bddbce01739c5dc46a6716dbe3d9d0d5134b1ca203effa11a7ef092343
+  languageName: node
+  linkType: hard
+
 "for-each@npm:^0.3.3, for-each@npm:^0.3.5":
   version: 0.3.5
   resolution: "for-each@npm:0.3.5"
@@ -14259,6 +14285,19 @@ __metadata:
     es-set-tostringtag: "npm:^2.1.0"
     mime-types: "npm:^2.1.12"
   checksum: 10c0/e534b0cf025c831a0929bf4b9bbe1a9a6b03e273a8161f9947286b9b13bf8fb279c6944aae0070c4c311100c6d6dbb815cd955dc217728caf73fad8dc5b8ee9c
+  languageName: node
+  linkType: hard
+
+"form-data@npm:^4.0.5":
+  version: 4.0.5
+  resolution: "form-data@npm:4.0.5"
+  dependencies:
+    asynckit: "npm:^0.4.0"
+    combined-stream: "npm:^1.0.8"
+    es-set-tostringtag: "npm:^2.1.0"
+    hasown: "npm:^2.0.2"
+    mime-types: "npm:^2.1.12"
+  checksum: 10c0/dd6b767ee0bbd6d84039db12a0fa5a2028160ffbfaba1800695713b46ae974a5f6e08b3356c3195137f8530dcd9dfcb5d5ae1eeff53d0db1e5aad863b619ce3b
   languageName: node
   linkType: hard
 
