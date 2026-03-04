@@ -8,23 +8,50 @@
     "url": "git+https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public.git"
   },
   "license": "MIT",
+  "keywords": [
+    "vendure",
+    "plugin",
+    "import",
+    "export",
+    "products",
+    "csv",
+    "bulk"
+  ],
   "engines": {
     "node": ">=20.0.0"
   },
   "main": "src/index.js",
   "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "start": "yarn ts-node test/dev-server.ts",
     "build": "yarn run -T rimraf dist && yarn run -T tsc && yarn run -T copyfiles -u 1 'src/ui/**/*' dist/",
     "prepublishOnly": "yarn && yarn build"
   },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "bottleneck": "^2.19.5",
+    "fs-extra": "^11.2.0",
+    "lodash": "^4.17.21"
+  },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "bottleneck": "^2.19.5",
     "csv-parse": "^5.6.0",
     "csv-stringify": "^6.6.0"
   },
   "peerDependencies": {
+    "@vendure/core": "^2.0.0 || ^3.0.0",
+    "@vendure/email-plugin": "^2.0.0 || ^3.0.0",
     "csv-parse": "^5.5.6",
     "csv-stringify": "^6.5.1",
     "slug": "^9.1.0"

@@ -6,8 +6,6 @@ on:
       - main
     paths:
       - 'packages/**/package.json'
-    paths-ignore:
-      - 'packages/**/README.md'
   workflow_dispatch:
 
 jobs:
