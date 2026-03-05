@@ -1919,7 +1919,7 @@
   integrity sha512-XWTKyTdC9d4awodD3PrQ64C+ktpohFff7JN4D+9jWfgG3xXHLhggKCkGjHV1XNq8T3l2gmQKia8VgU4ZJJoGMg==
 
 "@haus-tech/product-import-export-plugin@file:/Users/johanna/ecom/haus-tech-vendure-plugins-public/packages/product-import-export-plugin":
-  version "3.1.10"
+  version "3.2.1"
   resolved "file:packages/product-import-export-plugin"
   dependencies:
     axios "^1.7.0"
