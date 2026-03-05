@@ -5,7 +5,9 @@ on:
     branches:
       - main
     paths:
-      - 'packages/**.md'
+      - 'packages/**/*.md'
+      - 'packages/**/*.mdx'
+      - 'packages/**/assets/**'
   workflow_dispatch:
     inputs:
       forceFullSync:
@@ -53,9 +55,9 @@ jobs:
 
           if [ "${{ github.event.inputs.forceFullSync }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Full sync requested (forceFullSync or manual workflow_dispatch) — syncing all markdown files."
-            CHANGED_FILES=$(find packages -type f -name "*.md")
+            CHANGED_FILES=$(find packages -type f \( -name "*.md" -o -name "*.mdx" \))
           else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^packages/.*\.md$' || true)
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^packages/.*\.(md|mdx)$' || true)
           fi
 
           if [ -z "$CHANGED_FILES" ]; then
@@ -68,6 +70,9 @@ jobs:
             plugin_name=$(echo "$file" | cut -d'/' -f2)
             mkdir -p "$DEST_DIR/$plugin_name"
             cp "$file" "$DEST_DIR/$plugin_name/"
+            if [ -d "packages/$plugin_name/assets" ]; then
+              cp -r "packages/$plugin_name/assets" "$DEST_DIR/$plugin_name/"
+            fi
           done
 
       - name: Commit and Push to wearehaustech.github.io

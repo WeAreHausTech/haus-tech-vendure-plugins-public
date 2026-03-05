@@ -13,7 +13,7 @@
         "main": "packages/product-import-export-plugin/src/index.ts",
         "tsConfig": "packages/product-import-export-plugin/tsconfig.json",
         "assets": [
-          "packages/product-import-export-plugin/README.md",
+          "packages/product-import-export-plugin/README.mdx",
           "packages/product-import-export-plugin/CHANGELOG.md",
           {
             "input": "packages/product-import-export-plugin/src/ui",
