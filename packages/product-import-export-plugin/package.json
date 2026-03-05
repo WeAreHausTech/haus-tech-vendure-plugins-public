@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/product-import-export-plugin",
-  "version": "3.1.5",
+  "version": "3.1.6",
   "description": "A Vendure plugin for importing and exporting products using a CSV file",
   "author": "Haus Tech",
   "repository": {
@@ -40,8 +40,7 @@
   ],
   "scripts": {
     "start": "yarn ts-node test/dev-server.ts",
-    "build": "yarn run -T rimraf dist && yarn run -T tsc && yarn run -T copyfiles -u 1 'src/ui/**/*' dist/",
-    "prepublishOnly": "yarn && yarn build"
+    "build": "yarn run -T rimraf dist && yarn run -T tsc && yarn run -T copyfiles -u 1 'src/ui/**/*' dist/"
   },
   "dependencies": {
     "axios": "^1.7.0",
