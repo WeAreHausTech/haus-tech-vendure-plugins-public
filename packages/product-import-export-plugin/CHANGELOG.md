@@ -1,3 +1,7 @@
+## 3.2.1
+
+This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
+
 ## 3.2.0
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
