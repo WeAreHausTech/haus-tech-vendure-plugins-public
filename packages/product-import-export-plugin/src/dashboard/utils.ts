@@ -34,6 +34,21 @@ export type VariantFields =
 
 export type ExportFields = Array<ProductFields | VariantFields>
 
+export type ExportStorageOptions =
+  | {
+      type?: 'disk'
+    }
+  | {
+      type: 's3'
+      bucket: string
+      region?: string
+      accessKeyId: string
+      secretAccessKey: string
+      endpoint?: string
+      forcePathStyle?: boolean
+      baseKeyPrefix?: string
+    }
+
 export interface PluginInitOptions {
   visibleOptions?: Array<keyof ImportOptions>
   defaultOptions?: ImportOptions
@@ -43,6 +58,7 @@ export interface PluginInitOptions {
     defaultExportAssetsAs?: 'url' | 'json'
     defaultExportFields?: ExportFields
     requiredExportFields?: ExportFields
+    storage?: ExportStorageOptions
   }
 }
 

@@ -25,12 +25,27 @@ type VariantFields =
   | 'enabled'
 
 type ExportFields = Array<ProductFields | VariantFields>
+type ExportStorageOptions =
+  | {
+      type?: 'disk'
+    }
+  | {
+      type: 's3'
+      bucket: string
+      region?: string
+      accessKeyId: string
+      secretAccessKey: string
+      endpoint?: string
+      forcePathStyle?: boolean
+      baseKeyPrefix?: string
+    }
 interface PluginInitOptions {
   defaultFileName?: string
   exportAssetsAsOptions?: Array<'url' | 'json'>
   defaultExportAssetsAs?: 'url' | 'json'
   defaultExportFields?: ExportFields
   requiredExportFields?: ExportFields
+  storage?: ExportStorageOptions
 }
 
 @Component({

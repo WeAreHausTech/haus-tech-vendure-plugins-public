@@ -43,6 +43,7 @@
     "build": "yarn run -T rimraf dist && yarn run -T tsc && yarn run -T copyfiles -u 1 'src/ui/**/*' dist/"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.744.0",
     "axios": "^1.7.0",
     "bottleneck": "^2.19.5",
     "fs-extra": "^11.2.0",

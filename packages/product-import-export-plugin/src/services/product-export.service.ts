@@ -12,13 +12,21 @@ import {
   LanguageCode,
 } from '@vendure/core'
 import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
-import { PluginInitOptions } from '../types'
+import { ExportStorageOptions, PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
 import { forEach, sortBy, startsWith } from 'lodash'
 import Bottleneck from 'bottleneck'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
+import { PutObjectCommand } from '@aws-sdk/client-s3'
+import { createReadStream, ReadStream } from 'fs'
+import {
+  buildExportObjectKey,
+  createS3Client,
+  isS3Storage,
+  S3StorageConfig,
+} from './export-storage.util'
 
 interface TranslationMap {
   [key: string]: string
@@ -205,6 +213,16 @@ export class ProductExportService {
 
       // Rename .tmp file to final name when export is complete
       await fs.rename(exportFile, finalExportFile)
+
+      const storage = this.getExportStorageOptions()
+
+      if (isS3Storage(storage)) {
+        const objectKey = buildExportObjectKey(storage, channelToken, timestampedFileName)
+        await this.uploadFileToS3(storage, finalExportFile, objectKey)
+        await fs.unlink(finalExportFile)
+
+        return objectKey
+      }
 
       return finalExportFile
     } catch (error) {
@@ -528,5 +546,31 @@ export class ProductExportService {
 
   async getConfig(): Promise<PluginInitOptions> {
     return this.options
+  }
+
+  private getExportStorageOptions(): ExportStorageOptions | undefined {
+    if (!this.options.exportOptions) {
+      return undefined
+    }
+
+    return this.options.exportOptions.storage
+  }
+
+  private async uploadFileToS3(
+    storage: S3StorageConfig,
+    filePath: string,
+    key: string,
+  ): Promise<void> {
+    const client = createS3Client(storage)
+    const fileStream: ReadStream = createReadStream(filePath)
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: storage.bucket,
+        Key: key,
+        Body: fileStream,
+        ContentType: 'text/csv',
+      }),
+    )
   }
 }

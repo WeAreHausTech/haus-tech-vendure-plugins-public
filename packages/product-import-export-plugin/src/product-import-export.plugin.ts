@@ -68,6 +68,11 @@ export class ProductImportExportPlugin {
       }
     }
 
+    // Ensure exportOptions exists
+    if (!options.exportOptions) {
+      options.exportOptions = {}
+    }
+
     // Setup export options
     if (!options.exportOptions.defaultFileName) {
       options.exportOptions.defaultFileName = 'products_export.csv'

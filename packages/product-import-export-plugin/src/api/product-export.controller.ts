@@ -17,7 +17,13 @@ import { ProductExportQueueService } from '../services/product-export-queue.serv
 import { existsSync, createReadStream, promises } from 'fs'
 import * as path from 'path'
 import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
-import { PluginInitOptions } from '../types'
+import { ExportStorageOptions, PluginInitOptions } from '../types'
+import { GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import {
+  buildExportObjectKey,
+  createS3Client,
+  isS3Storage,
+} from '../services/export-storage.util'
 
 @Controller('product-export')
 export class ProductExportController {
@@ -139,24 +145,48 @@ export class ProductExportController {
   ) {
     try {
       const channelToken = ctx.channel.token
-      const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-      const filePath = path.join(exportsDir, fileName)
+      const storage = this.getExportStorageOptions()
 
-      if (!filePath.startsWith(exportsDir)) {
-        throw new UnprocessableEntityException('Invalid file path')
+      if (isS3Storage(storage)) {
+        const client = createS3Client(storage)
+        const key = buildExportObjectKey(storage, channelToken, fileName)
+        const result = await client.send(
+          new GetObjectCommand({
+            Bucket: storage.bucket,
+            Key: key,
+          }),
+        )
+
+        if (!result.Body) {
+          throw new UnprocessableEntityException('File not found')
+        }
+
+        res.set({
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+        })
+
+        ;(result.Body as NodeJS.ReadableStream).pipe(res)
+      } else {
+        const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
+        const filePath = path.join(exportsDir, fileName)
+
+        if (!filePath.startsWith(exportsDir)) {
+          throw new UnprocessableEntityException('Invalid file path')
+        }
+
+        if (!existsSync(filePath)) {
+          throw new UnprocessableEntityException('File not found')
+        }
+
+        res.set({
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+        })
+
+        const fileStream = createReadStream(filePath)
+        fileStream.pipe(res)
       }
-
-      if (!existsSync(filePath)) {
-        throw new UnprocessableEntityException('File not found')
-      }
-
-      res.set({
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-      })
-
-      const fileStream = createReadStream(filePath)
-      fileStream.pipe(res)
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
@@ -166,18 +196,32 @@ export class ProductExportController {
   async deleteExport(@Ctx() ctx: RequestContext, @Param('fileName') fileName: string) {
     try {
       const channelToken = ctx.channel.token
-      const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-      const filePath = path.join(exportsDir, fileName)
+      const storage = this.getExportStorageOptions()
 
-      if (!filePath.startsWith(exportsDir)) {
-        throw new UnprocessableEntityException('Invalid file path')
+      if (isS3Storage(storage)) {
+        const client = createS3Client(storage)
+        const key = buildExportObjectKey(storage, channelToken, fileName)
+
+        await client.send(
+          new DeleteObjectCommand({
+            Bucket: storage.bucket,
+            Key: key,
+          }),
+        )
+      } else {
+        const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
+        const filePath = path.join(exportsDir, fileName)
+
+        if (!filePath.startsWith(exportsDir)) {
+          throw new UnprocessableEntityException('Invalid file path')
+        }
+
+        if (!existsSync(filePath)) {
+          throw new UnprocessableEntityException('File not found')
+        }
+
+        await promises.unlink(filePath)
       }
-
-      if (!existsSync(filePath)) {
-        throw new UnprocessableEntityException('File not found')
-      }
-
-      await promises.unlink(filePath)
 
       return {
         success: true,
@@ -197,31 +241,77 @@ export class ProductExportController {
   async getExportFiles(@Ctx() ctx: RequestContext) {
     try {
       const channelToken = ctx.channel.token
+      const storage = this.getExportStorageOptions()
 
-      const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-      if (!existsSync(exportsDir)) {
-        return []
-      }
+      if (isS3Storage(storage)) {
+        const client = createS3Client(storage)
+        const prefix = buildExportObjectKey(storage, channelToken, '')
+        const normalizedPrefix = prefix.endsWith('/') ? prefix : `${prefix}`
 
-      const files = await promises.readdir(exportsDir)
+        const result = await client.send(
+          new ListObjectsV2Command({
+            Bucket: storage.bucket,
+            Prefix: normalizedPrefix,
+          }),
+        )
 
-      const fileList = await Promise.all(
-        files
-          .filter((file) => file.endsWith('.csv') && !file.endsWith('.tmp'))
-          .map(async (file) => {
-            const filePath = path.join(exportsDir, file)
-            const stats = await promises.stat(filePath)
+        const contents = result.Contents || []
+
+        const fileList = contents
+          .filter((object) => {
+            if (!object.Key) {
+              return false
+            }
+
+            return object.Key.endsWith('.csv') && !object.Key.endsWith('.tmp')
+          })
+          .map((object) => {
+            const key = object.Key as string
+            const segments = key.split('/')
+            const file = segments[segments.length - 1]
+
             return {
               fileName: file,
-              size: stats.size,
-              created: stats.birthtime,
-              modified: stats.mtime,
+              size: object.Size ?? 0,
+              created: object.LastModified ?? new Date(),
+              modified: object.LastModified ?? new Date(),
             }
-          }),
-      )
-      return fileList.sort((a, b) => b.created.getTime() - a.created.getTime())
+          })
+
+        return fileList.sort((a, b) => b.created.getTime() - a.created.getTime())
+      } else {
+        const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
+        if (!existsSync(exportsDir)) {
+          return []
+        }
+
+        const files = await promises.readdir(exportsDir)
+
+        const fileList = await Promise.all(
+          files
+            .filter((file) => file.endsWith('.csv') && !file.endsWith('.tmp'))
+            .map(async (file) => {
+              const filePath = path.join(exportsDir, file)
+              const stats = await promises.stat(filePath)
+              return {
+                fileName: file,
+                size: stats.size,
+                created: stats.birthtime,
+                modified: stats.mtime,
+              }
+            }),
+        )
+        return fileList.sort((a, b) => b.created.getTime() - a.created.getTime())
+      }
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
+  }
+  private getExportStorageOptions(): ExportStorageOptions | undefined {
+    if (!this.options.exportOptions) {
+      return undefined
+    }
+
+    return this.options.exportOptions.storage
   }
 }
