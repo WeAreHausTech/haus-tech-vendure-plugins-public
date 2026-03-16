@@ -13,7 +13,7 @@ export function isS3Storage(storage?: ExportStorageOptions): storage is S3Storag
 
 export function createS3Client(storage: S3StorageConfig): S3Client {
   return new S3Client({
-    region: storage.region ?? 'eu-west-netherlands',
+    region: storage.region ?? 'eu-north-1',
     endpoint: storage.endpoint,
     forcePathStyle: storage.forcePathStyle,
     credentials: {

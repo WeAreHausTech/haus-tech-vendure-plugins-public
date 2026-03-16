@@ -147,6 +147,8 @@ export class ProductExportController {
       const channelToken = ctx.channel.token
       const storage = this.getExportStorageOptions()
 
+      const sanitizedFileName = this.sanitizeFileName(fileName)
+
       if (isS3Storage(storage)) {
         const client = createS3Client(storage)
         const key = buildExportObjectKey(storage, channelToken, fileName)
@@ -163,13 +165,13 @@ export class ProductExportController {
 
         res.set({
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
         })
 
         ;(result.Body as NodeJS.ReadableStream).pipe(res)
       } else {
         const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-        const filePath = path.join(exportsDir, fileName)
+        const filePath = path.join(exportsDir, sanitizedFileName)
 
         if (!filePath.startsWith(exportsDir)) {
           throw new UnprocessableEntityException('Invalid file path')
@@ -181,7 +183,7 @@ export class ProductExportController {
 
         res.set({
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
         })
 
         const fileStream = createReadStream(filePath)
@@ -306,6 +308,16 @@ export class ProductExportController {
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
+  }
+
+  private sanitizeFileName(fileName: string): string {
+    const cleaned = fileName.replace(/[\r\n"]/g, '')
+
+    if (!cleaned || cleaned.trim().length === 0) {
+      return 'export.csv'
+    }
+
+    return cleaned
   }
   private getExportStorageOptions(): ExportStorageOptions | undefined {
     if (!this.options.exportOptions) {

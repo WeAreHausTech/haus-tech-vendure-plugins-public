@@ -226,14 +226,19 @@ export class ProductExportService {
 
       return finalExportFile
     } catch (error) {
-      // Clean up .tmp file if export fails
+      // Clean up any partial files if export or upload fails
       try {
         if (existsSync(exportFile)) {
           await fs.unlink(exportFile)
         }
+
+        if (existsSync(finalExportFile)) {
+          await fs.unlink(finalExportFile)
+        }
       } catch (cleanupErr) {
-        console.error('Failed to clean up temp file:', cleanupErr)
+        console.error('Failed to clean up export files:', cleanupErr)
       }
+
       throw error
     }
   }
