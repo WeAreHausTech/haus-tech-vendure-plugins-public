@@ -147,8 +147,6 @@ export class ProductExportController {
       const channelToken = ctx.channel.token
       const storage = this.getExportStorageOptions()
 
-      const sanitizedFileName = this.sanitizeFileName(fileName)
-
       if (isS3Storage(storage)) {
         const client = createS3Client(storage)
         const key = buildExportObjectKey(storage, channelToken, fileName)
@@ -163,6 +161,7 @@ export class ProductExportController {
           throw new UnprocessableEntityException('File not found')
         }
 
+        const sanitizedFileName = this.sanitizeFileName(fileName)
         res.set({
           'Content-Type': 'text/csv',
           'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
@@ -171,7 +170,7 @@ export class ProductExportController {
         ;(result.Body as NodeJS.ReadableStream).pipe(res)
       } else {
         const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-        const filePath = path.join(exportsDir, sanitizedFileName)
+        const filePath = path.join(exportsDir, fileName)
 
         if (!filePath.startsWith(exportsDir)) {
           throw new UnprocessableEntityException('Invalid file path')
@@ -181,6 +180,7 @@ export class ProductExportController {
           throw new UnprocessableEntityException('File not found')
         }
 
+        const sanitizedFileName = this.sanitizeFileName(fileName)
         res.set({
           'Content-Type': 'text/csv',
           'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
