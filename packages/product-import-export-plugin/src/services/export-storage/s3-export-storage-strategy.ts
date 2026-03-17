@@ -1,11 +1,22 @@
-import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  type _Object,
+} from '@aws-sdk/client-s3'
 import { RequestContext } from '@vendure/core'
 import { createReadStream } from 'node:fs'
 import * as path from 'node:path'
 import { Readable } from 'node:stream'
 import { ExportStorageOptions } from '../../types'
 import { ExportedFileMetadata, ExportStorageStrategy } from './export-storage-strategy'
-import { createS3Client, isS3Storage, S3StorageConfig, buildExportObjectKey } from '../export-storage.util'
+import {
+  createS3Client,
+  isS3Storage,
+  S3StorageConfig,
+  buildExportObjectKey,
+} from '../export-storage.util'
 
 export type S3ExportStorageStrategyOptions = {
   storage: ExportStorageOptions
@@ -22,7 +33,11 @@ export class S3ExportStorageStrategy implements ExportStorageStrategy {
     this.storage = options.storage
   }
 
-  async storeExportFile(ctx: RequestContext, fileName: string, localFilePath: string): Promise<void> {
+  async storeExportFile(
+    ctx: RequestContext,
+    fileName: string,
+    localFilePath: string,
+  ): Promise<void> {
     const client = createS3Client(this.storage)
     const channelToken = ctx.channel.token
     const objectKey = buildExportObjectKey(this.storage, channelToken, fileName)
@@ -62,16 +77,26 @@ export class S3ExportStorageStrategy implements ExportStorageStrategy {
     const prefix = buildExportObjectKey(this.storage, channelToken, '')
     const normalizedPrefix = prefix.endsWith('/') ? prefix : `${prefix}`
 
-    const result = await client.send(
-      new ListObjectsV2Command({
-        Bucket: this.storage.bucket,
-        Prefix: normalizedPrefix,
-      }),
-    )
+    const allContents: _Object[] = []
+    let continuationToken: string | undefined
 
-    const contents = result.Contents || []
+    do {
+      const result = await client.send(
+        new ListObjectsV2Command({
+          Bucket: this.storage.bucket,
+          Prefix: normalizedPrefix,
+          ContinuationToken: continuationToken,
+        }),
+      )
 
-    const fileList = contents
+      if (result.Contents) {
+        allContents.push(...result.Contents)
+      }
+
+      continuationToken = result.NextContinuationToken
+    } while (continuationToken)
+
+    const fileList = allContents
       .filter((object) => {
         if (!object.Key) {
           return false
@@ -107,4 +132,3 @@ export class S3ExportStorageStrategy implements ExportStorageStrategy {
     )
   }
 }
-
