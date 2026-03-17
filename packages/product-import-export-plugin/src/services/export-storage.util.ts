@@ -1,30 +1,25 @@
-import { S3Client } from '@aws-sdk/client-s3'
-import { ExportStorageOptions } from '../types'
+import { S3Client, type S3ClientConfig } from '@aws-sdk/client-s3'
+import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@aws-sdk/types'
 
-export type S3StorageConfig = Extract<ExportStorageOptions, { type: 's3' }>
-
-export function isS3Storage(storage?: ExportStorageOptions): storage is S3StorageConfig {
-  if (!storage) {
-    return false
-  }
-
-  return storage.type === 's3'
+export type S3ExportStorageConfig = {
+  bucket: string
+  baseKeyPrefix?: string
+  credentials?: AwsCredentialIdentity | AwsCredentialIdentityProvider
+  nativeS3Configuration?: Record<string, unknown>
+  nativeS3UploadConfiguration?: Record<string, unknown>
 }
 
-export function createS3Client(storage: S3StorageConfig): S3Client {
-  return new S3Client({
-    region: storage.region ?? 'eu-north-1',
-    endpoint: storage.endpoint,
-    forcePathStyle: storage.forcePathStyle,
-    credentials: {
-      accessKeyId: storage.accessKeyId,
-      secretAccessKey: storage.secretAccessKey,
-    },
-  })
+export function createS3Client(storage: S3ExportStorageConfig): S3Client {
+  const config: S3ClientConfig = {
+    ...(storage.nativeS3Configuration ?? {}),
+    credentials: storage.credentials,
+  }
+
+  return new S3Client(config)
 }
 
 export function buildExportObjectKey(
-  storage: S3StorageConfig,
+  storage: S3ExportStorageConfig,
   channelToken: string,
   fileName: string,
 ): string {

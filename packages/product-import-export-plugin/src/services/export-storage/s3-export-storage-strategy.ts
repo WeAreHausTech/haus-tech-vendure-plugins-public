@@ -9,27 +9,21 @@ import { RequestContext } from '@vendure/core'
 import { createReadStream } from 'node:fs'
 import * as path from 'node:path'
 import { Readable } from 'node:stream'
-import { ExportStorageOptions } from '../../types'
 import { ExportedFileMetadata, ExportStorageStrategy } from './export-storage-strategy'
 import {
   createS3Client,
-  isS3Storage,
-  S3StorageConfig,
+  S3ExportStorageConfig,
   buildExportObjectKey,
 } from '../export-storage.util'
 
 export type S3ExportStorageStrategyOptions = {
-  storage: ExportStorageOptions
+  storage: S3ExportStorageConfig
 }
 
 export class S3ExportStorageStrategy implements ExportStorageStrategy {
-  private storage: S3StorageConfig
+  private storage: S3ExportStorageConfig
 
   constructor(options: S3ExportStorageStrategyOptions) {
-    if (!isS3Storage(options.storage)) {
-      throw new Error('S3ExportStorageStrategy requires storage.type === "s3"')
-    }
-
     this.storage = options.storage
   }
 

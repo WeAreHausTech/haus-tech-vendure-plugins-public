@@ -1,5 +1,6 @@
-import { PluginCommonModule, Type, VendurePlugin } from '@vendure/core'
+import { Injector, PluginCommonModule, Type, VendurePlugin } from '@vendure/core'
 import { AdminUiExtension } from '@vendure/ui-devkit/compiler'
+import { ModuleRef } from '@nestjs/core'
 import * as path from 'path'
 import { uniq } from 'lodash'
 
@@ -20,8 +21,6 @@ import { ExtendedFastImporterService } from './services/extended-fast-importer.s
 import { ProductExportService } from './services/product-export.service'
 import { ProductExportQueueService } from './services/product-export-queue.service'
 import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
-import { S3ExportStorageStrategy } from './services/export-storage/s3-export-storage-strategy'
-import { isS3Storage } from './services/export-storage.util'
 
 @VendurePlugin({
   imports: [PluginCommonModule],
@@ -32,16 +31,23 @@ import { isS3Storage } from './services/export-storage.util'
     },
     {
       provide: EXPORT_STORAGE_STRATEGY,
-      useFactory: () => {
-        const storage = ProductImportExportPlugin.options?.exportOptions?.storage
-        if (isS3Storage(storage)) {
-          return new S3ExportStorageStrategy({ storage })
+      useFactory: async (moduleRef: ModuleRef) => {
+        const exportOptions = ProductImportExportPlugin.options?.exportOptions
+        const injector = new Injector(moduleRef)
+
+        if (exportOptions?.storageStrategy) {
+          return exportOptions.storageStrategy
+        }
+
+        if (exportOptions?.storageStrategyFactory) {
+          return await exportOptions.storageStrategyFactory(injector)
         }
 
         return new LocalExportStorageStrategy({
           baseDir: path.join(process.cwd(), 'static', 'exports'),
         })
       },
+      inject: [ModuleRef],
     },
     ProductImportService,
     ProductImporter,
