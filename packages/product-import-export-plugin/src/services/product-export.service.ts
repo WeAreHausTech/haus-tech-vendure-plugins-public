@@ -11,22 +11,15 @@ import {
   Product,
   LanguageCode,
 } from '@vendure/core'
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
-import { ExportStorageOptions, PluginInitOptions } from '../types'
+import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
+import { PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
 import { forEach, sortBy, startsWith } from 'lodash'
 import Bottleneck from 'bottleneck'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
-import { PutObjectCommand } from '@aws-sdk/client-s3'
-import { createReadStream, ReadStream } from 'fs'
-import {
-  buildExportObjectKey,
-  createS3Client,
-  isS3Storage,
-  S3StorageConfig,
-} from './export-storage.util'
+import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
 
 interface TranslationMap {
   [key: string]: string
@@ -63,6 +56,7 @@ function formatTimestampForFilename(date: Date = new Date()): string {
 export class ProductExportService {
   constructor(
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
+    @Inject(EXPORT_STORAGE_STRATEGY) private exportStorageStrategy: ExportStorageStrategy,
     private productService: ProductService,
     private stockLevelService: StockLevelService,
     private channelService: ChannelService,
@@ -97,16 +91,16 @@ export class ProductExportService {
       })
 
     const channelToken = channel.token
-    const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-    if (!existsSync(exportsDir)) {
-      mkdirSync(exportsDir, { recursive: true })
+    const tempDir = path.join(process.cwd(), 'static', 'exports-tmp', channelToken)
+    if (!existsSync(tempDir)) {
+      mkdirSync(tempDir, { recursive: true })
     }
 
     // Add timestamp to filename to avoid conflicts
     const timestamp = formatTimestampForFilename()
     const { name, ext } = path.parse(fileName)
     const timestampedFileName = `${name}_${timestamp}${ext}`
-    const finalExportFile = path.join(exportsDir, timestampedFileName)
+    const finalExportFile = path.join(tempDir, timestampedFileName)
     // Use .tmp extension during export, rename to final name when complete to prevent it from being listed in ui without being completed
     const exportFile = `${finalExportFile}.tmp`
 
@@ -214,17 +208,15 @@ export class ProductExportService {
       // Rename .tmp file to final name when export is complete
       await fs.rename(exportFile, finalExportFile)
 
-      const storage = this.getExportStorageOptions()
-
-      if (isS3Storage(storage)) {
-        const objectKey = buildExportObjectKey(storage, channelToken, timestampedFileName)
-        await this.uploadFileToS3(storage, finalExportFile, objectKey)
-        await fs.unlink(finalExportFile)
-
-        return objectKey
+      await this.exportStorageStrategy.storeExportFile(ctx, timestampedFileName, finalExportFile)
+      try {
+        if (existsSync(finalExportFile)) {
+          await fs.unlink(finalExportFile)
+        }
+      } catch (e) {
+        // ignore cleanup errors
       }
-
-      return finalExportFile
+      return timestampedFileName
     } catch (error) {
       // Clean up any partial files if export or upload fails
       try {
@@ -551,31 +543,5 @@ export class ProductExportService {
 
   async getConfig(): Promise<PluginInitOptions> {
     return this.options
-  }
-
-  private getExportStorageOptions(): ExportStorageOptions | undefined {
-    if (!this.options.exportOptions) {
-      return undefined
-    }
-
-    return this.options.exportOptions.storage
-  }
-
-  private async uploadFileToS3(
-    storage: S3StorageConfig,
-    filePath: string,
-    key: string,
-  ): Promise<void> {
-    const client = createS3Client(storage)
-    const fileStream: ReadStream = createReadStream(filePath)
-
-    await client.send(
-      new PutObjectCommand({
-        Bucket: storage.bucket,
-        Key: key,
-        Body: fileStream,
-        ContentType: 'text/csv',
-      }),
-    )
   }
 }

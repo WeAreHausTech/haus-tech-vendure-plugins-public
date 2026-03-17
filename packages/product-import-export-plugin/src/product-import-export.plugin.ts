@@ -3,7 +3,7 @@ import { AdminUiExtension } from '@vendure/ui-devkit/compiler'
 import * as path from 'path'
 import { uniq } from 'lodash'
 
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from './constants'
+import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from './constants'
 
 import { PluginInitOptions } from './types'
 /* Controllers */
@@ -19,6 +19,9 @@ import { ProductImportService } from './services/product-import.service'
 import { ExtendedFastImporterService } from './services/extended-fast-importer.service'
 import { ProductExportService } from './services/product-export.service'
 import { ProductExportQueueService } from './services/product-export-queue.service'
+import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
+import { S3ExportStorageStrategy } from './services/export-storage/s3-export-storage-strategy'
+import { isS3Storage } from './services/export-storage.util'
 
 @VendurePlugin({
   imports: [PluginCommonModule],
@@ -26,6 +29,19 @@ import { ProductExportQueueService } from './services/product-export-queue.servi
     {
       provide: PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
       useFactory: () => ProductImportExportPlugin.options,
+    },
+    {
+      provide: EXPORT_STORAGE_STRATEGY,
+      useFactory: () => {
+        const storage = ProductImportExportPlugin.options?.exportOptions?.storage
+        if (isS3Storage(storage)) {
+          return new S3ExportStorageStrategy({ storage })
+        }
+
+        return new LocalExportStorageStrategy({
+          baseDir: path.join(process.cwd(), 'static', 'exports'),
+        })
+      },
     },
     ProductImportService,
     ProductImporter,

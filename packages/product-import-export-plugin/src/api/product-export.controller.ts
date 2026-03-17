@@ -14,21 +14,15 @@ import {
 import { Response } from 'express'
 import { ProductExportService } from '../services/product-export.service'
 import { ProductExportQueueService } from '../services/product-export-queue.service'
-import { existsSync, createReadStream, promises } from 'fs'
-import * as path from 'path'
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
-import { ExportStorageOptions, PluginInitOptions } from '../types'
-import { GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import {
-  buildExportObjectKey,
-  createS3Client,
-  isS3Storage,
-} from '../services/export-storage.util'
+import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
+import { PluginInitOptions } from '../types'
+import { ExportStorageStrategy } from '../services/export-storage/export-storage-strategy'
 
 @Controller('product-export')
 export class ProductExportController {
   constructor(
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
+    @Inject(EXPORT_STORAGE_STRATEGY) private exportStorageStrategy: ExportStorageStrategy,
     private productExportService: ProductExportService,
     private productExportQueueService: ProductExportQueueService,
   ) {}
@@ -144,51 +138,14 @@ export class ProductExportController {
     @Param('fileName') fileName: string,
   ) {
     try {
-      const channelToken = ctx.channel.token
-      const storage = this.getExportStorageOptions()
+      const sanitizedFileName = this.sanitizeFileName(fileName)
+      res.set({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
+      })
 
-      if (isS3Storage(storage)) {
-        const client = createS3Client(storage)
-        const key = buildExportObjectKey(storage, channelToken, fileName)
-        const result = await client.send(
-          new GetObjectCommand({
-            Bucket: storage.bucket,
-            Key: key,
-          }),
-        )
-
-        if (!result.Body) {
-          throw new UnprocessableEntityException('File not found')
-        }
-
-        const sanitizedFileName = this.sanitizeFileName(fileName)
-        res.set({
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
-        })
-
-        ;(result.Body as NodeJS.ReadableStream).pipe(res)
-      } else {
-        const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-        const filePath = path.join(exportsDir, fileName)
-
-        if (!filePath.startsWith(exportsDir)) {
-          throw new UnprocessableEntityException('Invalid file path')
-        }
-
-        if (!existsSync(filePath)) {
-          throw new UnprocessableEntityException('File not found')
-        }
-
-        const sanitizedFileName = this.sanitizeFileName(fileName)
-        res.set({
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
-        })
-
-        const fileStream = createReadStream(filePath)
-        fileStream.pipe(res)
-      }
+      const stream = await this.exportStorageStrategy.getExportFileStream(ctx, fileName)
+      stream.pipe(res)
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
@@ -197,33 +154,7 @@ export class ProductExportController {
   @Delete('delete/:fileName')
   async deleteExport(@Ctx() ctx: RequestContext, @Param('fileName') fileName: string) {
     try {
-      const channelToken = ctx.channel.token
-      const storage = this.getExportStorageOptions()
-
-      if (isS3Storage(storage)) {
-        const client = createS3Client(storage)
-        const key = buildExportObjectKey(storage, channelToken, fileName)
-
-        await client.send(
-          new DeleteObjectCommand({
-            Bucket: storage.bucket,
-            Key: key,
-          }),
-        )
-      } else {
-        const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-        const filePath = path.join(exportsDir, fileName)
-
-        if (!filePath.startsWith(exportsDir)) {
-          throw new UnprocessableEntityException('Invalid file path')
-        }
-
-        if (!existsSync(filePath)) {
-          throw new UnprocessableEntityException('File not found')
-        }
-
-        await promises.unlink(filePath)
-      }
+      await this.exportStorageStrategy.deleteExportFile(ctx, fileName)
 
       return {
         success: true,
@@ -242,69 +173,7 @@ export class ProductExportController {
   @Get('exported-files')
   async getExportFiles(@Ctx() ctx: RequestContext) {
     try {
-      const channelToken = ctx.channel.token
-      const storage = this.getExportStorageOptions()
-
-      if (isS3Storage(storage)) {
-        const client = createS3Client(storage)
-        const prefix = buildExportObjectKey(storage, channelToken, '')
-        const normalizedPrefix = prefix.endsWith('/') ? prefix : `${prefix}`
-
-        const result = await client.send(
-          new ListObjectsV2Command({
-            Bucket: storage.bucket,
-            Prefix: normalizedPrefix,
-          }),
-        )
-
-        const contents = result.Contents || []
-
-        const fileList = contents
-          .filter((object) => {
-            if (!object.Key) {
-              return false
-            }
-
-            return object.Key.endsWith('.csv') && !object.Key.endsWith('.tmp')
-          })
-          .map((object) => {
-            const key = object.Key as string
-            const segments = key.split('/')
-            const file = segments[segments.length - 1]
-
-            return {
-              fileName: file,
-              size: object.Size ?? 0,
-              created: object.LastModified ?? new Date(),
-              modified: object.LastModified ?? new Date(),
-            }
-          })
-
-        return fileList.sort((a, b) => b.created.getTime() - a.created.getTime())
-      } else {
-        const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-        if (!existsSync(exportsDir)) {
-          return []
-        }
-
-        const files = await promises.readdir(exportsDir)
-
-        const fileList = await Promise.all(
-          files
-            .filter((file) => file.endsWith('.csv') && !file.endsWith('.tmp'))
-            .map(async (file) => {
-              const filePath = path.join(exportsDir, file)
-              const stats = await promises.stat(filePath)
-              return {
-                fileName: file,
-                size: stats.size,
-                created: stats.birthtime,
-                modified: stats.mtime,
-              }
-            }),
-        )
-        return fileList.sort((a, b) => b.created.getTime() - a.created.getTime())
-      }
+      return await this.exportStorageStrategy.listExportFiles(ctx)
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
@@ -318,12 +187,5 @@ export class ProductExportController {
     }
 
     return cleaned
-  }
-  private getExportStorageOptions(): ExportStorageOptions | undefined {
-    if (!this.options.exportOptions) {
-      return undefined
-    }
-
-    return this.options.exportOptions.storage
   }
 }
