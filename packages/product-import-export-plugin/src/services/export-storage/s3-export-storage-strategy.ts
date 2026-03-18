@@ -34,7 +34,11 @@ export class S3ExportStorageStrategy implements ExportStorageStrategy {
   ): Promise<void> {
     const client = createS3Client(this.storage)
     const channelToken = ctx.channel.token
+    const channelPrefix = buildExportObjectKey(this.storage, channelToken, '')
     const objectKey = buildExportObjectKey(this.storage, channelToken, fileName)
+    if (!objectKey.startsWith(channelPrefix)) {
+      throw new Error('Invalid object key')
+    }
 
     await client.send(
       new PutObjectCommand({
@@ -49,7 +53,11 @@ export class S3ExportStorageStrategy implements ExportStorageStrategy {
   async getExportFileStream(ctx: RequestContext, fileName: string): Promise<Readable> {
     const client = createS3Client(this.storage)
     const channelToken = ctx.channel.token
+    const channelPrefix = buildExportObjectKey(this.storage, channelToken, '')
     const key = buildExportObjectKey(this.storage, channelToken, fileName)
+    if (!key.startsWith(channelPrefix)) {
+      throw new Error('Invalid object key')
+    }
 
     const result = await client.send(
       new GetObjectCommand({
@@ -116,7 +124,11 @@ export class S3ExportStorageStrategy implements ExportStorageStrategy {
   async deleteExportFile(ctx: RequestContext, fileName: string): Promise<void> {
     const client = createS3Client(this.storage)
     const channelToken = ctx.channel.token
+    const channelPrefix = buildExportObjectKey(this.storage, channelToken, '')
     const key = buildExportObjectKey(this.storage, channelToken, fileName)
+    if (!key.startsWith(channelPrefix)) {
+      throw new Error('Invalid object key')
+    }
 
     await client.send(
       new DeleteObjectCommand({

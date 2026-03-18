@@ -27,6 +27,28 @@ export class ProductExportController {
     private productExportQueueService: ProductExportQueueService,
   ) {}
 
+  private validateExportFileName(fileName: string): string {
+    const trimmed = fileName.trim()
+    if (!trimmed) {
+      throw new Error('Invalid fileName')
+    }
+
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+      throw new Error('Invalid fileName')
+    }
+
+    if (trimmed.includes('..')) {
+      throw new Error('Invalid fileName')
+    }
+
+    // Prevent header injection in the download route.
+    if (/[\r\n"]/g.test(trimmed)) {
+      throw new Error('Invalid fileName')
+    }
+
+    return trimmed
+  }
+
   @Post('export')
   async exportProducts(
     @Ctx() ctx: RequestContext,
@@ -60,6 +82,8 @@ export class ProductExportController {
       } else if (!fileName.endsWith('.csv')) {
         fileName += '.csv'
       }
+
+      fileName = this.validateExportFileName(fileName)
 
       if (!customFields) {
         customFields = ''
@@ -108,6 +132,8 @@ export class ProductExportController {
         fileName += '.csv'
       }
 
+      fileName = this.validateExportFileName(fileName)
+
       if (!customFields) {
         customFields = ''
       }
@@ -138,13 +164,14 @@ export class ProductExportController {
     @Param('fileName') fileName: string,
   ) {
     try {
-      const sanitizedFileName = this.sanitizeFileName(fileName)
+      const validatedFileName = this.validateExportFileName(fileName)
+      const sanitizedFileName = this.sanitizeFileName(validatedFileName)
       res.set({
         'Content-Type': 'text/csv',
         'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
       })
 
-      const stream = await this.exportStorageStrategy.getExportFileStream(ctx, fileName)
+      const stream = await this.exportStorageStrategy.getExportFileStream(ctx, validatedFileName)
       stream.pipe(res)
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
@@ -154,7 +181,8 @@ export class ProductExportController {
   @Delete('delete/:fileName')
   async deleteExport(@Ctx() ctx: RequestContext, @Param('fileName') fileName: string) {
     try {
-      await this.exportStorageStrategy.deleteExportFile(ctx, fileName)
+      const validatedFileName = this.validateExportFileName(fileName)
+      await this.exportStorageStrategy.deleteExportFile(ctx, validatedFileName)
 
       return {
         success: true,
