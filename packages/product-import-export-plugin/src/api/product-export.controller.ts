@@ -14,18 +14,40 @@ import {
 import { Response } from 'express'
 import { ProductExportService } from '../services/product-export.service'
 import { ProductExportQueueService } from '../services/product-export-queue.service'
-import { existsSync, createReadStream, promises } from 'fs'
-import * as path from 'path'
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
+import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
 import { PluginInitOptions } from '../types'
+import { ExportStorageStrategy } from '../services/export-storage/export-storage-strategy'
 
 @Controller('product-export')
 export class ProductExportController {
   constructor(
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
+    @Inject(EXPORT_STORAGE_STRATEGY) private exportStorageStrategy: ExportStorageStrategy,
     private productExportService: ProductExportService,
     private productExportQueueService: ProductExportQueueService,
   ) {}
+
+  private validateExportFileName(fileName: string): string {
+    const trimmed = fileName.trim()
+    if (!trimmed) {
+      throw new Error('Invalid fileName')
+    }
+
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+      throw new Error('Invalid fileName')
+    }
+
+    if (trimmed.includes('..')) {
+      throw new Error('Invalid fileName')
+    }
+
+    // Prevent header injection in the download route.
+    if (/[\r\n"]/g.test(trimmed)) {
+      throw new Error('Invalid fileName')
+    }
+
+    return trimmed
+  }
 
   @Post('export')
   async exportProducts(
@@ -60,6 +82,8 @@ export class ProductExportController {
       } else if (!fileName.endsWith('.csv')) {
         fileName += '.csv'
       }
+
+      fileName = this.validateExportFileName(fileName)
 
       if (!customFields) {
         customFields = ''
@@ -108,6 +132,8 @@ export class ProductExportController {
         fileName += '.csv'
       }
 
+      fileName = this.validateExportFileName(fileName)
+
       if (!customFields) {
         customFields = ''
       }
@@ -138,25 +164,15 @@ export class ProductExportController {
     @Param('fileName') fileName: string,
   ) {
     try {
-      const channelToken = ctx.channel.token
-      const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-      const filePath = path.join(exportsDir, fileName)
-
-      if (!filePath.startsWith(exportsDir)) {
-        throw new UnprocessableEntityException('Invalid file path')
-      }
-
-      if (!existsSync(filePath)) {
-        throw new UnprocessableEntityException('File not found')
-      }
-
+      const validatedFileName = this.validateExportFileName(fileName)
+      const sanitizedFileName = this.sanitizeFileName(validatedFileName)
       res.set({
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
       })
 
-      const fileStream = createReadStream(filePath)
-      fileStream.pipe(res)
+      const stream = await this.exportStorageStrategy.getExportFileStream(ctx, validatedFileName)
+      stream.pipe(res)
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
@@ -165,19 +181,8 @@ export class ProductExportController {
   @Delete('delete/:fileName')
   async deleteExport(@Ctx() ctx: RequestContext, @Param('fileName') fileName: string) {
     try {
-      const channelToken = ctx.channel.token
-      const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-      const filePath = path.join(exportsDir, fileName)
-
-      if (!filePath.startsWith(exportsDir)) {
-        throw new UnprocessableEntityException('Invalid file path')
-      }
-
-      if (!existsSync(filePath)) {
-        throw new UnprocessableEntityException('File not found')
-      }
-
-      await promises.unlink(filePath)
+      const validatedFileName = this.validateExportFileName(fileName)
+      await this.exportStorageStrategy.deleteExportFile(ctx, validatedFileName)
 
       return {
         success: true,
@@ -196,32 +201,19 @@ export class ProductExportController {
   @Get('exported-files')
   async getExportFiles(@Ctx() ctx: RequestContext) {
     try {
-      const channelToken = ctx.channel.token
-
-      const exportsDir = path.join(process.cwd(), 'static', 'exports', channelToken)
-      if (!existsSync(exportsDir)) {
-        return []
-      }
-
-      const files = await promises.readdir(exportsDir)
-
-      const fileList = await Promise.all(
-        files
-          .filter((file) => file.endsWith('.csv') && !file.endsWith('.tmp'))
-          .map(async (file) => {
-            const filePath = path.join(exportsDir, file)
-            const stats = await promises.stat(filePath)
-            return {
-              fileName: file,
-              size: stats.size,
-              created: stats.birthtime,
-              modified: stats.mtime,
-            }
-          }),
-      )
-      return fileList.sort((a, b) => b.created.getTime() - a.created.getTime())
+      return await this.exportStorageStrategy.listExportFiles(ctx)
     } catch (e: any) {
       throw new UnprocessableEntityException(e.message)
     }
+  }
+
+  private sanitizeFileName(fileName: string): string {
+    const cleaned = fileName.replace(/[\r\n"]/g, '')
+
+    if (!cleaned || cleaned.trim().length === 0) {
+      return 'export.csv'
+    }
+
+    return cleaned
   }
 }

@@ -1,0 +1,27 @@
+# Ignore dependencies and builds
+node_modules
+dist
+build
+coverage
+.next
+out
+storybook-static
+
+# Ignore config and env
+.env*
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Ignore generated files
+*.min.js
+*.min.css
+
+# Ignore IDE and system files
+.vscode
+.cursor
+.DS_Store
+.idea
+
+# Ignore docs or exports
+CHANGELOG.md
