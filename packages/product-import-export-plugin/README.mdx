@@ -19,9 +19,10 @@ A Vendure plugin for importing and exporting product data via CSV. Supports bulk
 
 ## Features
 
-- **Import** – Bulk upload products from CSV with validation, custom fields, assets, facets, and variants
-- **Export** – Export products to CSV with selected fields; export all products or a selection
-- **UI** – Admin UI and Dashboard integration for import and export
+* **Import** – Bulk upload products from CSV with validation, custom fields, assets, facets, and variants
+* **Export** – Export products to CSV with selected fields; export all products or a selection
+* **Storage strategies** – Store exported files in S3 or locally on disk (with automatic fallback)
+* **UI** – Admin UI and Dashboard integration for import and export
 
 ![Dashboard UI](assets/Screenshot-dashboard-ui.png)
 
@@ -44,7 +45,17 @@ export const config = {
   plugins: [
     ProductImportExportPlugin.init({
       importOptions: {}, // Configure import options
-      exportOptions: {}, // Configure export options
+      exportOptions: {
+        storageStrategy: 's3', // 's3' | 'disk'
+        s3Options: {
+          bucket: 'your-bucket',
+          region: 'your-region',
+          credentials: {
+            accessKeyId: '...',
+            secretAccessKey: '...',
+          },
+        },
+      },
     }),
   ],
 }
@@ -61,13 +72,22 @@ export const config = {
 
 ### Export options
 
-| Option                  | Type                  | Default                 | Description                                       |
-| ----------------------- | --------------------- | ----------------------- | ------------------------------------------------- |
-| `defaultFileName`       | `string`              | `'products_export.csv'` | Default filename for exports                      |
-| `exportAssetsAsOptions` | `('url' \| 'json')[]` | `['url', 'json']`       | Available formats for asset export                |
-| `defaultExportAssetsAs` | `'url' \| 'json'`     | `'url'`                 | Default asset export format                       |
-| `defaultExportFields`   | `string[]`            | See above               | Fields that will be pre-selected in the export UI |
-| `requiredExportFields`  | `string[]`            | `['name', 'sku']`       | Fields that must always be included               |
+| Option                  | Type                  | Default                 | Description                                                  |
+| ----------------------- | --------------------- | ----------------------- | ------------------------------------------------------------ |
+| `defaultFileName`       | `string`              | `'products_export.csv'` | Default filename for exports                                 |
+| `exportAssetsAsOptions` | `('url' \| 'json')[]` | `['url', 'json']`       | Available formats for asset export                           |
+| `defaultExportAssetsAs` | `'url' \| 'json'`     | `'url'`                 | Default asset export format                                  |
+| `defaultExportFields`   | `string[]`            | See above               | Fields that will be pre-selected in the export UI            |
+| `requiredExportFields`  | `string[]`            | `['name', 'sku']`       | Fields that must always be included                          |
+| `storageStrategy`       | `'s3' \| 'disk'`      | `'disk'`                | Where exported files are stored                              |
+| `s3Options`             | `object`              | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`) |
+
+### Storage strategy
+
+The plugin supports configurable storage for exported files:
+
+* **S3** – Stores export files in an S3-compatible bucket
+* **Disk (default)** – Saves files locally on the server
 
 ## CSV Format for Import
 
