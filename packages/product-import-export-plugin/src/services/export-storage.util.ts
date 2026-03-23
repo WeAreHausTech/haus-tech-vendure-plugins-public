@@ -1,5 +1,5 @@
 import { S3Client, type S3ClientConfig } from '@aws-sdk/client-s3'
-import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@aws-sdk/types'
+import { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@aws-sdk/types'
 import * as path from 'node:path'
 
 export type S3ExportStorageConfig = {
@@ -64,4 +64,3 @@ export function buildExportObjectKey(
   const normalizedFileName = normalizeExportFileNameForObjectKey(fileName)
   return `${normalizedPrefix}${channelToken}/${normalizedFileName}`
 }
-

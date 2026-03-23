@@ -3,8 +3,8 @@ import {
   ParsedProduct,
   ParsedProductWithVariants,
 } from './providers/import-providers/import-parser'
-import type { Injector } from '@vendure/core'
-import type { ExportStorageStrategy } from './services/export-storage/export-storage-strategy'
+import { Injector } from '@vendure/core'
+import { ExportStorageStrategy } from './services/export-storage/export-storage-strategy'
 
 /**
  * @description
@@ -44,7 +44,9 @@ export interface PluginInitOptions {
      * @description
      * Preferred configuration: provide a factory which can use Vendure's DI via the Injector.
      */
-    storageStrategyFactory?: (injector: Injector) => ExportStorageStrategy | Promise<ExportStorageStrategy>
+    storageStrategyFactory?: (
+      injector: Injector,
+    ) => ExportStorageStrategy | Promise<ExportStorageStrategy>
     /**
      * @description
      * Optional. If omitted, the default local-disk strategy is used.
