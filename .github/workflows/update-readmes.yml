@@ -53,3 +53,7 @@ jobs:
           git add packages/**/README.md packages/**/README.mdx
           git commit -m "chore: update README versions to match package.json [skip ci]"
           git push
+
+      - name: No README changes
+        if: steps.changes.outputs.has_changes == 'false'
+        run: echo "No READMEs to update"
