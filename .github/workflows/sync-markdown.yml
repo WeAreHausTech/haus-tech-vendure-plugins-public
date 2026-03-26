@@ -18,6 +18,8 @@ on:
 jobs:
   sync-md:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN}}
 
     steps:
       - name: Checkout code
