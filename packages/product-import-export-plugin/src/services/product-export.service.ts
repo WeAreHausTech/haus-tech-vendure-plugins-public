@@ -162,15 +162,15 @@ export class ProductExportService {
       let currentPage = 1
       let hasMore = true
 
+      const productRelationCustomFields = this.configService.customFields.Product.filter(
+        (f) => f.type === 'relation',
+      ).map((f) => `customFields.${f.name}` as const)
+
+      const variantRelationCustomFields = this.configService.customFields.ProductVariant.filter(
+        (f) => f.type === 'relation',
+      ).map((f) => `variants.customFields.${f.name}` as const)
+
       while (hasMore) {
-        const productRelationCustomFields = this.configService.customFields.Product.filter(
-          (f) => f.type === 'relation',
-        ).map((f) => `customFields.${f.name}` as const)
-
-        const variantRelationCustomFields = this.configService.customFields.ProductVariant.filter(
-          (f) => f.type === 'relation',
-        ).map((f) => `variants.customFields.${f.name}` as const)
-
         const { items, totalItems } = await this.productService.findAll(
           ctx,
           {
@@ -375,10 +375,10 @@ export class ProductExportService {
         const [owner, fieldName] = field.split(':') as ['product' | 'variant', string, ...string[]]
         if (owner === 'product') {
           record[field] =
-            this.handleCustomFields(customFields, fieldName, exportAssetsAs, 'product') || ''
+            this.handleCustomFields(customFields, fieldName, exportAssetsAs, 'product') ?? ''
         } else if (owner === 'variant') {
           record[field] =
-            this.handleCustomFields(variant.customFields, fieldName, exportAssetsAs, 'variant') ||
+            this.handleCustomFields(variant.customFields, fieldName, exportAssetsAs, 'variant') ??
             ''
         }
       }

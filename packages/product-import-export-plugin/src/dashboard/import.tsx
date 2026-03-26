@@ -2,7 +2,7 @@ import { Button, Switch, Label, RadioGroup, RadioGroupItem } from '@vendure/dash
 import { UploadIcon } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { LanguageCode, Channel } from '@vendure/core'
+import type { LanguageCode, Channel } from '@vendure/core'
 import { size, startsWith, endsWith, uniq } from 'lodash-es'
 import {
   getServerLocation,

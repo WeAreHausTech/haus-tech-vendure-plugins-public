@@ -3,7 +3,7 @@ import {
   ParsedProduct,
   ParsedProductWithVariants,
 } from './providers/import-providers/import-parser'
-import { Injector } from '@vendure/core'
+import type { Injector } from '@vendure/core'
 import { ExportStorageStrategy } from './services/export-storage/export-storage-strategy'
 
 /**
