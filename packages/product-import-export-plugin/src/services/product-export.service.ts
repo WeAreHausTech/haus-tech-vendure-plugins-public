@@ -1,15 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common'
 import {
-  EntityHydrator,
+  Asset,
+  ConfigService,
   ID,
+  LanguageCode,
+  Product,
   ProductService,
+  RelationCustomFieldConfig,
   RequestContext,
   StockLevelService,
   ChannelService,
-  Asset,
-  ConfigService,
-  Product,
-  LanguageCode,
 } from '@vendure/core'
 import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
 import { PluginInitOptions } from '../types'
@@ -162,6 +162,14 @@ export class ProductExportService {
       let currentPage = 1
       let hasMore = true
 
+      const productRelationCustomFields = this.configService.customFields.Product.filter(
+        (f) => f.type === 'relation',
+      ).map((f) => `customFields.${f.name}` as const)
+
+      const variantRelationCustomFields = this.configService.customFields.ProductVariant.filter(
+        (f) => f.type === 'relation',
+      ).map((f) => `variants.customFields.${f.name}` as const)
+
       while (hasMore) {
         const { items, totalItems } = await this.productService.findAll(
           ctx,
@@ -182,6 +190,8 @@ export class ProductExportService {
             'variants.facetValues',
             'variants.facetValues.facet',
             'variants.options',
+            ...productRelationCustomFields,
+            ...variantRelationCustomFields,
           ],
         )
 
@@ -362,17 +372,14 @@ export class ProductExportService {
       record.enabled = variant.enabled.toString()
 
       for (const field of filteredCustomFieldNames) {
-        const [entity, fieldName, type] = field.split(':') as [
-          'product' | 'variant',
-          string,
-          string,
-        ]
-        if (entity === 'product') {
+        const [owner, fieldName] = field.split(':') as ['product' | 'variant', string, ...string[]]
+        if (owner === 'product') {
           record[field] =
-            this.handleCustomFields(customFields, fieldName, type, exportAssetsAs) || ''
-        } else if (entity === 'variant') {
+            this.handleCustomFields(customFields, fieldName, exportAssetsAs, 'product') ?? ''
+        } else if (owner === 'variant') {
           record[field] =
-            this.handleCustomFields(variant.customFields, fieldName, type, exportAssetsAs) || ''
+            this.handleCustomFields(variant.customFields, fieldName, exportAssetsAs, 'variant') ??
+            ''
         }
       }
 
@@ -408,42 +415,90 @@ export class ProductExportService {
       .replace(/,\s*'/g, ", '") // Ensure clean spacing after commas
   }
 
+  /**
+   * Collects {@link ID}s from any relation custom field value (single entity, list, or raw id),
+   * regardless of target entity type (Product, Collection, Channel, etc.).
+   */
+  private serializeRelationCustomFieldIds(fieldValue: unknown): string[] {
+    if (fieldValue == null) {
+      return []
+    }
+    if (Array.isArray(fieldValue)) {
+      return fieldValue.map((item) => {
+        if (item !== null && typeof item === 'object' && 'id' in item) {
+          return String((item as { id: ID }).id)
+        }
+        return String(item)
+      })
+    }
+    if (typeof fieldValue === 'object' && 'id' in fieldValue) {
+      return [String((fieldValue as { id: ID }).id)]
+    }
+    return [String(fieldValue)]
+  }
+
+  private isCustomFieldList(owner: 'product' | 'variant', fieldName: string): boolean {
+    const defs =
+      owner === 'product'
+        ? this.configService.customFields.Product
+        : this.configService.customFields.ProductVariant
+    const def = defs.find((f) => f.name === fieldName)
+    return def?.list === true
+  }
+
+  /**
+   * Resolves a relation-type custom field on Product or ProductVariant (any related entity).
+   */
+  private getRelationCustomFieldDef(
+    owner: 'product' | 'variant',
+    fieldName: string,
+  ): RelationCustomFieldConfig | undefined {
+    const defs =
+      owner === 'product'
+        ? this.configService.customFields.Product
+        : this.configService.customFields.ProductVariant
+    const def = defs.find((f) => f.name === fieldName)
+    if (def?.type === 'relation') {
+      return def
+    }
+    return undefined
+  }
+
   private handleCustomFields(
     customFields: Record<string, any>,
     fieldName: string,
-    type: string,
     exportAssetsAs: 'url' | 'json',
+    owner: 'product' | 'variant',
   ) {
     const fieldValue = customFields[fieldName]
-    if (!fieldValue) {
+    if (fieldValue == null || fieldValue === '') {
       return
     }
 
-    const relationsTypes = [
-      ...this.configService.customFields.Product.map((field) => {
-        if (field.type === 'relation') return field.entity.name.toLowerCase()
-      }),
-      ...this.configService.customFields.ProductVariant.map((field) => {
-        if (field.type === 'relation') return field.entity.name.toLowerCase()
-      }),
-    ].filter((type) => type)
-
-    if (relationsTypes.includes(type)) {
-      if (type === 'asset') {
-        return (customFields[fieldName] = this.handleAssets([fieldValue], exportAssetsAs))
-      } else {
-        return (customFields[fieldName] = fieldValue.id)
+    const relationDef = this.getRelationCustomFieldDef(owner, fieldName)
+    if (relationDef) {
+      if (relationDef.entity === Asset) {
+        const assets = Array.isArray(fieldValue) ? fieldValue : [fieldValue]
+        return this.handleAssets(assets, exportAssetsAs)
       }
 
-      return
+      const ids = this.serializeRelationCustomFieldIds(fieldValue)
+      if (ids.length === 0) {
+        return
+      }
+      const isList = this.isCustomFieldList(owner, fieldName)
+      return isList ? ids.join('|') : ids[0]
     }
 
     if (typeof fieldValue === 'object') {
-      customFields[fieldName] = customFields[fieldName] = JSON.stringify(fieldValue)
+      customFields[fieldName] = JSON.stringify(fieldValue)
         .replace(/"/g, "'") // Replace double quotes with single quotes
         .replace(/\s+/g, ' ') // Remove unnecessary whitespace and line breaks
         .replace(/,\s*'/g, ", '") // Ensure clean spacing after commas
-    } else if (startsWith(fieldValue, '{') || startsWith(fieldValue, '[')) {
+      return customFields[fieldName]
+    }
+
+    if (startsWith(fieldValue, '{') || startsWith(fieldValue, '[')) {
       customFields[fieldName] = fieldValue.replace(/"/g, "'").replace(/\s+/g, ' ')
       return customFields[fieldName]
     }
@@ -499,16 +554,21 @@ export class ProductExportService {
     return productIds
   }
 
+  /**
+   * Lists exportable custom field columns. For relations, `type` is always the **related entity’s**
+   * class name (`field.entity.name.toLowerCase()`) — e.g. `product`, `asset`, `collection` — for any
+   * Vendure entity; export logic does not branch on that string, only on the field definition.
+   */
   async getCustomFields(ctx: RequestContext, productIds: string[]) {
     const customFields = new Set<{ name: string; type: string }>()
 
     forEach(this.configService.customFields.Product, (field) => {
       if (field.type === 'relation') {
-        const entity = field.entity.name
+        const relatedEntityName = field.entity.name
 
         customFields.add({
           name: `product:${field.name}`,
-          type: entity.toLowerCase(),
+          type: relatedEntityName.toLowerCase(),
         })
 
         return
@@ -522,11 +582,11 @@ export class ProductExportService {
 
     forEach(this.configService.customFields.ProductVariant, (field) => {
       if (field.type === 'relation') {
-        const entity = field.entity.name
+        const relatedEntityName = field.entity.name
 
         customFields.add({
           name: `variant:${field.name}`,
-          type: entity.toLowerCase(),
+          type: relatedEntityName.toLowerCase(),
         })
 
         return

@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit, Inject } from '@nestjs/common'
+import { OnModuleInit } from '@nestjs/common'
+import { Injectable, Inject } from '@nestjs/common'
 import {
-  RequestContext,
   JobQueue,
   JobQueueService,
   SerializedRequestContext,
@@ -8,11 +8,10 @@ import {
   SearchService,
   LanguageCode,
   EventBus,
-  ProductEvent,
-  Product,
   CollectionService,
   ProductService,
 } from '@vendure/core'
+import { RequestContext, ProductEvent, Product } from '@vendure/core'
 import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
 import { PluginInitOptions, UpdatingStrategy } from '../types'
 import { ProductImporter } from '../providers/import-providers/product-importer'

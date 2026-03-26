@@ -9,34 +9,39 @@ import {
   TaxCategoryService,
   ID,
   Facet,
-  FacetValue,
   ImportProgress,
   LanguageCode,
-  RequestContext,
   OnProgressFn,
   CustomFieldConfig,
-  InternalServerError,
   ParsedFacet,
   TaxCategory,
   ProductService,
-  Product,
   TransactionalConnection,
-  ProductVariant,
   TranslatableSaver,
   ParseResult,
   AssetService,
-  Asset,
   ProductOptionGroupService,
+  RelationCustomFieldConfig,
+  SlugStrategy,
+  StructCustomFieldConfig,
+} from '@vendure/core'
+import {
+  FacetValue,
+  RequestContext,
+  InternalServerError,
+  Product,
+  ProductVariant,
+  Asset,
   ProductOptionGroup,
   Logger,
   ProductAsset,
-  RelationCustomFieldConfig,
-  SlugStrategy,
   Channel,
 } from '@vendure/core'
 import { Stream } from 'stream'
 import { Observable } from 'rxjs'
-import { AssetType, ImportInfo } from '@vendure/common/lib/generated-types'
+import { getGraphQlInputName } from '@vendure/common/lib/shared-utils'
+import { ImportInfo } from '@vendure/common/lib/generated-types'
+import { AssetType } from '@vendure/common/lib/generated-types'
 import { ExtendedFastImporterService } from '../../services/extended-fast-importer.service'
 import { compact, find, isUndefined, startsWith } from 'lodash'
 import { JsonAsset, ParsedProductWithId, UpdatingStrategy } from '../../types'
@@ -851,6 +856,60 @@ export class ProductImporter {
   //   return facetValueIds
   // }
 
+  /**
+   * Normalizes CSV-style JSON (single quotes, spacing) before JSON.parse, consistent with other custom-field parsing in this importer.
+   */
+  private normalizeCustomFieldJsonInput(raw: string): string {
+    return raw.replace(/'/g, '"').replace(/\s+/g, ' ').replace(/,\s*'/g, ", '")
+  }
+
+  /**
+   * Coerces raw JSON object properties to the scalar types declared on a struct custom field.
+   */
+  private coerceStructRow(
+    structDef: StructCustomFieldConfig,
+    parsed: Record<string, unknown>,
+    parseBooleanFn: (input?: string) => boolean,
+  ): Record<string, unknown> {
+    const out: Record<string, unknown> = {}
+    for (const subField of structDef.fields) {
+      if (!Object.prototype.hasOwnProperty.call(parsed, subField.name)) {
+        continue
+      }
+      const raw = parsed[subField.name]
+      if (raw === null || raw === undefined) {
+        continue
+      }
+      switch (subField.type) {
+        case 'string':
+        case 'text':
+          out[subField.name] = String(raw)
+          break
+        case 'int': {
+          const n = typeof raw === 'number' ? raw : parseInt(String(raw), 10)
+          if (!Number.isNaN(n)) {
+            out[subField.name] = n
+          }
+          break
+        }
+        case 'float': {
+          const n = typeof raw === 'number' ? raw : parseFloat(String(raw))
+          if (!Number.isNaN(n)) {
+            out[subField.name] = n
+          }
+          break
+        }
+        case 'boolean':
+          out[subField.name] = typeof raw === 'boolean' ? raw : parseBooleanFn(String(raw))
+          break
+        case 'datetime':
+          out[subField.name] = String(raw)
+          break
+      }
+    }
+    return out
+  }
+
   private async processCustomFieldValues(
     customFields: { [field: string]: string },
     config: CustomFieldConfig[],
@@ -870,7 +929,15 @@ export class ProductImporter {
       }
     }
 
-    const processed: { [field: string]: string | string[] | boolean | undefined } = {}
+    const processed: {
+      [field: string]:
+        | string
+        | string[]
+        | boolean
+        | undefined
+        | Record<string, unknown>
+        | Record<string, unknown>[]
+    } = {}
 
     for (const fieldDef of config) {
       let foundCustomFieldType = find(
@@ -891,12 +958,68 @@ export class ProductImporter {
         continue
       }
 
-      if (fieldDef.list === true) {
-        processed[fieldDef.name] = value?.split('|').filter((val) => val.trim() !== '')
-      } else if (fieldDef.type === 'boolean') {
-        processed[fieldDef.name] = parseBoolean(value)
-      } else if (fieldDef.type === 'relation') {
-        if (foundCustomFieldType === 'asset') {
+      if (fieldDef.type === 'struct') {
+        const structDef = fieldDef as StructCustomFieldConfig
+        try {
+          if (fieldDef.list === true) {
+            const trimmed = value.trim()
+            if (trimmed.startsWith('[')) {
+              const parsedList = JSON.parse(this.normalizeCustomFieldJsonInput(trimmed))
+              if (!Array.isArray(parsedList)) {
+                throw new Error('Struct list must be a JSON array')
+              }
+              processed[fieldDef.name] = parsedList.map((item, index) => {
+                if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+                  throw new Error(`Invalid struct element at index ${index}`)
+                }
+                return this.coerceStructRow(
+                  structDef,
+                  item as Record<string, unknown>,
+                  parseBoolean,
+                )
+              })
+            } else {
+              processed[fieldDef.name] = value
+                .split('|')
+                .map((part) => part.trim())
+                .filter((part) => part !== '')
+                .map((part) => {
+                  const obj = JSON.parse(this.normalizeCustomFieldJsonInput(part))
+                  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+                    throw new Error('Each pipe segment must be a JSON object')
+                  }
+                  return this.coerceStructRow(
+                    structDef,
+                    obj as Record<string, unknown>,
+                    parseBoolean,
+                  )
+                })
+            }
+          } else {
+            const obj = JSON.parse(this.normalizeCustomFieldJsonInput(value.trim()))
+            if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+              throw new Error('Struct must be a JSON object')
+            }
+            processed[fieldDef.name] = this.coerceStructRow(
+              structDef,
+              obj as Record<string, unknown>,
+              parseBoolean,
+            )
+          }
+        } catch (e: unknown) {
+          const message = e instanceof Error ? e.message : String(e)
+          Logger.warn(
+            `Skipping custom field "${fieldDef.name}" (struct): ${message}`,
+            'ProductImporter',
+          )
+        }
+        continue
+      }
+
+      if (fieldDef.type === 'relation') {
+        const inputKey = getGraphQlInputName(fieldDef)
+        const relDef = fieldDef as RelationCustomFieldConfig
+        if (relDef.entity === Asset) {
           if (startsWith(value, '{') || startsWith(value, '[')) {
             if (typeof value === 'string') {
               const assetValue: JsonAsset | JsonAsset[] = JSON.parse(
@@ -904,10 +1027,14 @@ export class ProductImporter {
               )
 
               if (Array.isArray(assetValue)) {
+                const createdIds: string[] = []
                 for (const asset of assetValue) {
                   if (asset.url.startsWith('http://') || asset.url.startsWith('https://')) {
                     const createdAssets = await this.assetImporter.getAssets([asset], ctx)
-                    processed[fieldDef.name] = createdAssets.assets[0]?.id as string
+                    const newId = createdAssets.assets[0]?.id
+                    if (newId) {
+                      createdIds.push(newId as string)
+                    }
                   }
                   const foundAsset = this.allAssets.find((a) => a.id === asset.id)
                   if (foundAsset && foundAsset.name !== asset.name) {
@@ -916,10 +1043,11 @@ export class ProductImporter {
                     })
                   }
                 }
+                processed[inputKey] = fieldDef.list ? createdIds : createdIds[0]
               } else {
                 if (assetValue.url.startsWith('http://') || assetValue.url.startsWith('https://')) {
                   const createdAssets = await this.assetImporter.getAssets([assetValue], ctx)
-                  processed[fieldDef.name] = createdAssets.assets[0]?.id as string
+                  processed[inputKey] = createdAssets.assets[0]?.id as string
                 }
 
                 const foundAsset = this.allAssets.find((a) => a.id === assetValue.id)
@@ -933,12 +1061,27 @@ export class ProductImporter {
           } else {
             if (value.startsWith('http://') || value.startsWith('https://')) {
               const createdAssets = await this.assetImporter.getAssets([{ url: value }], ctx)
-              processed[fieldDef.name] = createdAssets.assets[0]?.id as string
+              processed[inputKey] = createdAssets.assets[0]?.id as string
             }
           }
-        } else {
-          processed[fieldDef.name] = value ? value : undefined
+          continue
         }
+
+        if (fieldDef.list === true) {
+          processed[inputKey] = value
+            .split('|')
+            .map((val) => val.trim())
+            .filter((val) => val !== '')
+        } else {
+          processed[inputKey] = value.trim()
+        }
+        continue
+      }
+
+      if (fieldDef.list === true) {
+        processed[fieldDef.name] = value?.split('|').filter((val) => val.trim() !== '')
+      } else if (fieldDef.type === 'boolean') {
+        processed[fieldDef.name] = parseBoolean(value)
       } else {
         if (startsWith(value, '{') || startsWith(value, '[')) {
           if (typeof value === 'string') {

@@ -68,16 +68,17 @@ export class ProductExportService {
       )
       if (!res.ok) {
         const json = await res.json()
-        throw Error(json?.message)
+        throw new Error(json?.message || 'Failed to export products')
       }
       const header = res.headers.get('Content-Disposition')
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const parts = header!.split(';')
       const filename = parts[1].split('=')[1]
       const blob = await res.blob()
       await this.downloadBlob(blob, filename)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      this.notificationService.error(err.message)
+      this.notificationService.error((err as Error)?.message || 'Failed to export products')
     }
   }
 

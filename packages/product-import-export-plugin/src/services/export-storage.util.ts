@@ -64,4 +64,3 @@ export function buildExportObjectKey(
   const normalizedFileName = normalizeExportFileNameForObjectKey(fileName)
   return `${normalizedPrefix}${channelToken}/${normalizedFileName}`
 }
-

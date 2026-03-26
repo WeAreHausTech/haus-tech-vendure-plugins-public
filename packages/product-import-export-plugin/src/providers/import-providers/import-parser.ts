@@ -6,11 +6,12 @@ import {
   Channel,
   ConfigService,
   CustomFieldConfig,
-  InternalServerError,
-  RequestContext,
+  RelationCustomFieldConfig,
   SlugStrategy,
 } from '@vendure/core'
-import { parse, Options } from 'csv-parse'
+import { InternalServerError, RequestContext } from '@vendure/core'
+import { Options } from 'csv-parse'
+import { parse } from 'csv-parse'
 import { Stream } from 'stream'
 import { startsWith } from 'lodash'
 
@@ -282,6 +283,50 @@ export class ImportParser {
     return { results, errors, processed: totalProducts }
   }
 
+  /**
+   * Maps a CSV column key (e.g. `product:relatedProducts:product`) to the Vendure custom field `name`.
+   */
+  private resolveCustomFieldImportFieldName(
+    prefix: 'product' | 'variant',
+    fullColumnKey: string,
+  ): string | undefined {
+    if (!fullColumnKey.startsWith(`${prefix}:`)) {
+      return undefined
+    }
+    const rest = fullColumnKey.slice(prefix.length + 1)
+    const configs =
+      prefix === 'product'
+        ? this.configService.customFields.Product
+        : this.configService.customFields.ProductVariant
+
+    const exact = configs.find((c) => c.name === rest)
+    if (exact) {
+      return exact.name
+    }
+
+    const colonIdx = rest.indexOf(':')
+    if (colonIdx === -1) {
+      return undefined
+    }
+    const name = rest.slice(0, colonIdx)
+    const suffix = rest.slice(colonIdx + 1)
+    const field = configs.find((c) => c.name === name)
+    if (!field) {
+      return undefined
+    }
+    if (field.type === 'relation') {
+      const relationField = field as RelationCustomFieldConfig
+      if (suffix === relationField.entity.name.toLowerCase()) {
+        return field.name
+      }
+      return undefined
+    }
+    if (suffix === field.type) {
+      return field.name
+    }
+    return undefined
+  }
+
   private validateCustomFields(rowKeys: string[]): string[] {
     const errors: string[] = []
     for (const rowKey of rowKeys) {
@@ -290,23 +335,35 @@ export class ImportParser {
       if (parts.length === 1) {
         continue
       }
-      if (parts.length === 2) {
-        let customFieldConfigs: CustomFieldConfig[] = []
-        if (parts[0] === 'product') {
-          customFieldConfigs = this.configService.customFields.Product
-        } else if (parts[0] === 'variant') {
-          customFieldConfigs = this.configService.customFields.ProductVariant
-        } else {
-          continue
-        }
-        const customFieldConfig = customFieldConfigs.find((config) => config.name === parts[1])
-        if (customFieldConfig) {
+      if (parts[0] === 'product' || parts[0] === 'variant') {
+        const resolved = this.resolveCustomFieldImportFieldName(parts[0], baseKey)
+        if (resolved) {
           continue
         }
       }
       errors.push(`Invalid custom field: ${rowKey}`)
     }
     return errors
+  }
+
+  private parseCustomFieldsFromRow(
+    prefix: 'product' | 'variant',
+    r: { [key: string]: string },
+  ): { [name: string]: string } {
+    return Object.entries(r)
+      .filter(([key]) => {
+        return key.indexOf(`${prefix}:`) === 0
+      })
+      .reduce((output, [key, value]) => {
+        const fieldName = this.resolveCustomFieldImportFieldName(prefix, key)
+        if (!fieldName) {
+          return output
+        }
+        return {
+          ...output,
+          [fieldName]: isRelationObject(value) ? JSON.parse(value) : value,
+        }
+      }, {})
   }
 
   private isTranslatable(baseKey: string): boolean {
@@ -330,6 +387,12 @@ export class ImportParser {
         )
       }
       return customFieldConfig.type === 'localeString'
+    }
+    if (parts.length === 3 && (parts[0] === 'product' || parts[0] === 'variant')) {
+      const owner = parts[0] as 'product' | 'variant'
+      if (this.resolveCustomFieldImportFieldName(owner, baseKey)) {
+        return false
+      }
     }
     throw new InternalServerError(`Invalid column header '${baseKey}'`)
   }
@@ -424,8 +487,8 @@ export class ImportParser {
 
     const translations = translationCodes.map(async (languageCode) => {
       const translatedFields = getRawTranslatedFields(r, languageCode)
-      const parsedTranslatedCustomFields = parseCustomFields('product', translatedFields)
-      const parsedUntranslatedCustomFields = parseCustomFields(
+      const parsedTranslatedCustomFields = this.parseCustomFieldsFromRow('product', translatedFields)
+      const parsedUntranslatedCustomFields = this.parseCustomFieldsFromRow(
         'product',
         getRawUntranslatedFields(r),
       )
@@ -514,8 +577,8 @@ export class ImportParser {
         : r.optionValues
       const translatedOptionValues = parseStringArray(rawTranslOptionValues)
       const translatedFields = getRawTranslatedFields(r, languageCode)
-      const parsedTranslatedCustomFields = parseCustomFields('variant', translatedFields)
-      const parsedUntranslatedCustomFields = parseCustomFields(
+      const parsedTranslatedCustomFields = this.parseCustomFieldsFromRow('variant', translatedFields)
+      const parsedUntranslatedCustomFields = this.parseCustomFieldsFromRow(
         'variant',
         getRawUntranslatedFields(r),
       )
@@ -723,23 +786,6 @@ function isRelationObject(value: string) {
   } catch (e: any) {
     return false
   }
-}
-
-function parseCustomFields(
-  prefix: 'product' | 'variant',
-  r: { [key: string]: string },
-): { [name: string]: string } {
-  return Object.entries(r)
-    .filter(([key, value]) => {
-      return key.indexOf(`${prefix}:`) === 0
-    })
-    .reduce((output, [key, value]) => {
-      const fieldName = key.replace(`${prefix}:`, '')
-      return {
-        ...output,
-        [fieldName]: isRelationObject(value) ? JSON.parse(value) : value,
-      }
-    }, {})
 }
 
 function parseString(input?: string): string {

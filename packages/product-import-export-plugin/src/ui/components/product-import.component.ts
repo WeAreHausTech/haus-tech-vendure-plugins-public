@@ -253,11 +253,11 @@ export class ProductImportComponent implements OnInit {
             return
           }
 
-          const nameColumn = `name:${validationLanguage}` || 'name'
+          const nameColumn = validationLanguage ? `name:${validationLanguage}` : 'name'
 
           // Get optionGroups and optionValues columns for the main language
-          const optionGroupsColumn = `optionGroups:${validationLanguage}` || 'optionGroups'
-          const optionValuesColumn = `optionValues:${validationLanguage}` || 'optionValues'
+          const optionGroupsColumn = validationLanguage ? `optionGroups:${validationLanguage}` : 'optionGroups'
+          const optionValuesColumn = validationLanguage ? `optionValues:${validationLanguage}` : 'optionValues'
 
           const optionGroupsIndex = header.indexOf(optionGroupsColumn)
           const optionValuesIndex = header.indexOf(optionValuesColumn)
@@ -509,8 +509,8 @@ export class ProductImportComponent implements OnInit {
     header: string[],
     languageCodes: (string | undefined)[],
   ): { errorRows: number[]; errorColumns: string[] } {
-    let errorRows: number[] = []
-    let errorColumns: string[] = []
+    const errorRows: number[] = []
+    const errorColumns: string[] = []
 
     if (size(languageCodes) < 2) {
       console.log('Only one language found in the file.')

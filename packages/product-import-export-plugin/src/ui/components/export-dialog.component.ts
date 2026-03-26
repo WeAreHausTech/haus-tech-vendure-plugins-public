@@ -61,7 +61,7 @@ export class ExportDialogComponent
     selectedExportFields?: ExportFields
   }) => void
   selection: any[] = []
-  fileName: string = ''
+  fileName = ''
   customFields: string[] = []
   selectedFields: string[] = []
   exportAssetsAs: 'url' | 'json' = 'url'
@@ -86,7 +86,7 @@ export class ExportDialogComponent
   ]
 
   config: PluginInitOptions
-  toggleAllChecked: boolean = false
+  toggleAllChecked = false
 
   ngOnInit(): void {
     this.selectedFields = [...this.customFields]

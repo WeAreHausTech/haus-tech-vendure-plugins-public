@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import {
   Channel,
   ChannelService,
+  CustomFieldRelationService,
   EntityHydrator,
   Facet,
   FacetTranslation,
@@ -48,6 +49,7 @@ export class ExtendedFastImporterService {
   constructor(
     private connection: TransactionalConnection,
     private channelService: ChannelService,
+    private customFieldRelationService: CustomFieldRelationService,
     private stockMovementService: StockMovementService,
     private translatableSaver: TranslatableSaver,
     private requestContextService: RequestContextService,
@@ -97,6 +99,8 @@ export class ExtendedFastImporterService {
         }
       },
     })
+
+    await this.customFieldRelationService.updateRelations(this.importCtx, Product, input, product)
 
     if (input.assetIds) {
       const existingAssets = await this.connection
@@ -156,6 +160,9 @@ export class ExtendedFastImporterService {
         }
       },
     })
+
+    await this.customFieldRelationService.updateRelations(this.importCtx, Product, input, product)
+
     if (input.assetIds) {
       const productAssets = input.assetIds.map(
         (id, i) =>
@@ -454,6 +461,13 @@ export class ExtendedFastImporterService {
       },
     })
 
+    await this.customFieldRelationService.updateRelations(
+      this.importCtx,
+      ProductVariant,
+      input,
+      updatedVariant,
+    )
+
     if (input.assetIds) {
       const existingAssets = await this.connection
         .getRepository(this.importCtx, ProductVariantAsset)
@@ -494,7 +508,7 @@ export class ExtendedFastImporterService {
             variant: { id: updatedVariant.id },
           },
         })
-      let existingVariantPrice = allPrices.find(
+      const existingVariantPrice = allPrices.find(
         (p) =>
           idsAreEqual(p.channelId, channelId) &&
           p.currencyCode === this.importCtx.channel.defaultCurrencyCode,
@@ -559,6 +573,13 @@ export class ExtendedFastImporterService {
         }
       },
     })
+
+    await this.customFieldRelationService.updateRelations(
+      this.importCtx,
+      ProductVariant,
+      input,
+      createdVariant,
+    )
 
     if (input.assetIds) {
       const variantAssets = input.assetIds.map(

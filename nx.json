@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "yarn"
   },
   "targetDefaults": {
     "build": {
@@ -32,7 +32,7 @@
       "fallbackCurrentVersionResolver": "disk"
     },
     "version": {
-      "preVersionCommand": "npx nx run-many -t build",
+      "preVersionCommand": "yarn nx run-many -t build",
       "manifestRootsToUpdate": [
         {
           "path": "dist/packages/{projectName}",

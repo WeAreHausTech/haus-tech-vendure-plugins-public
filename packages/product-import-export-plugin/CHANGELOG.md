@@ -1,3 +1,17 @@
+## 3.3.1-next.0
+
+### 🚀 Features
+
+- enhance file name validation for product export functionality ([f9d5a45](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/f9d5a45))
+- enhance export storage strategy configuration ([d589906](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/d589906))
+- abstract logic into separate strategies ([1c7d0c7](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1c7d0c7))
+- enhance product export functionality with file name sanitization and S3 region update ([06af120](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/06af120))
+- add S3 storage support for product export functionality ([08c0901](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/08c0901))
+
+### 🩹 Fixes
+
+- correct file path handling and ensure consistent file name sanitization in product export ([03a5bb5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/03a5bb5))
+
 ## 3.2.1
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
