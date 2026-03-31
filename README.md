@@ -33,7 +33,7 @@ This monorepo is structured using Nx, which allows for efficient management of m
 
 ---
 
-## Plugin Structure
+## Plugin Structure:
 
 Each plugin in this monorepo follows a standard structure:
 
