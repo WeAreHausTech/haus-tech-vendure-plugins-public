@@ -1,3 +1,10 @@
+## 3.3.2-next.0
+
+### 🚀 Features
+
+- **product-import-export-plugin:** optimize asset handling and caching in product importer ([9d2888e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9d2888e))
+- **product-import-export-plugin:** enhance testing and export functionality ([1764eb2](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1764eb2))
+
 ## 3.3.1
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
