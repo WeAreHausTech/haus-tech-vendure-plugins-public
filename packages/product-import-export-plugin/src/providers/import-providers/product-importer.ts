@@ -61,6 +61,9 @@ export class ProductImporter {
   private facetValueMap = new Map<string, FacetValue>()
   private customFieldTypes: Record<string, string> = {}
   private allAssets: Asset[] = []
+  private allAssetsById = new Map<ID, Asset>()
+  private facetIdCache = new Map<string, ID>()
+  private facetValueIdCache = new Map<string, ID>()
 
   private slugStrategy: SlugStrategy
 
@@ -235,6 +238,7 @@ export class ProductImporter {
     }
 
     this.allAssets = assets
+    this.allAssetsById = new Map(assets.map((asset) => [asset.id, asset]))
   }
 
   private async doParseAndImport(
@@ -245,6 +249,10 @@ export class ProductImporter {
     reqCtx: RequestContext,
     onProgress: OnProgressFn,
   ): Promise<ImportInfo> {
+    // Per-import caches to avoid stale cross-job state.
+    this.facetIdCache.clear()
+    this.facetValueIdCache.clear()
+
     const ctx = await this.getRequestContext(reqCtx, mainLanguage)
     await this.setMissingAssetHashes(ctx)
 
@@ -367,7 +375,7 @@ export class ProductImporter {
               url: assetPath,
               name: product.assetsJson?.[idx]?.name || undefined,
               id:
-                assetID && this.allAssets.find((a) => a.id === assetID)
+                  assetID && this.allAssetsById.get(assetID)
                   ? product.assetsJson?.[idx]?.id
                   : undefined,
             }
@@ -613,7 +621,7 @@ export class ProductImporter {
                 url: assetPath,
                 name: variant.assetsJson?.[idx]?.name || undefined,
                 id:
-                  assetID && this.allAssets.find((a) => a.id === assetID)
+                  assetID && this.allAssetsById.get(assetID)
                     ? variant.assetsJson?.[idx]?.id
                     : undefined,
               }
@@ -1036,11 +1044,12 @@ export class ProductImporter {
                       createdIds.push(newId as string)
                     }
                   }
-                  const foundAsset = this.allAssets.find((a) => a.id === asset.id)
+                  const foundAsset = asset.id ? this.allAssetsById.get(asset.id) : undefined
                   if (foundAsset && foundAsset.name !== asset.name) {
                     await this.connection.getRepository(ctx, Asset).update(foundAsset.id, {
                       name: asset.name,
                     })
+                    foundAsset.name = asset.name || foundAsset.name
                   }
                 }
                 processed[inputKey] = fieldDef.list ? createdIds : createdIds[0]
@@ -1050,11 +1059,12 @@ export class ProductImporter {
                   processed[inputKey] = createdAssets.assets[0]?.id as string
                 }
 
-                const foundAsset = this.allAssets.find((a) => a.id === assetValue.id)
+                const foundAsset = assetValue.id ? this.allAssetsById.get(assetValue.id) : undefined
                 if (foundAsset && foundAsset.name !== assetValue.name) {
                   await this.connection.getRepository(ctx, Asset).update(foundAsset.id, {
                     name: assetValue.name,
                   })
+                  foundAsset.name = assetValue.name || foundAsset.name
                 }
               }
             }
@@ -1132,17 +1142,26 @@ export class ProductImporter {
   }
 
   async createFacetAndValue(facet: ParsedFacet, facetCode: string, valueCode: string) {
-    const facetId = await this.fastImporter.createFacet({
-      code: facetCode,
-      isPrivate: false,
-      translations: facet.translations.map((translation) => {
-        return {
-          languageCode: translation.languageCode,
-          name: translation.facet,
-          value: translation.value,
-        }
-      }),
-    })
+    const facetValueCacheKey = `${facetCode}::${valueCode}`
+    const cachedFacetValueId = this.facetValueIdCache.get(facetValueCacheKey)
+    if (cachedFacetValueId) {
+      return cachedFacetValueId
+    }
+
+    const facetId =
+      this.facetIdCache.get(facetCode) ??
+      (await this.fastImporter.createFacet({
+        code: facetCode,
+        isPrivate: false,
+        translations: facet.translations.map((translation) => {
+          return {
+            languageCode: translation.languageCode,
+            name: translation.facet,
+            value: translation.value,
+          }
+        }),
+      }))
+    this.facetIdCache.set(facetCode, facetId)
 
     const facetValueId = await this.fastImporter.createFacetValue({
       facetId,
@@ -1155,6 +1174,7 @@ export class ProductImporter {
       }),
     })
 
+    this.facetValueIdCache.set(facetValueCacheKey, facetValueId)
     return facetValueId
   }
 
