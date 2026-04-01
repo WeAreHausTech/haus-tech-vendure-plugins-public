@@ -4,5 +4,5 @@
     "types": ["node", "vitest"],
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+  "include": ["src/**/*.test.ts", "src/**/*.spec.ts", "e2e/**/*.e2e-spec.ts"]
 }

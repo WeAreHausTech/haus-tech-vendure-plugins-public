@@ -40,7 +40,9 @@
   ],
   "scripts": {
     "start": "yarn ts-node test/dev-server.ts",
-    "build": "yarn run -T rimraf dist && yarn run -T tsc && yarn run -T copyfiles -u 1 'src/ui/**/*' dist/"
+    "build": "yarn run -T rimraf dist && yarn run -T tsc && yarn run -T copyfiles -u 1 'src/ui/**/*' dist/",
+    "test": "yarn --cwd ../.. run -T vitest run --config packages/product-import-export-plugin/vitest.config.ts",
+    "test:watch": "yarn --cwd ../.. run -T vitest --config packages/product-import-export-plugin/vitest.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.744.0",

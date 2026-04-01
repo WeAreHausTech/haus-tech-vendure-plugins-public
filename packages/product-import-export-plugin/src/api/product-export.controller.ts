@@ -75,7 +75,7 @@ export class ProductExportController {
           this.options.exportOptions.defaultFileName &&
           !this.options.exportOptions.defaultFileName.endsWith('.csv')
         ) {
-          fileName = this.options.exportOptions.defaultFileName += '.csv'
+          fileName = `${this.options.exportOptions.defaultFileName}.csv`
         } else {
           fileName = this.options.exportOptions.defaultFileName || 'products_export.csv'
         }

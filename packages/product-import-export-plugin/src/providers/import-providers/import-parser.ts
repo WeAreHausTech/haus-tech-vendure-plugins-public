@@ -733,7 +733,12 @@ function validateOptionValueCount(
   const optionValueKeys = Object.keys(r).filter((key) => key.startsWith('optionValues'))
   for (const key of optionValueKeys) {
     const optionValues = parseStringArray(r[key])
-    if (currentRow.product.optionGroups.length !== optionValues.length && key === mainLanguage) {
+    const isMainLanguageOptionValueColumn =
+      key === 'optionValues' || key === `optionValues:${mainLanguage}`
+    if (
+      currentRow.product.optionGroups.length !== optionValues.length &&
+      isMainLanguageOptionValueColumn
+    ) {
       return `The number of optionValues in column '${key}' must match the number of optionGroups`
     }
   }
