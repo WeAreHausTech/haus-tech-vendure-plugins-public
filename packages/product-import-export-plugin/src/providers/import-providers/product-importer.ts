@@ -524,6 +524,10 @@ export class ProductImporter {
       const optionsMap: { [optionName: string]: ID } = {}
 
       await this.fastImporter.removeOptionGroupsFromProduct(createdProductId)
+      const productOptionsGroups = await this.optionGroupService.getOptionGroupsByProductId(
+        ctx,
+        createdProductId,
+      )
 
       for (const [optionGroup, optionGroupIndex] of product.optionGroups.map(
         (group, i) => [group, i] as const,
@@ -537,10 +541,6 @@ export class ProductImporter {
           entityName: 'ProductOptionGroup',
           fieldName: 'code',
         })
-        const productOptionsGroups = await this.optionGroupService.getOptionGroupsByProductId(
-          ctx,
-          createdProductId,
-        )
         const previousCode = await this.slugStrategy.generate(ctx, {
           value: `${productNameHasChanged?.previousName}-${optionGroupMainTranslation.name}`,
           entityName: 'ProductOptionGroup',

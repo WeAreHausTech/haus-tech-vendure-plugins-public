@@ -23,6 +23,7 @@ import {
   ProductVariantTranslation,
   RequestContext,
   RequestContextService,
+  Logger,
   StockMovementService,
   TransactionalConnection,
   TranslatableSaver,
@@ -39,6 +40,7 @@ import {
 import { normalizeString } from '../helpers/normalize-string'
 import { unique } from '@vendure/common/lib/unique'
 import { isNumber, isUndefined, omit, set } from 'lodash'
+import { loggerCtx } from '../constants'
 
 @Injectable()
 export class ExtendedFastImporterService {
@@ -156,7 +158,7 @@ export class ExtendedFastImporterService {
             p.featuredAsset = { id: input.featuredAssetId } as any
           }
         } catch (error) {
-          console.log(error)
+          Logger.error('Failed to prepare product before save', loggerCtx, (error as Error).stack)
         }
       },
     })

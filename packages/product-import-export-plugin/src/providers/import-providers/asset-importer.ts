@@ -166,11 +166,9 @@ export class ExtendedAssetImporter implements OnModuleInit {
         retryWhen((errors) =>
           errors.pipe(
             tap((error) => {
-              Logger.verbose(error.message)
               if (error.message.includes('Status code: 404')) {
                 throw error // Stop retrying on 404 errors
               }
-              Logger.verbose(`CustomAssetImportStrategy: retrying fetchUrl for ${assetUrl}`)
             }),
             delay(retryDelayMs ?? 200),
             take(retryCount ?? 3),
