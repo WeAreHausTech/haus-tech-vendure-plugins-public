@@ -32,7 +32,7 @@
       "fallbackCurrentVersionResolver": "disk"
     },
     "version": {
-      "preVersionCommand": "yarn nx run-many -t build",
+      "preVersionCommand": "yarn nx affected -t test --exclude=@haus-tech/haus-vendure-plugins-public && yarn nx affected -t build",
       "manifestRootsToUpdate": [
         {
           "path": "dist/packages/{projectName}",

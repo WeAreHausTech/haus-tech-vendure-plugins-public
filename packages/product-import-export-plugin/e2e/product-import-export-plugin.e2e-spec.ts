@@ -1,4 +1,5 @@
 import path from 'path'
+import { rm } from 'node:fs/promises'
 import { Readable } from 'node:stream'
 import {
   LanguageCode,
@@ -24,6 +25,8 @@ import { initialData } from './fixtures/initial-data'
 
 const sqliteDataDir = path.join(__dirname, '__data__')
 registerInitializer('sqljs', new SqljsInitializer(sqliteDataDir))
+const exportDir = path.join(process.cwd(), 'static', 'exports', E2E_DEFAULT_CHANNEL_TOKEN)
+const exportTmpDir = path.join(process.cwd(), 'static', 'exports-tmp', E2E_DEFAULT_CHANNEL_TOKEN)
 
 async function streamToString(stream: Readable): Promise<string> {
   const chunks: Buffer[] = []
@@ -31,6 +34,13 @@ async function streamToString(stream: Readable): Promise<string> {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
   }
   return Buffer.concat(chunks).toString('utf8')
+}
+
+async function cleanupExportArtifacts(): Promise<void> {
+  await Promise.all([
+    rm(exportDir, { recursive: true, force: true }),
+    rm(exportTmpDir, { recursive: true, force: true }),
+  ])
 }
 
 describe('ProductImportExportPlugin e2e', () => {
@@ -48,6 +58,8 @@ describe('ProductImportExportPlugin e2e', () => {
   )
 
   beforeAll(async () => {
+    await cleanupExportArtifacts()
+
     await server.init({
       initialData,
     })
@@ -88,6 +100,7 @@ describe('ProductImportExportPlugin e2e', () => {
 
   afterAll(async () => {
     await server.destroy()
+    await cleanupExportArtifacts()
   })
 
   it('returns plugin config defaults from HTTP endpoint', async () => {
