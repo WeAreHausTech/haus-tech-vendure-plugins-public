@@ -4,6 +4,7 @@
 
 - **product-import-export-plugin:** optimize asset handling and caching in product importer ([9d2888e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9d2888e))
 - **product-import-export-plugin:** enhance testing and export functionality ([1764eb2](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1764eb2))
+- **product-import-export-plugin:** enforce import/export acceptance criteria (column-presence updates, multi-variant option requirements, no ProductID export option, clearer import CTA, and strict required relation custom-field validation)
 
 ## 3.3.1
 

@@ -7,7 +7,6 @@ import {
   UseInterceptors,
   Res,
   Body,
-  Get,
 } from '@nestjs/common'
 import { Response } from 'express'
 import { FileInterceptor } from '@nestjs/platform-express'
@@ -44,7 +43,7 @@ export class ProductImportController {
     }
 
     try {
-      this.service.processFile(
+      await this.service.processFile(
         ctx,
         file,
         updateProductSlug === 'true',
@@ -52,8 +51,8 @@ export class ProductImportController {
         updatingStrategy,
       )
       return res.status(200).send('File uploaded successfully')
-    } catch (error) {
-      return res.status(500).send('Internal Server Error')
+    } catch (error: unknown) {
+      return res.status(500).send((error as Error)?.message || 'Internal Server Error')
     }
   }
 }

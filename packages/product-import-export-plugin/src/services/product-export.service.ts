@@ -106,7 +106,6 @@ export class ProductExportService {
 
     const headers: { id: string; title: string }[] = []
 
-    headers.push({ id: 'productId', title: 'productId' })
     // Add headers for translations
     for (const lang of languages) {
       headers.push({ id: `name:${lang}`, title: `name:${lang}` })
@@ -318,7 +317,6 @@ export class ProductExportService {
           .replace(/,\s*'/g, ", '")
           .replace(/'/g, "''")
         acc[lang] = {
-          productId: product.id,
           [`name:${lang}`]: escapedName || '',
           [`slug:${lang}`]: slugTranslations[lang] || '',
           [`description:${lang}`]: escapedDescription || '',
@@ -330,8 +328,7 @@ export class ProductExportService {
       {} as Record<
         LanguageCode,
         {
-          productId: ID
-          [key: string]: string | ID
+          [key: string]: string
         }
       >,
     )
@@ -370,7 +367,6 @@ export class ProductExportService {
 
       for (const lang of languages) {
         const firstRowProductColumns = firstRowProductColumnsByLang[lang]
-        record.productId = variantIndex === 0 ? firstRowProductColumns.productId : ''
         record[`name:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`name:${lang}`] : ''
         record[`slug:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`slug:${lang}`] : ''
         record[`description:${lang}`] =
@@ -569,6 +565,37 @@ export class ProductExportService {
       return ''
     }
     return `${facetNameTranslations[lang]}:${facetValueTranslations[lang]}`
+  }
+
+  async hasMultiVariantProducts(ctx: RequestContext, selectionIds?: ID[]): Promise<boolean> {
+    const pageSize = 100
+    let skip = 0
+    let hasMore = true
+
+    while (hasMore) {
+      const { items, totalItems } = await this.productService.findAll(
+        ctx,
+        {
+          ...(selectionIds && selectionIds.length > 0
+            ? {
+                filter: {
+                  id: { in: selectionIds as string[] },
+                },
+              }
+            : {}),
+          skip,
+          take: pageSize,
+        },
+        ['variants'],
+      )
+      if (items.some((product) => product.variants.filter((variant) => !variant.deletedAt).length > 1)) {
+        return true
+      }
+      skip += pageSize
+      hasMore = skip < totalItems
+    }
+
+    return false
   }
 
   async getAllProductIds(ctx: RequestContext): Promise<ID[]> {

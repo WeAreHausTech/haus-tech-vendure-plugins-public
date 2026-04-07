@@ -5,7 +5,7 @@
       "title": "Importera produkter från CSV",
       "description": "Välj en CSV-fil att importera produkter från",
       "button-select": "Välj fil",
-      "button-upload": "Ladda upp fil",
+      "button-upload": "Starta import nu",
       "update-product-slugs": "Uppdatera produkt-sluggar utifrån namn",
       "select-main-language": "Välj huvudspråk: ",
       "updating-strategy": "Uppdateringsstrategi för etiketter och filer: ",

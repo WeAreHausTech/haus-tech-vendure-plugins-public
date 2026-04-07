@@ -4,7 +4,11 @@ import { ModuleRef } from '@nestjs/core'
 import * as path from 'path'
 import { uniq } from 'lodash'
 
-import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from './constants'
+import {
+  EXPORT_STORAGE_STRATEGY,
+  IMPORT_JOB_STORAGE_STRATEGY,
+  PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
+} from './constants'
 
 import { PluginInitOptions } from './types'
 /* Controllers */
@@ -21,6 +25,7 @@ import { ExtendedFastImporterService } from './services/extended-fast-importer.s
 import { ProductExportService } from './services/product-export.service'
 import { ProductExportQueueService } from './services/product-export-queue.service'
 import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
+import { LocalImportJobStorageStrategy } from './services/import-storage/local-import-job-storage-strategy'
 
 @VendurePlugin({
   imports: [PluginCommonModule],
@@ -45,6 +50,26 @@ import { LocalExportStorageStrategy } from './services/export-storage/local-expo
 
         return new LocalExportStorageStrategy({
           baseDir: path.join(process.cwd(), 'static', 'exports'),
+        })
+      },
+      inject: [ModuleRef],
+    },
+    {
+      provide: IMPORT_JOB_STORAGE_STRATEGY,
+      useFactory: async (moduleRef: ModuleRef) => {
+        const importOptions = ProductImportExportPlugin.options?.importOptions
+        const injector = new Injector(moduleRef)
+
+        if (importOptions?.storageStrategy) {
+          return importOptions.storageStrategy
+        }
+
+        if (importOptions?.storageStrategyFactory) {
+          return await importOptions.storageStrategyFactory(injector)
+        }
+
+        return new LocalImportJobStorageStrategy({
+          baseDir: path.join(process.cwd(), 'static', 'imports-tmp'),
         })
       },
       inject: [ModuleRef],
@@ -88,6 +113,9 @@ export class ProductImportExportPlugin {
         updateProductSlug: true,
         restoreSoftDeleted: true,
       }
+    }
+    if (!options.importOptions.importJobStorage) {
+      options.importOptions.importJobStorage = 'local'
     }
 
     // Ensure exportOptions exists

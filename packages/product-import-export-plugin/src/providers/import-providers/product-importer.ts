@@ -483,14 +483,16 @@ export class ProductImporter {
         facetValueIds: updatingStrategy === 'replace' ? [] : undefined,
         translations: await Promise.all(
           product.translations.map(async (translation) => {
+            const existingTranslation = existingProduct?.translations.find((t) => {
+              return t.languageCode === translation.languageCode
+            })
             return {
               languageCode: translation.languageCode,
               name: translation.name,
-              description: translation.description,
-              slug:
-                existingProduct?.translations.find((t) => {
-                  return t.languageCode === translation.languageCode
-                })?.slug || translation.slug,
+              ...(translation.description !== undefined
+                ? { description: translation.description }
+                : {}),
+              slug: existingTranslation?.slug || translation.slug,
               customFields: await this.processCustomFieldValues(
                 translation.customFields,
                 this.configService.customFields.Product,
@@ -530,81 +532,85 @@ export class ProductImporter {
       }
 
       const optionsMap: { [optionName: string]: ID } = {}
+      const shouldUpdateOptions =
+        product.optionGroupsProvided || variants.some((variant) => variant.optionValuesProvided)
 
-      await this.fastImporter.removeOptionGroupsFromProduct(createdProductId)
-      const productOptionsGroups = await this.optionGroupService.getOptionGroupsByProductId(
-        ctx,
-        createdProductId,
-      )
-
-      for (const [optionGroup, optionGroupIndex] of product.optionGroups.map(
-        (group, i) => [group, i] as const,
-      )) {
-        const optionGroupMainTranslation = this.getTranslationByCodeOrFirst(
-          optionGroup.translations,
-          ctx.languageCode,
+      if (shouldUpdateOptions) {
+        await this.fastImporter.removeOptionGroupsFromProduct(createdProductId)
+        const productOptionsGroups = await this.optionGroupService.getOptionGroupsByProductId(
+          ctx,
+          createdProductId,
         )
-        const code = await this.slugStrategy.generate(ctx, {
-          value: `${productMainTranslation.name}-${optionGroupMainTranslation.name}`,
-          entityName: 'ProductOptionGroup',
-          fieldName: 'code',
-        })
-        const previousCode = await this.slugStrategy.generate(ctx, {
-          value: `${productNameHasChanged?.previousName}-${optionGroupMainTranslation.name}`,
-          entityName: 'ProductOptionGroup',
-          fieldName: 'code',
-        })
-        const foundOptionGroup = productOptionsGroups.find((group) => group.code === previousCode)
 
-        const groupId = foundOptionGroup
-          ? await this.fastImporter.updateProductOptionGroup({
-              id: foundOptionGroup.id,
-              code,
-              options: optionGroupMainTranslation.values.map((name) => ({}) as any),
-              translations: optionGroup.translations
-                .map((translation) => {
-                  return {
-                    languageCode: translation.languageCode,
-                    name: translation.name,
-                  }
-                })
-                .filter((t) => t.name),
-            })
-          : await this.fastImporter.createProductOptionGroup({
-              code,
-              options: optionGroupMainTranslation.values.map((name) => ({}) as any),
-              translations: optionGroup.translations
-                .map((translation) => {
-                  return {
-                    languageCode: translation.languageCode,
-                    name: translation.name,
-                  }
-                })
-                .filter((t) => t.name),
-            })
-
-        for (const [optionIndex, value] of optionGroupMainTranslation.values.map(
-          (val, index) => [index, val] as const,
+        for (const [optionGroup, optionGroupIndex] of product.optionGroups.map(
+          (group, i) => [group, i] as const,
         )) {
-          const createdOptionId = await this.fastImporter.createProductOption({
-            productOptionGroupId: groupId,
-            code: await this.slugStrategy.generate(ctx, {
-              value,
-              entityName: 'ProductOption',
-              fieldName: 'code',
-            }),
-            translations: optionGroup.translations
-              .map((translation) => {
-                return {
-                  languageCode: translation.languageCode,
-                  name: translation.values[optionIndex],
-                }
-              })
-              .filter((t) => t.name),
+          const optionGroupMainTranslation = this.getTranslationByCodeOrFirst(
+            optionGroup.translations,
+            ctx.languageCode,
+          )
+          const code = await this.slugStrategy.generate(ctx, {
+            value: `${productMainTranslation.name}-${optionGroupMainTranslation.name}`,
+            entityName: 'ProductOptionGroup',
+            fieldName: 'code',
           })
-          optionsMap[`${optionGroupIndex}_${value}`] = createdOptionId
+          const previousCode = await this.slugStrategy.generate(ctx, {
+            value: `${productNameHasChanged?.previousName}-${optionGroupMainTranslation.name}`,
+            entityName: 'ProductOptionGroup',
+            fieldName: 'code',
+          })
+          const foundOptionGroup = productOptionsGroups.find((group) => group.code === previousCode)
+
+          const groupId = foundOptionGroup
+            ? await this.fastImporter.updateProductOptionGroup({
+                id: foundOptionGroup.id,
+                code,
+                options: optionGroupMainTranslation.values.map((name) => ({}) as any),
+                translations: optionGroup.translations
+                  .map((translation) => {
+                    return {
+                      languageCode: translation.languageCode,
+                      name: translation.name,
+                    }
+                  })
+                  .filter((t) => t.name),
+              })
+            : await this.fastImporter.createProductOptionGroup({
+                code,
+                options: optionGroupMainTranslation.values.map((name) => ({}) as any),
+                translations: optionGroup.translations
+                  .map((translation) => {
+                    return {
+                      languageCode: translation.languageCode,
+                      name: translation.name,
+                    }
+                  })
+                  .filter((t) => t.name),
+              })
+
+          for (const [optionIndex, value] of optionGroupMainTranslation.values.map(
+            (val, index) => [index, val] as const,
+          )) {
+            const createdOptionId = await this.fastImporter.createProductOption({
+              productOptionGroupId: groupId,
+              code: await this.slugStrategy.generate(ctx, {
+                value,
+                entityName: 'ProductOption',
+                fieldName: 'code',
+              }),
+              translations: optionGroup.translations
+                .map((translation) => {
+                  return {
+                    languageCode: translation.languageCode,
+                    name: translation.values[optionIndex],
+                  }
+                })
+                .filter((t) => t.name),
+            })
+            optionsMap[`${optionGroupIndex}_${value}`] = createdOptionId
+          }
+          await this.fastImporter.addOptionGroupToProduct(createdProductId, groupId)
         }
-        await this.fastImporter.addOptionGroupToProduct(createdProductId, groupId)
       }
 
       for (const variant of variants) {
@@ -648,9 +654,9 @@ export class ProductImporter {
           ctx,
         )
 
-        const optionIds = variantMainTranslation.optionValues.map(
-          (v, index) => optionsMap[`${index}_${v}`],
-        )
+        const optionIds = shouldUpdateOptions
+          ? variantMainTranslation.optionValues.map((v, index) => optionsMap[`${index}_${v}`])
+          : undefined
 
         let existingVariant = await this.connection.getRepository(ctx, ProductVariant).findOne({
           where: {
@@ -698,11 +704,13 @@ export class ProductImporter {
           featuredAssetId: getFeaturedAssetId(existingVariant),
           assetIds: variantAssets.map((a) => a.id),
           sku: variant.sku,
-          taxCategoryId: this.getMatchingTaxCategoryId(variant.taxCategory, taxCategories.items),
-          stockOnHand: variant.stockOnHand,
-          trackInventory: variant.trackInventory,
-          enabled: variant.enabled,
-          optionIds,
+          ...(variant.taxCategory !== undefined
+            ? { taxCategoryId: this.getMatchingTaxCategoryId(variant.taxCategory, taxCategories.items) }
+            : {}),
+          ...(variant.stockOnHand !== undefined ? { stockOnHand: variant.stockOnHand } : {}),
+          ...(variant.trackInventory !== undefined ? { trackInventory: variant.trackInventory } : {}),
+          ...(variant.enabled !== undefined ? { enabled: variant.enabled } : {}),
+          ...(optionIds !== undefined ? { optionIds } : {}),
           translations: await Promise.all(
             variant.translations.map(async (translation) => {
               const productTranslation = product.translations.find(
@@ -918,6 +926,10 @@ export class ProductImporter {
     return out
   }
 
+  private isValidRelationIdentifier(value: string): boolean {
+    return /^[A-Za-z0-9_-]+$/.test(value)
+  }
+
   private async processCustomFieldValues(
     customFields: { [field: string]: string },
     config: CustomFieldConfig[],
@@ -962,7 +974,12 @@ export class ProductImporter {
 
       const value = customFields[fieldDef.name]
 
-      if (!value || value === '') {
+      if (!value || value.trim() === '') {
+        if (fieldDef.type === 'relation' && fieldDef.nullable === false) {
+          throw new InternalServerError(
+            `Required relation custom field "${fieldDef.name}" is missing or empty`,
+          )
+        }
         continue
       }
 
@@ -1028,6 +1045,7 @@ export class ProductImporter {
         const inputKey = getGraphQlInputName(fieldDef)
         const relDef = fieldDef as RelationCustomFieldConfig
         if (relDef.entity === Asset) {
+          let resolvedAssetRelation: string | string[] | undefined
           if (startsWith(value, '{') || startsWith(value, '[')) {
             if (typeof value === 'string') {
               const assetValue: JsonAsset | JsonAsset[] = JSON.parse(
@@ -1052,11 +1070,13 @@ export class ProductImporter {
                     foundAsset.name = asset.name || foundAsset.name
                   }
                 }
-                processed[inputKey] = fieldDef.list ? createdIds : createdIds[0]
+                resolvedAssetRelation = fieldDef.list ? createdIds : createdIds[0]
+                processed[inputKey] = resolvedAssetRelation
               } else {
                 if (assetValue.url.startsWith('http://') || assetValue.url.startsWith('https://')) {
                   const createdAssets = await this.assetImporter.getAssets([assetValue], ctx)
-                  processed[inputKey] = createdAssets.assets[0]?.id as string
+                  resolvedAssetRelation = createdAssets.assets[0]?.id as string
+                  processed[inputKey] = resolvedAssetRelation
                 }
 
                 const foundAsset = assetValue.id ? this.allAssetsById.get(assetValue.id) : undefined
@@ -1071,19 +1091,62 @@ export class ProductImporter {
           } else {
             if (value.startsWith('http://') || value.startsWith('https://')) {
               const createdAssets = await this.assetImporter.getAssets([{ url: value }], ctx)
-              processed[inputKey] = createdAssets.assets[0]?.id as string
+              resolvedAssetRelation = createdAssets.assets[0]?.id as string
+              processed[inputKey] = resolvedAssetRelation
             }
+          }
+          if (
+            relDef.nullable === false &&
+            (resolvedAssetRelation == null ||
+              (Array.isArray(resolvedAssetRelation) && resolvedAssetRelation.length === 0))
+          ) {
+            throw new InternalServerError(
+              `Required relation custom field "${fieldDef.name}" must contain valid asset data`,
+            )
           }
           continue
         }
 
         if (fieldDef.list === true) {
-          processed[inputKey] = value
+          const relationIds = value
             .split('|')
             .map((val) => val.trim())
             .filter((val) => val !== '')
+          if (
+            relationIds.some(
+              (id) =>
+                id.startsWith('http://') ||
+                id.startsWith('https://') ||
+                startsWith(id, '{') ||
+                startsWith(id, '[') ||
+                !this.isValidRelationIdentifier(id),
+            )
+          ) {
+            throw new InternalServerError(
+              `Relation custom field "${fieldDef.name}" must contain valid relation IDs`,
+            )
+          }
+          if (relDef.nullable === false && relationIds.length === 0) {
+            throw new InternalServerError(
+              `Required relation custom field "${fieldDef.name}" is missing or empty`,
+            )
+          }
+          processed[inputKey] = relationIds
         } else {
-          processed[inputKey] = value.trim()
+          const relationId = value.trim()
+          const validRelationId =
+            relationId !== '' &&
+            !relationId.startsWith('http://') &&
+            !relationId.startsWith('https://') &&
+            !startsWith(relationId, '{') &&
+            !startsWith(relationId, '[') &&
+            this.isValidRelationIdentifier(relationId)
+          if (!validRelationId) {
+            throw new InternalServerError(
+              `Relation custom field "${fieldDef.name}" must contain a valid relation ID`,
+            )
+          }
+          processed[inputKey] = relationId
         }
         continue
       }

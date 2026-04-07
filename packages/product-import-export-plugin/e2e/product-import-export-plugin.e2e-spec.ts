@@ -1,7 +1,9 @@
 import path from 'path'
-import { rm } from 'node:fs/promises'
+import { access, rm } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { Readable } from 'node:stream'
 import {
+  Asset,
   LanguageCode,
   RequestContextService,
   mergeConfig,
@@ -21,6 +23,7 @@ import { ExportStorageStrategy } from '../src/services/export-storage/export-sto
 import { ProductExportService } from '../src/services/product-export.service'
 import { ProductImporter } from '../src/providers/import-providers/product-importer'
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
+import { ProductImportService } from '../src/services/product-import.service'
 import { initialData } from './fixtures/initial-data'
 
 const sqliteDataDir = path.join(__dirname, '__data__')
@@ -41,6 +44,52 @@ async function cleanupExportArtifacts(): Promise<void> {
     rm(exportDir, { recursive: true, force: true }),
     rm(exportTmpDir, { recursive: true, force: true }),
   ])
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath, constants.F_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function waitFor(
+  condition: () => Promise<boolean>,
+  timeoutMs = 20_000,
+  intervalMs = 200,
+): Promise<void> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (await condition()) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+  throw new Error('Timed out waiting for condition')
+}
+
+async function runImport(
+  importer: ProductImporter,
+  ctx: Awaited<ReturnType<RequestContextService['create']>>,
+  csv: string,
+): Promise<{ imported: number; processed: number; errors: string[] }> {
+  let importResult: { imported: number; processed: number; errors: string[] } | undefined
+  await new Promise<void>((resolve, reject) => {
+    importer.parseAndImport(csv, ctx, true, LanguageCode.en, 'replace').subscribe({
+      next: (result) => {
+        importResult = {
+          imported: result.imported,
+          processed: result.processed,
+          errors: result.errors ?? [],
+        }
+      },
+      complete: () => resolve(),
+      error: (error) => reject(error),
+    })
+  })
+  return importResult ?? { imported: 0, processed: 0, errors: [] }
 }
 
 describe('ProductImportExportPlugin e2e', () => {
@@ -410,5 +459,267 @@ describe('ProductImportExportPlugin e2e', () => {
     } finally {
       ProductImportExportPlugin.options.exportOptions.defaultFileName = originalDefaultFileName
     }
+  })
+
+  it('keeps existing description when description column is omitted in import CSV', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const initialCsv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      'Missing column keep test,missing-column-keep-test,Original description,MISSCOL-001,100,Standard Tax,1',
+    ].join('\n')
+    await runImport(productImporter, ctx, initialCsv)
+
+    const omittedDescriptionCsv = [
+      'name,slug,sku,price,taxCategory,stockOnHand',
+      'Missing column keep test,missing-column-keep-test,MISSCOL-001,100,Standard Tax,1',
+    ].join('\n')
+    const secondImport = await runImport(productImporter, ctx, omittedDescriptionCsv)
+    expect(secondImport.errors).toEqual([])
+
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'missing-column-keep.csv',
+      '',
+      'url',
+      'name,description,sku',
+    )
+    const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+    expect(csv).toContain('MISSCOL-001')
+    expect(csv).toContain('Original description')
+  })
+
+  it('clears description when description column exists but cell is empty', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const initialCsv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      'Empty clears test,empty-clears-test,To be cleared,EMPTCLR-001,100,Standard Tax,1',
+    ].join('\n')
+    await runImport(productImporter, ctx, initialCsv)
+
+    const emptyDescriptionCsv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      'Empty clears test,empty-clears-test,,EMPTCLR-001,100,Standard Tax,1',
+    ].join('\n')
+    const secondImport = await runImport(productImporter, ctx, emptyDescriptionCsv)
+    expect(secondImport.errors).toEqual([])
+
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'empty-clears.csv',
+      '',
+      'url',
+      'name,description,sku',
+    )
+    const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+    const line = csv
+      .split(/\r?\n/)
+      .find((row) => row.includes('EMPTCLR-001'))
+    expect(line).toBeDefined()
+    expect(line?.endsWith('EMPTCLR-001')).toBe(true)
+  })
+
+  it('requires optionGroups and optionValues when importing multi-variant products', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const invalidCsv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      'Multi variant requirement,multi-variant-requirement,Needs options,MULTI-001,100,Standard Tax,1',
+      ',,,MULTI-002,100,Standard Tax,1',
+    ].join('\n')
+
+    const importResult = await runImport(productImporter, ctx, invalidCsv)
+    expect(importResult.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          'optionGroups and optionValues are required when importing products with multiple variants',
+        ),
+      ]),
+    )
+  })
+
+  it('omits custom field columns when customFields is not requested in export', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'no-custom-fields.csv',
+      '',
+      'url',
+      'name,sku',
+    )
+    const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+    const headerLine = csv.trim().split(/\r?\n/)[0]
+    expect(headerLine).toBe('name:en,sku')
+    expect(headerLine).not.toContain('product:')
+    expect(headerLine).not.toContain('variant:')
+  })
+
+  it('rejects export when multi-variant products are exported without option fields selected', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const productExportService = server.app.get(ProductExportService)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const validMultiVariantCsv = [
+      'name,slug,description,optionGroups,sku,optionValues,price,taxCategory,stockOnHand',
+      'Export option validation,export-option-validation,Needs option export fields,Size,EXP-OPT-S,Small,100,Standard Tax,1',
+      ',,,,EXP-OPT-M,Medium,100,Standard Tax,1',
+    ].join('\n')
+    await runImport(productImporter, ctx, validMultiVariantCsv)
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const targetProductId = productIds[productIds.length - 1]
+
+    const response = await fetch(
+      `http://localhost:${apiPort}/product-export/export?selectedExportFields=name,sku`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify([targetProductId]),
+      },
+    )
+
+    expect(response.status).toBe(422)
+    const payload = await response.json()
+    expect(String(payload?.message ?? '')).toContain(
+      'optionGroups and optionValues are required when exporting products with multiple variants',
+    )
+  })
+
+  it('validates required relation custom fields with clear errors', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter) as unknown as {
+      processCustomFieldValues: (
+        customFields: Record<string, string>,
+        config: Array<{
+          name: string
+          type: 'relation'
+          nullable: boolean
+          list: boolean
+          entity: typeof Asset
+        }>,
+        ctx: Awaited<ReturnType<RequestContextService['create']>>,
+      ) => Promise<Record<string, unknown>>
+    }
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    await expect(
+      productImporter.processCustomFieldValues(
+        { requiredAsset: '' },
+        [
+          {
+            name: 'requiredAsset',
+            type: 'relation',
+            nullable: false,
+            list: false,
+            entity: Asset,
+          },
+        ],
+        ctx,
+      ),
+    ).rejects.toThrow('Required relation custom field "requiredAsset" is missing or empty')
+  })
+
+  it('queues import job with storageKey payload and cleans up temp file after processing', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImportService = server.app.get(ProductImportService)
+    const productExportService = server.app.get(ProductExportService)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const baselineCount = (await productExportService.getAllProductIds(ctx)).length
+    const csv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      `Queue payload test,queue-payload-test-${Date.now()},Queue payload desc,QUEUE-PAYLOAD-${Date.now()},100,Standard Tax,1`,
+    ].join('\n')
+    const file = {
+      originalname: 'queue-payload.csv',
+      buffer: Buffer.from(csv, 'utf8'),
+    } as Express.Multer.File
+
+    const job = await productImportService.processFile(ctx, file, true, LanguageCode.en, 'replace')
+    const jobData = job.data as { storageKey?: string; fileContent?: string }
+    expect(jobData.storageKey).toBeTruthy()
+    expect(jobData.fileContent).toBeUndefined()
+    const tempFilePath = jobData.storageKey
+    if (!tempFilePath) {
+      throw new Error('Expected queue job to include storageKey')
+    }
+    expect(await fileExists(tempFilePath)).toBe(true)
+
+    await waitFor(async () => (await productExportService.getAllProductIds(ctx)).length > baselineCount)
+    await waitFor(async () => !(await fileExists(tempFilePath)))
+  })
+
+  it('imports a large CSV upload without crashing the import queue worker', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImportService = server.app.get(ProductImportService)
+    const productExportService = server.app.get(ProductExportService)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const baselineCount = (await productExportService.getAllProductIds(ctx)).length
+    const uniquePrefix = `bulk-${Date.now()}`
+    const rows = Array.from({ length: 300 }, (_, i) => {
+      const idx = i + 1
+      return `Bulk product ${idx},${uniquePrefix}-${idx},Bulk description ${idx},BULK-${uniquePrefix}-${idx},100,Standard Tax,1`
+    })
+    const csv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      ...rows,
+    ].join('\n')
+    const file = {
+      originalname: 'bulk-import.csv',
+      buffer: Buffer.from(csv, 'utf8'),
+    } as Express.Multer.File
+
+    await productImportService.processFile(ctx, file, true, LanguageCode.en, 'replace')
+    await waitFor(async () => (await productExportService.getAllProductIds(ctx)).length >= baselineCount + 300)
   })
 })

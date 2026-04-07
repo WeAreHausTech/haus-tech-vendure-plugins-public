@@ -503,9 +503,6 @@ export function ProductImportBlock() {
                 <UploadIcon className="mr-2 h-4 w-4" />
                 {selectedFile.name}
               </Button>
-              <Button type="button" onClick={uploadFile} disabled={!selectedMainLanguage}>
-                Upload file
-              </Button>
             </>
           ) : (
             <Button type="button" variant="default" onClick={() => fileInputRef.current?.click()}>
@@ -576,6 +573,12 @@ export function ProductImportBlock() {
                 Warning: This will remove existing facets and assets from products and variants.
               </p>
             )}
+          </div>
+
+          <div className="pt-2 border-t">
+            <Button type="button" onClick={uploadFile} disabled={!selectedMainLanguage}>
+              Start import now
+            </Button>
           </div>
         </div>
       )}

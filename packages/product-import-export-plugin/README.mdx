@@ -65,10 +65,18 @@ export const config = {
 
 ### Import options
 
-| Option               | Type      | Default | Description                                                                                                                |
-| -------------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `updateProductSlug`  | `boolean` | `true`  | Update product slug from the `name` field in the CSV                                                                       |
-| `restoreSoftDeleted` | `boolean` | `true`  | Restore soft-deleted products/variants found by id or SKU during import. If `false`, new products will be created instead. |
+| Option                   | Type                                            | Default    | Description                                                                                                                  |
+| ------------------------ | ----------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `updateProductSlug`      | `boolean`                                       | `true`     | Update product slug from the `name` field in the CSV                                                                         |
+| `restoreSoftDeleted`     | `boolean`                                       | `true`     | Restore soft-deleted products/variants found by id or SKU during import. If `false`, new products will be created instead. |
+| `storageStrategy`        | `ImportJobStorageStrategy`                      | local disk | Strategy instance for queued import file storage and retrieval.                                                              |
+| `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                  |
+| `importJobStorage`       | `'local' \| 's3'`                              | `'local'`  | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                          |
+
+Available import storage strategies:
+
+- `LocalImportJobStorageStrategy` (default)
+- `S3ImportJobStorageStrategy`
 
 ### Export options
 
@@ -113,6 +121,12 @@ The plugin supports configurable storage for exported files:
 | `variantFacets`               | Same format as `facets`                                      | `Material:Cotton`                                                                          |
 | `enabled`                     | `true` or `false`                                            | `true`                                                                                     |
 | Custom fields                 | Column name = custom field name; value depends on field type | Add columns for any Product or ProductVariant custom fields defined in your Vendure config |
+
+#### Import behavior rules
+
+- If a column is omitted from the CSV header, that field is left unchanged on existing products/variants.
+- If a column exists in the header but the cell is empty, that field is explicitly cleared.
+- For products with more than one variant, `optionGroups` and `optionValues` are required.
 
 #### Multi-language support
 
@@ -161,6 +175,9 @@ The Admin UI offers basic import and export. Some features such as the export-al
 
 1. In the Admin UI or Dashboard, select products to export (or use bulk export).
 2. Configure export fields (assets, facets, custom fields, etc.).
+   - For products with more than one variant, `optionGroups` and `optionValues` must be included.
+   - `productId` is not available as a selectable export field.
+   - If `customFields` are not selected, no custom-field columns are written to the CSV.
 3. Choose asset format: URL or JSON.
 4. Start the export (it is added to a job queue and runs in the background).
 5. Download the CSV when the export is complete. Your downloaded files will be listed in the export view.
