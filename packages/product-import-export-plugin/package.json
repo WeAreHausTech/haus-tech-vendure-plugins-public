@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/product-import-export-plugin",
-  "version": "3.3.2-next.0",
+  "version": "3.3.2-next.1",
   "description": "A Vendure plugin for importing and exporting products using a CSV file",
   "author": "Haus Tech",
   "repository": {

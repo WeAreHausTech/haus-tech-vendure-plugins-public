@@ -1,3 +1,10 @@
+## 3.3.2-next.1
+
+### 🚀 Features
+
+- **product-import-export-plugin:** enforce import/export acceptance criteria and enhance documentation ([b1a93b6](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/b1a93b6))
+- **product-import-export-plugin:** update pre-version command and clean up export artifacts ([1cde024](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1cde024))
+
 ## 3.3.2-next.0
 
 ### 🚀 Features
