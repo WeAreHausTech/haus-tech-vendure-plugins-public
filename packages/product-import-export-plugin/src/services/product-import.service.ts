@@ -68,7 +68,9 @@ export class ProductImportService implements OnModuleInit {
                   jobResult = result
                 },
                 complete: () => {
-                  resolve(jobResult ?? { imported: 0, processed: 0, errors: [], currentProduct: '' })
+                  resolve(
+                    jobResult ?? { imported: 0, processed: 0, errors: [], currentProduct: '' },
+                  )
                 },
                 error: (err) => {
                   reject(err)

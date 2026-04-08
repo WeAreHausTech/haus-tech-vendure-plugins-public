@@ -24,7 +24,8 @@ import {
   RequestContext,
   RequestContextService,
   Logger,
-  StockMovementService,
+  StockLevelService,
+  StockLocationService,
   TransactionalConnection,
   TranslatableSaver,
   TranslatedInput,
@@ -52,7 +53,8 @@ export class ExtendedFastImporterService {
     private connection: TransactionalConnection,
     private channelService: ChannelService,
     private customFieldRelationService: CustomFieldRelationService,
-    private stockMovementService: StockMovementService,
+    private stockLevelService: StockLevelService,
+    private stockLocationService: StockLocationService,
     private translatableSaver: TranslatableSaver,
     private requestContextService: RequestContextService,
     private entityHydrator: EntityHydrator,
@@ -493,11 +495,7 @@ export class ExtendedFastImporterService {
         .save(newAssets, { reload: false })
     }
 
-    await this.stockMovementService.adjustProductVariantStock(
-      this.importCtx,
-      updatedVariant.id,
-      input.stockOnHand ?? 0,
-    )
+    await this.setProductVariantStockOnHandDirectly(updatedVariant.id, input.stockOnHand ?? 0)
     const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
       (c) => c.id,
     )
@@ -596,11 +594,7 @@ export class ExtendedFastImporterService {
         .getRepository(this.importCtx, ProductVariantAsset)
         .save(variantAssets, { reload: false })
     }
-    await this.stockMovementService.adjustProductVariantStock(
-      this.importCtx,
-      createdVariant.id,
-      input.stockOnHand ?? 0,
-    )
+    await this.setProductVariantStockOnHandDirectly(createdVariant.id, input.stockOnHand ?? 0)
     const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
       (c) => c.id,
     )
@@ -626,5 +620,27 @@ export class ExtendedFastImporterService {
         "The FastImporterService must be initialized with a call to 'initialize()' before importing data",
       )
     }
+  }
+
+  private async setProductVariantStockOnHandDirectly(
+    productVariantId: ID,
+    targetStockOnHand: number,
+  ): Promise<void> {
+    const defaultStockLocation = await this.stockLocationService.defaultStockLocation(this.importCtx)
+    const stockLevel = await this.stockLevelService.getStockLevel(
+      this.importCtx,
+      productVariantId,
+      defaultStockLocation.id,
+    )
+    const delta = targetStockOnHand - stockLevel.stockOnHand
+    if (delta === 0) {
+      return
+    }
+    await this.stockLevelService.updateStockOnHandForLocation(
+      this.importCtx,
+      productVariantId,
+      defaultStockLocation.id,
+      delta,
+    )
   }
 }
