@@ -1,3 +1,9 @@
+## 3.3.2-next.2
+
+### 🚀 Features
+
+- **product-import-export-plugin:** enhance email notification and import/export functionality ([c133dc5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/c133dc5))
+
 ## 3.3.2-next.1
 
 ### 🚀 Features
