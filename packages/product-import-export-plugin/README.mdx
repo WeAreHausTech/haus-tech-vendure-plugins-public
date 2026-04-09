@@ -186,16 +186,27 @@ The Admin UI offers basic import and export. Some features such as the export-al
 
 ## Optional: Email notification on export complete
 
-If you use `@vendure/email-plugin`, you can add an email notification when an export finishes by importing it in the handler from the `/email` subpath. Create a template in your email templates directory: `product-export-complete/body.hbs`
+If you use `@vendure/email-plugin`, you can add an email notification when an export finishes from the `/email` subpath.
+
+The plugin now provides a default fallback template for `product-export-complete/body.hbs`.  
+If you define your own template in your app's template directory, your template takes precedence.
+Note: templates for `@vendure/email-plugin` should be valid MJML.
 
 ```typescript
-import { DefaultEmailPlugin } from '@vendure/email-plugin'
-import { productExportedHandler } from '@haus-tech/product-import-export-plugin/email'
+import path from 'path'
+import { DefaultEmailPlugin, FileBasedTemplateLoader, defaultEmailHandlers } from '@vendure/email-plugin'
+import {
+  withProductExportedHandler,
+  withProductExportedTemplateFallback,
+} from '@haus-tech/product-import-export-plugin/email'
 
 export const config = {
   plugins: [
     DefaultEmailPlugin.init({
-      handlers: [productExportedHandler],
+      handlers: withProductExportedHandler(defaultEmailHandlers),
+      templateLoader: withProductExportedTemplateFallback(
+        new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
+      ),
     }),
   ],
 }

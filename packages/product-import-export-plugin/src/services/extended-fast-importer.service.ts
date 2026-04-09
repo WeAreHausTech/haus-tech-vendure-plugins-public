@@ -495,7 +495,9 @@ export class ExtendedFastImporterService {
         .save(newAssets, { reload: false })
     }
 
-    await this.setProductVariantStockOnHandDirectly(updatedVariant.id, input.stockOnHand ?? 0)
+    if (input.stockOnHand !== undefined) {
+      await this.setProductVariantStockOnHandDirectly(updatedVariant.id, input.stockOnHand)
+    }
     const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
       (c) => c.id,
     )

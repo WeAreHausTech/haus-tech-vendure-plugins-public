@@ -158,11 +158,13 @@ export class ProductImportExportPlugin {
         ...options.exportOptions.defaultExportFields,
         'name',
         'sku',
+        'optionGroups',
+        'optionValues',
       ])
     }
 
     if (!options.exportOptions.requiredExportFields) {
-      options.exportOptions.requiredExportFields = ['name', 'sku']
+      options.exportOptions.requiredExportFields = ['name', 'sku', 'optionGroups', 'optionValues']
     }
 
     if (options.exportOptions.requiredExportFields) {
@@ -170,6 +172,8 @@ export class ProductImportExportPlugin {
         ...options.exportOptions.requiredExportFields,
         'name',
         'sku',
+        'optionGroups',
+        'optionValues',
       ])
     }
 

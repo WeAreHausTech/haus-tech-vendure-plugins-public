@@ -4,6 +4,7 @@ import { constants } from 'node:fs'
 import { Readable } from 'node:stream'
 import {
   Asset,
+  ConfigService,
   LanguageCode,
   RequestContextService,
   mergeConfig,
@@ -540,6 +541,45 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(line?.endsWith('EMPTCLR-001')).toBe(true)
   })
 
+  it('keeps existing stockOnHand when stockOnHand column is omitted in import CSV', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const sku = `KEEP-STOCK-${Date.now()}`
+    const initialCsv = [
+      'name,slug,description,sku,price,taxCategory,stockOnHand',
+      `Keep stock test,keep-stock-test-${Date.now()},Keep stock description,${sku},100,Standard Tax,9`,
+    ].join('\n')
+    await runImport(productImporter, ctx, initialCsv)
+
+    const omittedStockCsv = [
+      'name,slug,description,sku,price,taxCategory',
+      `Keep stock test,keep-stock-test-${Date.now()},Keep stock description updated,${sku},100,Standard Tax`,
+    ].join('\n')
+    const secondImport = await runImport(productImporter, ctx, omittedStockCsv)
+    expect(secondImport.errors).toEqual([])
+
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'keep-stock.csv',
+      '',
+      'url',
+      'sku,stockOnHand',
+    )
+    const exportedCsv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+    const line = exportedCsv.split(/\r?\n/).find((row) => row.startsWith(`${sku},`))
+    expect(line).toBe(`${sku},9`)
+  })
+
   it('requires optionGroups and optionValues when importing multi-variant products', async () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
@@ -661,6 +701,45 @@ describe('ProductImportExportPlugin e2e', () => {
         ctx,
       ),
     ).rejects.toThrow('Required relation custom field "requiredAsset" is missing or empty')
+  })
+
+  it('reports parser/import error for relation custom field with invalid format in CSV', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const configService = server.app.get(ConfigService)
+    const productImporter = server.app.get(ProductImporter)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    const originalProductCustomFields = [...configService.customFields.Product]
+    configService.customFields.Product = [
+      ...configService.customFields.Product,
+      {
+        name: 'relatedProductRef',
+        type: 'relation',
+        entity: Asset,
+        nullable: false,
+      },
+    ]
+
+    try {
+      const importCsv = [
+        'name,slug,description,sku,price,taxCategory,stockOnHand,product:relatedProductRef:asset',
+        'Invalid relation format test,invalid-relation-format-test,Invalid relation format description,REL-INVALID-001,100,Standard Tax,1,not-a-valid-asset-relation',
+      ].join('\n')
+
+      const importResult = await runImport(productImporter, ctx, importCsv)
+      expect(importResult.errors).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(
+            'Required relation custom field "relatedProductRef" must contain valid asset data',
+          ),
+        ]),
+      )
+    } finally {
+      configService.customFields.Product = originalProductCustomFields
+    }
   })
 
   it('queues import job with storageKey payload and cleans up temp file after processing', async () => {
