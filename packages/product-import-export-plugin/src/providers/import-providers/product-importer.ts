@@ -1265,7 +1265,13 @@ export class ProductImporter {
       )
 
       const existingGroup = await this.connection.getRepository(ctx, ProductOptionGroup).findOne({
-        where: { code },
+        relations: ['channels'],
+        where: {
+          code,
+          channels: {
+            id: ctx.channelId,
+          },
+        },
       })
 
       const groupId = existingGroup

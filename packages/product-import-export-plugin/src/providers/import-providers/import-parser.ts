@@ -870,6 +870,20 @@ function parseBoolean(input?: string): boolean {
   }
 }
 
+/** First `:` separates display name from optional option-group code (`Size:size`). */
+function parseOptionGroupSegment(segment: string): { name: string; code: string | undefined } {
+  const trimmed = segment.trim()
+  const colonIdx = trimmed.indexOf(':')
+  if (colonIdx >= 0) {
+    const codePart = trimmed.substring(colonIdx + 1).trim()
+    return {
+      name: trimmed.substring(0, colonIdx).trim(),
+      code: codePart.length > 0 ? codePart : undefined,
+    }
+  }
+  return { name: trimmed, code: undefined }
+}
+
 function parseStringArray(input?: string, separator = '|'): string[] {
   return (input || '')
     .trim()

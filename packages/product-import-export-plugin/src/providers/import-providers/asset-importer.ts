@@ -73,9 +73,9 @@ export class ExtendedAssetImporter implements OnModuleInit {
 
         if (assetFromHash) {
           const nameHasChanged = !!assetPath.name && assetFromHash.name !== assetPath.name
-          const channelsNeedUpdate = assetFromHash.channels.some(
-            (channel) => channel.id !== ctx?.channelId,
-          )
+          const channelsNeedUpdate =
+            !!ctx?.channel &&
+            assetFromHash.channels.every((channel) => channel.id !== ctx.channelId)
           if (nameHasChanged || channelsNeedUpdate) {
             if (nameHasChanged && ctx && assetPath.name) {
               await this.assetService.update(ctx, {
@@ -84,8 +84,8 @@ export class ExtendedAssetImporter implements OnModuleInit {
               })
               assetFromHash.name = assetPath.name as Asset['name']
             }
-            if (channelsNeedUpdate) {
-              assetFromHash.channels.push(ctx?.channel as Channel)
+            if (channelsNeedUpdate && ctx.channel) {
+              assetFromHash.channels.push(ctx.channel)
               await this.connection.getRepository(ctx, Asset).save(assetFromHash)
             }
           }

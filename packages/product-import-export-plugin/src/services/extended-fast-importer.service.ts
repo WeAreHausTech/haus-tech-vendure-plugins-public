@@ -203,10 +203,13 @@ export class ExtendedFastImporterService {
 
   async createProductOptionGroup(input: CreateProductOptionGroupInput): Promise<ID> {
     this.ensureInitialized()
+    const channelId = this.importCtx.channelId
     const groupExists = await this.connection
       .getRepository(this.importCtx, ProductOptionGroup)
       .findOne({
-        where: { code: input.code },
+        where: channelId
+          ? { code: input.code, channels: { id: channelId } }
+          : { code: input.code },
         relations: ['channels'],
       })
 
