@@ -11,9 +11,9 @@ import {
   RadioGroup,
   RadioGroupItem,
   Checkbox,
+  toast,
 } from '@vendure/dashboard'
 import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
 import {
   getServerLocation,
   getChannelHeader,
@@ -36,7 +36,10 @@ export function ExportDialog({
   productIds,
   isExportAll = false,
 }: ExportDialogProps) {
-  const mandatoryOptionFields: Array<ProductFields | VariantFields> = ['optionGroups', 'optionValues']
+  const mandatoryOptionFields: Array<ProductFields | VariantFields> = [
+    'optionGroups',
+    'optionValues',
+  ]
   const [fileName, setFileName] = useState('')
   const [customFields, setCustomFields] = useState<string[]>([])
   const [selectedFields, setSelectedFields] = useState<string[]>([])
@@ -142,10 +145,7 @@ export function ExportDialog({
       setSelectedExportFields([...availableExportFields])
       setSelectedFields([...customFields])
     } else {
-      setSelectedExportFields([
-        ...(config?.requiredExportFields || []),
-        ...mandatoryOptionFields,
-      ])
+      setSelectedExportFields([...(config?.requiredExportFields || []), ...mandatoryOptionFields])
       setSelectedFields([])
     }
   }

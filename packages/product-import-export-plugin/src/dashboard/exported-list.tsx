@@ -6,11 +6,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  toast,
 } from '@vendure/dashboard'
 import { getServerLocation, getChannelHeader } from './utils'
 import { useState, useEffect, useMemo } from 'react'
 import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon } from 'lucide-react'
-import { toast } from 'sonner'
 
 interface ExportedFile {
   fileName: string

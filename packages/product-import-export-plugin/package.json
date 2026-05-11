@@ -53,13 +53,13 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "csv-parse": "^5.6.0",
+    "csv-parse": "^6.0.0",
     "csv-stringify": "^6.6.0"
   },
   "peerDependencies": {
-    "@vendure/core": "^2.0.0 || ^3.0.0",
-    "@vendure/email-plugin": "^2.0.0 || ^3.0.0",
-    "csv-parse": "^5.5.6",
+    "@vendure/core": "^3.6.0",
+    "@vendure/email-plugin": "^3.6.0",
+    "csv-parse": "^6.0.0",
     "csv-stringify": "^6.5.1",
     "slug": "^9.1.0"
   },

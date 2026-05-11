@@ -35,7 +35,6 @@ import {
   ProductOptionGroup,
   Logger,
   ProductAsset,
-  Channel,
 } from '@vendure/core'
 import { Stream } from 'stream'
 import { Observable } from 'rxjs'
@@ -354,12 +353,11 @@ export class ProductImporter {
       })
     }
     await this.fastImporter.initialize(ctx.channel)
-    const allVariantSkus = rows
-      .map((row) => row.variants.map((variant) => variant.sku))
-      .reduce((acc, val) => acc.concat(val), [])
 
     const shouldRestore =
       this.pluginOptions?.importOptions?.defaultOptions?.restoreSoftDeleted !== false
+
+    const sharedGroupMap = await this.buildSharedOptionGroupMap(ctx, rows)
 
     for (const { product, variants } of rows) {
       const productMainTranslation = this.getTranslationByCodeOrFirst(
@@ -375,7 +373,7 @@ export class ProductImporter {
               url: assetPath,
               name: product.assetsJson?.[idx]?.name || undefined,
               id:
-                  assetID && this.allAssetsById.get(assetID)
+                assetID && this.allAssetsById.get(assetID)
                   ? product.assetsJson?.[idx]?.id
                   : undefined,
             }
@@ -549,22 +547,45 @@ export class ProductImporter {
             optionGroup.translations,
             ctx.languageCode,
           )
-          const code = await this.slugStrategy.generate(ctx, {
+
+          const sharedGroupEntry = optionGroup.code
+            ? sharedGroupMap.get(optionGroup.code)
+            : undefined
+          if (sharedGroupEntry) {
+            await this.fastImporter.addOptionGroupToProduct(
+              createdProductId,
+              sharedGroupEntry.groupId,
+            )
+            for (const value of optionGroupMainTranslation.values) {
+              const optionId = sharedGroupEntry.optionIds.get(value)
+              if (!optionId) {
+                throw new InternalServerError(
+                  `Option value "${value}" not found in shared option group "${optionGroup.code ?? ''}"`,
+                )
+              }
+              optionsMap[`${optionGroupIndex}_${value}`] = optionId
+            }
+            continue
+          }
+
+          const productScopedCode = await this.slugStrategy.generate(ctx, {
             value: `${productMainTranslation.name}-${optionGroupMainTranslation.name}`,
             entityName: 'ProductOptionGroup',
             fieldName: 'code',
           })
-          const previousCode = await this.slugStrategy.generate(ctx, {
+          const previousProductScopedCode = await this.slugStrategy.generate(ctx, {
             value: `${productNameHasChanged?.previousName}-${optionGroupMainTranslation.name}`,
             entityName: 'ProductOptionGroup',
             fieldName: 'code',
           })
-          const foundOptionGroup = productOptionsGroups.find((group) => group.code === previousCode)
+          const existingProductScopedGroup = productOptionsGroups.find(
+            (group) => group.code === previousProductScopedCode,
+          )
 
-          const groupId = foundOptionGroup
+          const productScopedGroupId = existingProductScopedGroup
             ? await this.fastImporter.updateProductOptionGroup({
-                id: foundOptionGroup.id,
-                code,
+                id: existingProductScopedGroup.id,
+                code: productScopedCode,
                 options: optionGroupMainTranslation.values.map((name) => ({}) as any),
                 translations: optionGroup.translations
                   .map((translation) => {
@@ -576,7 +597,7 @@ export class ProductImporter {
                   .filter((t) => t.name),
               })
             : await this.fastImporter.createProductOptionGroup({
-                code,
+                code: productScopedCode,
                 options: optionGroupMainTranslation.values.map((name) => ({}) as any),
                 translations: optionGroup.translations
                   .map((translation) => {
@@ -592,7 +613,7 @@ export class ProductImporter {
             (val, index) => [index, val] as const,
           )) {
             const createdOptionId = await this.fastImporter.createProductOption({
-              productOptionGroupId: groupId,
+              productOptionGroupId: productScopedGroupId,
               code: await this.slugStrategy.generate(ctx, {
                 value,
                 entityName: 'ProductOption',
@@ -609,7 +630,7 @@ export class ProductImporter {
             })
             optionsMap[`${optionGroupIndex}_${value}`] = createdOptionId
           }
-          await this.fastImporter.addOptionGroupToProduct(createdProductId, groupId)
+          await this.fastImporter.addOptionGroupToProduct(createdProductId, productScopedGroupId)
         }
       }
 
@@ -705,10 +726,17 @@ export class ProductImporter {
           assetIds: variantAssets.map((a) => a.id),
           sku: variant.sku,
           ...(variant.taxCategory !== undefined
-            ? { taxCategoryId: this.getMatchingTaxCategoryId(variant.taxCategory, taxCategories.items) }
+            ? {
+                taxCategoryId: this.getMatchingTaxCategoryId(
+                  variant.taxCategory,
+                  taxCategories.items,
+                ),
+              }
             : {}),
           ...(variant.stockOnHand !== undefined ? { stockOnHand: variant.stockOnHand } : {}),
-          ...(variant.trackInventory !== undefined ? { trackInventory: variant.trackInventory } : {}),
+          ...(variant.trackInventory !== undefined
+            ? { trackInventory: variant.trackInventory }
+            : {}),
           ...(variant.enabled !== undefined ? { enabled: variant.enabled } : {}),
           ...(optionIds !== undefined ? { optionIds } : {}),
           translations: await Promise.all(
@@ -933,7 +961,7 @@ export class ProductImporter {
   private async processCustomFieldValues(
     customFields: { [field: string]: string },
     config: CustomFieldConfig[],
-    ctx?: RequestContext,
+    ctx: RequestContext,
   ) {
     function parseBoolean(input?: string): boolean {
       if (input == null) {
@@ -1063,11 +1091,12 @@ export class ProductImporter {
                     }
                   }
                   const foundAsset = asset.id ? this.allAssetsById.get(asset.id) : undefined
-                  if (foundAsset && foundAsset.name !== asset.name) {
-                    await this.connection.getRepository(ctx, Asset).update(foundAsset.id, {
+                  if (foundAsset && asset.name && foundAsset.name !== asset.name) {
+                    await this.assetService.update(ctx, {
+                      id: foundAsset.id,
                       name: asset.name,
                     })
-                    foundAsset.name = asset.name || foundAsset.name
+                    foundAsset.name = asset.name as Asset['name']
                   }
                 }
                 resolvedAssetRelation = fieldDef.list ? createdIds : createdIds[0]
@@ -1080,11 +1109,12 @@ export class ProductImporter {
                 }
 
                 const foundAsset = assetValue.id ? this.allAssetsById.get(assetValue.id) : undefined
-                if (foundAsset && foundAsset.name !== assetValue.name) {
-                  await this.connection.getRepository(ctx, Asset).update(foundAsset.id, {
+                if (foundAsset && assetValue.name && foundAsset.name !== assetValue.name) {
+                  await this.assetService.update(ctx, {
+                    id: foundAsset.id,
                     name: assetValue.name,
                   })
-                  foundAsset.name = assetValue.name || foundAsset.name
+                  foundAsset.name = assetValue.name as Asset['name']
                 }
               }
             }
@@ -1204,6 +1234,91 @@ export class ProductImporter {
     return translation
   }
 
+  /**
+   * Performs a first-pass analysis of all parsed products to identify option groups
+   * that should be shared. Only groups with an explicit code (from the `name:code`
+   * CSV syntax) are shared. Groups without a code remain product-scoped.
+   *
+   * For each shared code we either reuse an existing ProductOptionGroup with that
+   * code in the current channel, or create a new one (and its options) up-front so
+   * the per-product loop can simply attach it.
+   */
+  private async buildSharedOptionGroupMap(
+    ctx: RequestContext,
+    rows: ParsedProductWithId[],
+  ): Promise<Map<string, { groupId: ID; optionIds: Map<string, ID> }>> {
+    const sharedGroupMap = new Map<string, { groupId: ID; optionIds: Map<string, ID> }>()
+
+    const codeEntries = new Map<string, (typeof rows)[number]['product']['optionGroups'][number]>()
+    for (const { product } of rows) {
+      for (const optionGroup of product.optionGroups) {
+        if (optionGroup.code && !codeEntries.has(optionGroup.code)) {
+          codeEntries.set(optionGroup.code, optionGroup)
+        }
+      }
+    }
+
+    for (const [code, optionGroup] of codeEntries) {
+      const ogMainTranslation = this.getTranslationByCodeOrFirst(
+        optionGroup.translations,
+        ctx.languageCode,
+      )
+
+      const existingGroup = await this.connection.getRepository(ctx, ProductOptionGroup).findOne({
+        where: { code },
+      })
+
+      const groupId = existingGroup
+        ? await this.fastImporter.updateProductOptionGroup({
+            id: existingGroup.id,
+            code,
+            options: ogMainTranslation.values.map(() => ({}) as any),
+            translations: optionGroup.translations
+              .map((translation) => ({
+                languageCode: translation.languageCode,
+                name: translation.name,
+              }))
+              .filter((t) => t.name),
+          })
+        : await this.fastImporter.createProductOptionGroup({
+            code,
+            options: ogMainTranslation.values.map(() => ({}) as any),
+            translations: optionGroup.translations
+              .map((translation) => ({
+                languageCode: translation.languageCode,
+                name: translation.name,
+              }))
+              .filter((t) => t.name),
+          })
+
+      const optionIds = new Map<string, ID>()
+      for (const [optionIndex, value] of ogMainTranslation.values.map(
+        (val, index) => [index, val] as const,
+      )) {
+        const optionCode = await this.slugStrategy.generate(ctx, {
+          value,
+          entityName: 'ProductOption',
+          fieldName: 'code',
+        })
+        const createdOptionId = await this.fastImporter.createProductOption({
+          productOptionGroupId: groupId,
+          code: optionCode,
+          translations: optionGroup.translations
+            .map((translation) => ({
+              languageCode: translation.languageCode,
+              name: translation.values[optionIndex],
+            }))
+            .filter((t) => t.name),
+        })
+        optionIds.set(value, createdOptionId)
+      }
+
+      sharedGroupMap.set(code, { groupId, optionIds })
+    }
+
+    return sharedGroupMap
+  }
+
   async createFacetAndValue(facet: ParsedFacet, facetCode: string, valueCode: string) {
     const facetValueCacheKey = `${facetCode}::${valueCode}`
     const cachedFacetValueId = this.facetValueIdCache.get(facetValueCacheKey)
@@ -1264,7 +1379,7 @@ export class ProductImporter {
           .find({ where: { products: { id: product.id } }, relations: ['facet'] }),
         this.connection
           .getRepository(ctx, ProductOptionGroup)
-          .find({ where: { product: { id: product.id } }, relations: ['options'] }),
+          .find({ where: { products: { id: product.id } }, relations: ['options'] }),
         this.connection
           .getRepository(ctx, ProductVariant)
           .find({ where: { product: { id: product.id } }, relations: ['facetValues'] }),

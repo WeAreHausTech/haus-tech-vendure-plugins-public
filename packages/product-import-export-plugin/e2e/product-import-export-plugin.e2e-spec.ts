@@ -6,7 +6,10 @@ import {
   Asset,
   ConfigService,
   LanguageCode,
+  Product,
+  ProductOptionGroup,
   RequestContextService,
+  TransactionalConnection,
   mergeConfig,
 } from '@vendure/core'
 import {
@@ -343,6 +346,78 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(mediumRow?.[idx.stockOnHand]).toBe('5')
 
     await exportStorageStrategy.deleteExportFile(ctx, fileName)
+  })
+
+  it('shares an option group across products that use the name:code syntax', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const connection = server.app.get(TransactionalConnection)
+
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    // Two shoe products share the "shoe-size" code; the third product uses a
+    // plain "size" name and must end up with its own per-product group.
+    // The first occurrence of the shared code (Shared shoe A) defines the full
+    // option set for the shared group; subsequent products reference a subset
+    // of those values, mirroring Vendure core's shared-group semantics.
+    const importCsv = [
+      'name,slug,description,optionGroups,sku,optionValues,price,taxCategory,stockOnHand',
+      'Shared shoe A,shared-shoe-a,Shoe A description,size:shoe-size,SHOE-A-S,Small,100,Standard Tax,1',
+      ',,,,SHOE-A-M,Medium,100,Standard Tax,1',
+      ',,,,SHOE-A-L,Large,100,Standard Tax,1',
+      'Shared shoe B,shared-shoe-b,Shoe B description,size:shoe-size,SHOE-B-S,Small,120,Standard Tax,1',
+      ',,,,SHOE-B-M,Medium,120,Standard Tax,1',
+      'Standalone phone,standalone-phone,Phone description,size,PHONE-4G,4GB,200,Standard Tax,1',
+      ',,,,PHONE-8G,8GB,200,Standard Tax,1',
+    ].join('\n')
+
+    const importResult = await runImport(productImporter, ctx, importCsv)
+    expect(importResult.errors).toEqual([])
+    expect(importResult.imported).toBe(3)
+
+    const productRepo = connection.getRepository(ctx, Product)
+    const groupRepo = connection.getRepository(ctx, ProductOptionGroup)
+
+    const findProductBySlug = (slug: string) =>
+      productRepo.findOne({
+        where: { translations: { slug } },
+        relations: ['optionGroups'],
+      })
+
+    const [shoeA, shoeB, phone] = await Promise.all([
+      findProductBySlug('shared-shoe-a'),
+      findProductBySlug('shared-shoe-b'),
+      findProductBySlug('standalone-phone'),
+    ])
+
+    expect(shoeA?.optionGroups).toHaveLength(1)
+    expect(shoeB?.optionGroups).toHaveLength(1)
+    expect(phone?.optionGroups).toHaveLength(1)
+
+    // Both shoes resolve to the same shared group with the explicit code.
+    expect(shoeA?.optionGroups[0].code).toBe('shoe-size')
+    expect(shoeB?.optionGroups[0].code).toBe('shoe-size')
+    expect(shoeA?.optionGroups[0].id).toEqual(shoeB?.optionGroups[0].id)
+
+    // The phone has its own per-product group with a product-scoped code.
+    expect(phone?.optionGroups[0].id).not.toEqual(shoeA?.optionGroups[0].id)
+    expect(phone?.optionGroups[0].code).not.toBe('shoe-size')
+
+    // The shared group is linked to exactly the two shoe products and owns the
+    // canonical set of options (Small/Medium/Large) declared by the first
+    // occurrence.
+    const sharedGroup = await groupRepo.findOne({
+      where: { code: 'shoe-size' },
+      relations: ['products', 'options'],
+    })
+    expect(sharedGroup).toBeDefined()
+    const sharedProductIds = (sharedGroup?.products ?? []).map((p) => p.id).sort()
+    expect(sharedProductIds).toEqual([shoeA?.id, shoeB?.id].sort())
+    const sharedOptionCodes = (sharedGroup?.options ?? []).map((o) => o.code).sort()
+    expect(sharedOptionCodes).toEqual(['large', 'medium', 'small'])
   })
 
   it('reports parser error when optionValues count mismatches optionGroups', async () => {
