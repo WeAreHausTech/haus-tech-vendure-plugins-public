@@ -16,7 +16,8 @@ import {
 interface ExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  productIds: string[]
+  /** Omit for export-all-only dialogs; bulk export passes selected IDs. */
+  productIds?: string[]
   isExportAll?: boolean
 }
 

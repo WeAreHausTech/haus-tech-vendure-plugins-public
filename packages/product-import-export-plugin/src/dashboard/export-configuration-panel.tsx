@@ -52,8 +52,8 @@ const AVAILABLE_EXPORT_FIELDS: ExportFields = [
 ]
 
 export type ExportConfigurationPanelProps = {
-  /** Selected product IDs for scoped export; empty array for export-all / initial custom-field discovery */
-  productIds: string[]
+  /** Selected product IDs for scoped export; omit when `isExportAll` (treated as empty). */
+  productIds?: string[]
   isExportAll: boolean
   /** Fetch config + fields only while true (e.g. dialog `open`) */
   active: boolean
@@ -82,6 +82,8 @@ export const ExportConfigurationPanel = forwardRef<
   },
   ref,
 ) {
+  const resolvedProductIds = productIds ?? []
+
   const [config, setConfig] = useState<PluginInitOptions['exportOptions'] | null>(null)
 
   const [fileName, setFileName] = useState('')
@@ -90,6 +92,9 @@ export const ExportConfigurationPanel = forwardRef<
   const [exportAssetsAs, setExportAssetsAs] = useState<'url' | 'json'>('url')
   const [selectedExportFields, setSelectedExportFields] = useState<ExportFields>([])
   const [toggleAllChecked, setToggleAllChecked] = useState(false)
+
+  /** Stable primitive so effects / callbacks don’t churn on fresh array references with the same IDs. */
+  const productIdsFetchKey = resolvedProductIds.join(',')
 
   useEffect(() => {
     if (!active) return
@@ -113,7 +118,9 @@ export const ExportConfigurationPanel = forwardRef<
               ...getChannelHeader(),
             },
             credentials: 'include',
-            body: JSON.stringify(productIds.length > 0 ? productIds : []),
+            body: JSON.stringify(
+              resolvedProductIds.length > 0 ? resolvedProductIds : [],
+            ),
           }),
         ])
 
@@ -147,7 +154,7 @@ export const ExportConfigurationPanel = forwardRef<
     }
 
     fetchInitial()
-  }, [active, productIds])
+  }, [active, productIdsFetchKey])
 
   const derivedToggleAll = useMemo(() => {
     const allStandard = AVAILABLE_EXPORT_FIELDS.every((f) => selectedExportFields.includes(f))
@@ -200,7 +207,7 @@ export const ExportConfigurationPanel = forwardRef<
       const trimmed = fileName.trim()
       const finalFileName = trimmed || config?.defaultFileName || 'products_export.csv'
       const endpoint = isExportAll ? 'export-all' : 'export'
-      const body = isExportAll ? undefined : JSON.stringify(productIds)
+      const body = isExportAll ? undefined : JSON.stringify(resolvedProductIds)
 
       const res = await fetch(
         `${serverPath}/product-export/${endpoint}?fileName=${encodeURIComponent(
@@ -229,7 +236,7 @@ export const ExportConfigurationPanel = forwardRef<
       toast.success(
         isExportAll
           ? 'Export queued. You will receive an email when the file is ready.'
-          : `Export job queued successfully. ${productIds.length} products will be exported.`,
+          : `Export job queued successfully. ${resolvedProductIds.length} products will be exported.`,
       )
       onExportSuccess?.()
     } catch (error: unknown) {
@@ -240,7 +247,7 @@ export const ExportConfigurationPanel = forwardRef<
     fileName,
     config?.defaultFileName,
     isExportAll,
-    productIds,
+    productIdsFetchKey,
     selectedCustomFields,
     exportAssetsAs,
     selectedExportFields,

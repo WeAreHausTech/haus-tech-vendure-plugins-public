@@ -40,7 +40,6 @@ export function ProductExportBlock() {
       <CardContent className="space-y-4">
         <ExportConfigurationPanel
           ref={panelRef}
-          productIds={[]}
           isExportAll
           active
           idPrefix="page-export"
