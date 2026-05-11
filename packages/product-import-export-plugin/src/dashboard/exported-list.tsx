@@ -1,16 +1,34 @@
 import {
   Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   toast,
 } from '@vendure/dashboard'
-import { getServerLocation, getChannelHeader } from './utils'
-import { useState, useEffect, useMemo } from 'react'
-import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon } from 'lucide-react'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DownloadIcon,
+  SearchIcon,
+  TrashIcon,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { getChannelHeader, getServerLocation } from './utils'
 
 interface ExportedFile {
   fileName: string
@@ -18,13 +36,15 @@ interface ExportedFile {
   created: string
 }
 
+const ITEMS_PER_PAGE = 8
+
 export function ExportedList() {
   const [exportedFiles, setExportedFiles] = useState<ExportedFile[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [fileToDelete, setFileToDelete] = useState<string | null>(null)
-  const itemsPerPage = 10
 
   const getExportFiles = async () => {
     const serverPath = getServerLocation()
@@ -54,16 +74,26 @@ export function ExportedList() {
     getExportFiles()
   }, [])
 
-  // Pagination calculations
+  const filteredFiles = useMemo(() => {
+    let result = exportedFiles
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter((f) => f.fileName.toLowerCase().includes(q))
+    }
+    return result
+  }, [exportedFiles, search])
+
+  const totalPages = Math.max(1, Math.ceil(filteredFiles.length / ITEMS_PER_PAGE))
   const paginatedFiles = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return exportedFiles.slice(startIndex, endIndex)
-  }, [exportedFiles, currentPage])
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredFiles.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [filteredFiles, currentPage])
 
-  const totalPages = Math.ceil(exportedFiles.length / itemsPerPage)
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(1)
+  }, [totalPages, currentPage])
 
-  const downLoadFile = async (fileName: string) => {
+  const downloadFile = async (fileName: string) => {
     const serverPath = getServerLocation()
     const res = await fetch(`${serverPath}/product-export/download/${fileName}`, {
       method: 'GET',
@@ -120,94 +150,138 @@ export function ExportedList() {
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed">
-        <p className="text-red-500">{error}</p>
-      </div>
-    )
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   return (
-    <div>
-      {exportedFiles.length > 0 && (
-        <div className="space-y-2">
-          <div className="border rounded-md divide-y">
-            {paginatedFiles.map((file) => (
-              <div key={file.fileName} className="p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="font-medium">{file.fileName}</p>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-muted-foreground mt-1">
-                      <span>Size: {formatFileSize(file.size)}</span>
-                      <span>
-                        Created:{' '}
-                        {new Date(file.created).toLocaleString(navigator.language || undefined)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => downLoadFile(file.fileName)}>
-                      <DownloadIcon className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteClick(file.fileName)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <TrashIcon className="h-4 w-4" /> Delete
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
+    <Card>
+      <CardHeader className="flex flex-col gap-4 space-y-0 pb-4 md:flex-row md:items-start md:justify-between md:gap-6">
+        <div className="min-w-0 space-y-1 md:pr-4">
+          <CardTitle className="mb-0">Recent exports</CardTitle>
+          <CardDescription className=" text-xs">
+            Completed CSV exports for this channel. Search by file name to filter the list.
+          </CardDescription>
+        </div>
+        <div className="relative w-full shrink-0 md:w-72 lg:w-80">
+          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by file name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+            aria-label="Search exports by file name"
+          />
+        </div>
+      </CardHeader>
+      <CardContent>
+        {error ? (
+          <div className="text-sm text-destructive py-4">{error}</div>
+        ) : exportedFiles.length === 0 ? (
+          <div className="text-center py-10 text-sm text-muted-foreground">
+            <p>No exports yet. Run an export to see files listed here.</p>
           </div>
-
-          {/* Pagination controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between py-2 border-t">
-              <div className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-                {Math.min(currentPage * itemsPerPage, exportedFiles.length)} of{' '}
-                {exportedFiles.length}
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeftIcon className="h-4 w-4" />
-                </Button>
-                <div className="text-sm text-muted-foreground px-2">
-                  {currentPage} / {totalPages}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRightIcon className="h-4 w-4" />
-                </Button>
-              </div>
+        ) : (
+          <>
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[140px]">Type</TableHead>
+                    <TableHead>File</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedFiles.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No results match your filters.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedFiles.map((file) => (
+                      <TableRow key={file.fileName}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md">
+                              <DownloadIcon className="h-4 w-4" aria-hidden />
+                            </span>
+                            <span className="text-sm font-medium">Export</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium truncate max-w-xs">{file.fileName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatFileSize(file.size)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {new Date(file.created).toLocaleString(navigator.language || undefined)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadFile(file.fileName)}
+                            >
+                              <DownloadIcon className="mr-1 h-3.5 w-3.5" /> Download
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(file.fileName)}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <TrashIcon className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </div>
-      )}
 
-      {exportedFiles.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground text-sm">
-          <p>You have no exported files</p>
-        </div>
-      )}
+            {filteredFiles.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-xs text-muted-foreground">
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredFiles.length)} of{' '}
+                  {filteredFiles.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeftIcon className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm px-2 text-muted-foreground">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRightIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
@@ -227,7 +301,7 @@ export function ExportedList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   )
 }
 
