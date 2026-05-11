@@ -26,7 +26,7 @@
       [value]="field"
       (change)="toggleExportFieldSelection(field)"
       [checked]="selectedExportFields.includes(field)"
-      [disabled]="config.requiredExportFields.includes(field)"
+      [disabled]="config.requiredExportFields.includes(field) || isMandatoryExportField(field)"
     />
     {{ field }}
   </div>

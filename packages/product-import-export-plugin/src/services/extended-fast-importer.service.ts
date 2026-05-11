@@ -23,7 +23,9 @@ import {
   ProductVariantTranslation,
   RequestContext,
   RequestContextService,
-  StockMovementService,
+  Logger,
+  StockLevelService,
+  StockLocationService,
   TransactionalConnection,
   TranslatableSaver,
   TranslatedInput,
@@ -39,6 +41,7 @@ import {
 import { normalizeString } from '../helpers/normalize-string'
 import { unique } from '@vendure/common/lib/unique'
 import { isNumber, isUndefined, omit, set } from 'lodash'
+import { loggerCtx } from '../constants'
 
 @Injectable()
 export class ExtendedFastImporterService {
@@ -50,7 +53,8 @@ export class ExtendedFastImporterService {
     private connection: TransactionalConnection,
     private channelService: ChannelService,
     private customFieldRelationService: CustomFieldRelationService,
-    private stockMovementService: StockMovementService,
+    private stockLevelService: StockLevelService,
+    private stockLocationService: StockLocationService,
     private translatableSaver: TranslatableSaver,
     private requestContextService: RequestContextService,
     private entityHydrator: EntityHydrator,
@@ -156,7 +160,7 @@ export class ExtendedFastImporterService {
             p.featuredAsset = { id: input.featuredAssetId } as any
           }
         } catch (error) {
-          console.log(error)
+          Logger.error('Failed to prepare product before save', loggerCtx, (error as Error).stack)
         }
       },
     })
@@ -491,11 +495,9 @@ export class ExtendedFastImporterService {
         .save(newAssets, { reload: false })
     }
 
-    await this.stockMovementService.adjustProductVariantStock(
-      this.importCtx,
-      updatedVariant.id,
-      input.stockOnHand ?? 0,
-    )
+    if (input.stockOnHand !== undefined) {
+      await this.setProductVariantStockOnHandDirectly(updatedVariant.id, input.stockOnHand)
+    }
     const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
       (c) => c.id,
     )
@@ -594,11 +596,7 @@ export class ExtendedFastImporterService {
         .getRepository(this.importCtx, ProductVariantAsset)
         .save(variantAssets, { reload: false })
     }
-    await this.stockMovementService.adjustProductVariantStock(
-      this.importCtx,
-      createdVariant.id,
-      input.stockOnHand ?? 0,
-    )
+    await this.setProductVariantStockOnHandDirectly(createdVariant.id, input.stockOnHand ?? 0)
     const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
       (c) => c.id,
     )
@@ -624,5 +622,27 @@ export class ExtendedFastImporterService {
         "The FastImporterService must be initialized with a call to 'initialize()' before importing data",
       )
     }
+  }
+
+  private async setProductVariantStockOnHandDirectly(
+    productVariantId: ID,
+    targetStockOnHand: number,
+  ): Promise<void> {
+    const defaultStockLocation = await this.stockLocationService.defaultStockLocation(this.importCtx)
+    const stockLevel = await this.stockLevelService.getStockLevel(
+      this.importCtx,
+      productVariantId,
+      defaultStockLocation.id,
+    )
+    const delta = targetStockOnHand - stockLevel.stockOnHand
+    if (delta === 0) {
+      return
+    }
+    await this.stockLevelService.updateStockOnHandForLocation(
+      this.importCtx,
+      productVariantId,
+      defaultStockLocation.id,
+      delta,
+    )
   }
 }

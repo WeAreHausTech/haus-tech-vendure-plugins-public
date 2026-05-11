@@ -5,6 +5,7 @@ import {
 } from './providers/import-providers/import-parser'
 import type { Injector } from '@vendure/core'
 import { ExportStorageStrategy } from './services/export-storage/export-storage-strategy'
+import { ImportJobStorageStrategy } from './services/import-storage/import-job-storage-strategy'
 
 /**
  * @description
@@ -22,11 +23,32 @@ type ImportOptions = {
    * will be restored during import. If false, deleted entities will remain deleted.
    */
   restoreSoftDeleted?: boolean
+  /**
+   * @description
+   * Preferred configuration: provide an import job storage strategy instance directly.
+   */
+  storageStrategy?: ImportJobStorageStrategy
+  /**
+   * @description
+   * Preferred configuration: provide a factory which can use Vendure's DI via the Injector.
+   */
+  storageStrategyFactory?: (
+    injector: Injector,
+  ) => ImportJobStorageStrategy | Promise<ImportJobStorageStrategy>
+  /**
+   * @description
+   * Deprecated. Kept for backward compatibility.
+   * Use `storageStrategy` or `storageStrategyFactory` instead.
+   */
+  importJobStorage?: 'local' | 's3'
 }
 export interface PluginInitOptions {
   importOptions: {
     visibleOptions?: Array<keyof ImportOptions>
     defaultOptions?: ImportOptions
+    storageStrategy?: ImportOptions['storageStrategy']
+    storageStrategyFactory?: ImportOptions['storageStrategyFactory']
+    importJobStorage?: ImportOptions['importJobStorage']
   }
   exportOptions: {
     defaultFileName?: string
@@ -66,7 +88,6 @@ export type JsonAsset = {
 
 type ExportFields = Array<ProductFields | VariantFields>
 type ProductFields =
-  | 'productId'
   | 'name'
   | 'slug'
   | 'description'

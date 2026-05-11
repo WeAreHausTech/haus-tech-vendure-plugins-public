@@ -106,7 +106,6 @@ export class ProductExportService {
 
     const headers: { id: string; title: string }[] = []
 
-    headers.push({ id: 'productId', title: 'productId' })
     // Add headers for translations
     for (const lang of languages) {
       headers.push({ id: `name:${lang}`, title: `name:${lang}` })
@@ -206,6 +205,7 @@ export class ProductExportService {
               filteredCustomFieldNames,
               exportAssetsAs,
               csvWriter,
+              selectedExportFieldsSet.has('stockOnHand'),
             ),
           ),
         )
@@ -252,6 +252,7 @@ export class ProductExportService {
     filteredCustomFieldNames: string[],
     exportAssetsAs: 'url' | 'json',
     csvWriter: CsvWriter<any>,
+    includeStockOnHand: boolean,
   ) {
     const records: any[] = []
     const {
@@ -268,6 +269,9 @@ export class ProductExportService {
 
     // Filter out all variants that are soft deleted
     const activeVariants = variants.filter((v) => !v.deletedAt)
+    const stockOnHandByVariantId = includeStockOnHand
+      ? await this.getStockOnHandMap(ctx, activeVariants.map((variant) => variant.id))
+      : new Map<ID, number>()
 
     const productAssets =
       assets.length === 0
@@ -300,7 +304,36 @@ export class ProductExportService {
       {} as { [key: string]: string },
     )
 
-    for (const variant of activeVariants) {
+    const convertToHTML = (text: string) => {
+      return text.replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/,\s*'/g, ", '")
+    }
+
+    const firstRowProductColumnsByLang = languages.reduce(
+      (acc, lang) => {
+        const escapedDescription = convertToHTML(descriptionTranslations[lang] || '')
+        const escapedName = (nameTranslations[lang] || '')
+          .replace(/"/g, "'")
+          .replace(/\s+/g, ' ')
+          .replace(/,\s*'/g, ", '")
+          .replace(/'/g, "''")
+        acc[lang] = {
+          [`name:${lang}`]: escapedName || '',
+          [`slug:${lang}`]: slugTranslations[lang] || '',
+          [`description:${lang}`]: escapedDescription || '',
+          [`facets:${lang}`]: productFacets[lang],
+          [`optionGroups:${lang}`]: optionGroupNames[lang],
+        }
+        return acc
+      },
+      {} as Record<
+        LanguageCode,
+        {
+          [key: string]: string
+        }
+      >,
+    )
+
+    for (const [variantIndex, variant] of activeVariants.entries()) {
       const variantValues = languages.reduce(
         (acc, lang) => {
           acc[lang] = (sortBy(variant.options, (o) => o.groupId) || [])
@@ -328,33 +361,19 @@ export class ProductExportService {
         {} as { [key: string]: string },
       )
 
-      const stockOnHand = await this.getStockOnHand(ctx, variant.id) // Adjusted to fetch stock details
-
-      const variantTranslations = variant.translations
-      const variantNameTranslations = this.mapTranslations(variantTranslations, 'name', languages)
+      const stockOnHand = includeStockOnHand ? (stockOnHandByVariantId.get(variant.id) ?? 0) : 0
 
       const record: any = {}
 
-      const convertToHTML = (text: string) => {
-        return text
-          .replace(/\n/g, '<br>')
-          .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-          .replace(/,\s*'/g, ", '")
-      }
-
       for (const lang of languages) {
-        const escapedDescription = convertToHTML(descriptionTranslations[lang])
-        const escapedName = nameTranslations[lang]
-          .replace(/"/g, "'")
-          .replace(/\s+/g, ' ')
-          .replace(/,\s*'/g, ", '")
-          .replace(/'/g, "''")
-        record.productId = records.length === 0 ? product.id : ''
-        record[`name:${lang}`] = records.length === 0 ? escapedName || '' : ''
-        record[`slug:${lang}`] = records.length === 0 ? slugTranslations[lang] || '' : ''
-        record[`description:${lang}`] = records.length === 0 ? escapedDescription || '' : ''
-        record[`facets:${lang}`] = records.length === 0 ? productFacets[lang] : ''
-        record[`optionGroups:${lang}`] = records.length === 0 ? optionGroupNames[lang] : ''
+        const firstRowProductColumns = firstRowProductColumnsByLang[lang]
+        record[`name:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`name:${lang}`] : ''
+        record[`slug:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`slug:${lang}`] : ''
+        record[`description:${lang}`] =
+          variantIndex === 0 ? firstRowProductColumns[`description:${lang}`] : ''
+        record[`facets:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`facets:${lang}`] : ''
+        record[`optionGroups:${lang}`] =
+          variantIndex === 0 ? firstRowProductColumns[`optionGroups:${lang}`] : ''
         record[`optionValues:${lang}`] = variantValues[lang]
         record[`variantFacets:${lang}`] = variantFacets[lang]
       }
@@ -362,7 +381,7 @@ export class ProductExportService {
       const productVariantPrices = variant.productVariantPrices.filter(
         (price) => price.channelId === ctx.channelId,
       )
-      record.assets = records.length === 0 ? productAssets : ''
+      record.assets = variantIndex === 0 ? productAssets : ''
       record.sku = variant.sku
       record.price = productVariantPrices[0]?.price / 100 // Assuming the price is stored in cents
       record.taxCategory = 'standard' // Replace with actual tax category if available
@@ -512,6 +531,19 @@ export class ProductExportService {
     return stockLevel.stockOnHand
   }
 
+  private async getStockOnHandMap(
+    ctx: RequestContext,
+    variantIds: ID[],
+  ): Promise<Map<ID, number>> {
+    const entries: Array<[ID, number]> = await Promise.all(
+      variantIds.map(async (variantId): Promise<[ID, number]> => [
+        variantId,
+        await this.getStockOnHand(ctx, variantId),
+      ]),
+    )
+    return new Map<ID, number>(entries)
+  }
+
   // Method to map translations for a specific field
   private mapTranslations(translations: any[], field: string, languages: string[]): TranslationMap {
     const translationMap: TranslationMap = {}
@@ -533,6 +565,37 @@ export class ProductExportService {
       return ''
     }
     return `${facetNameTranslations[lang]}:${facetValueTranslations[lang]}`
+  }
+
+  async hasMultiVariantProducts(ctx: RequestContext, selectionIds?: ID[]): Promise<boolean> {
+    const pageSize = 100
+    let skip = 0
+    let hasMore = true
+
+    while (hasMore) {
+      const { items, totalItems } = await this.productService.findAll(
+        ctx,
+        {
+          ...(selectionIds && selectionIds.length > 0
+            ? {
+                filter: {
+                  id: { in: selectionIds as string[] },
+                },
+              }
+            : {}),
+          skip,
+          take: pageSize,
+        },
+        ['variants'],
+      )
+      if (items.some((product) => product.variants.filter((variant) => !variant.deletedAt).length > 1)) {
+        return true
+      }
+      skip += pageSize
+      hasMore = skip < totalItems
+    }
+
+    return false
   }
 
   async getAllProductIds(ctx: RequestContext): Promise<ID[]> {

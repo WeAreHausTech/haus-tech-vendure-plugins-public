@@ -49,6 +49,33 @@ export class ProductExportController {
     return trimmed
   }
 
+  private async validateOptionColumnsForMultiVariantExport(
+    ctx: RequestContext,
+    selectedExportFields: string,
+    selectionIds?: ID[],
+  ): Promise<void> {
+    const selected = new Set(
+      selectedExportFields
+        .split(',')
+        .map((field) => field.trim())
+        .filter(Boolean),
+    )
+    const hasRequiredFields = selected.has('optionGroups') && selected.has('optionValues')
+    if (hasRequiredFields) {
+      return
+    }
+
+    const hasMultiVariantProducts = await this.productExportService.hasMultiVariantProducts(
+      ctx,
+      selectionIds,
+    )
+    if (hasMultiVariantProducts) {
+      throw new UnprocessableEntityException(
+        'optionGroups and optionValues are required when exporting products with multiple variants',
+      )
+    }
+  }
+
   @Post('export')
   async exportProducts(
     @Ctx() ctx: RequestContext,
@@ -75,7 +102,7 @@ export class ProductExportController {
           this.options.exportOptions.defaultFileName &&
           !this.options.exportOptions.defaultFileName.endsWith('.csv')
         ) {
-          fileName = this.options.exportOptions.defaultFileName += '.csv'
+          fileName = `${this.options.exportOptions.defaultFileName}.csv`
         } else {
           fileName = this.options.exportOptions.defaultFileName || 'products_export.csv'
         }
@@ -88,6 +115,8 @@ export class ProductExportController {
       if (!customFields) {
         customFields = ''
       }
+
+      await this.validateOptionColumnsForMultiVariantExport(ctx, selectedExportFields, selection)
 
       const job = await this.productExportQueueService.triggerExportWithSelection(
         ctx,
@@ -137,6 +166,8 @@ export class ProductExportController {
       if (!customFields) {
         customFields = ''
       }
+
+      await this.validateOptionColumnsForMultiVariantExport(ctx, selectedExportFields)
 
       const job = await this.productExportQueueService.triggerExport(
         ctx,

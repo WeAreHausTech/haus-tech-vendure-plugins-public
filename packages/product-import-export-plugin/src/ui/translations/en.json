@@ -5,7 +5,7 @@
       "title": "Import products from CSV",
       "description": "Choose a CSV file to import products from",
       "button-select": "Select file",
-      "button-upload": "Upload file",
+      "button-upload": "Start import now",
       "update-product-slugs": "Update product slugs based on name",
       "select-main-language": "Select main language: ",
       "updating-strategy": "Updating strategy for facets and assets: ",

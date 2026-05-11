@@ -89,13 +89,14 @@ export interface ParsedAsset {
 export interface ParsedProductVariant {
   sku: string
   price: number | undefined
-  taxCategory: string
-  stockOnHand: number
-  trackInventory: GlobalFlag
+  taxCategory?: string
+  stockOnHand?: number
+  trackInventory?: GlobalFlag
   assetPaths: string[]
   assetsJson?: ParsedAsset[]
   facets: ParsedFacet[]
-  enabled: boolean
+  enabled?: boolean
+  optionValuesProvided: boolean
   translations: Array<{
     languageCode: LanguageCode
     optionValues: string[]
@@ -117,12 +118,13 @@ export interface ParsedProduct {
   assetPaths: string[]
   assetsJson?: ParsedAsset[]
   optionGroups: ParsedOptionGroup[]
+  optionGroupsProvided: boolean
   facets: ParsedFacet[]
   translations: Array<{
     languageCode: LanguageCode
     name: string
     slug: string
-    description: string
+    description?: string
     customFields: {
       [name: string]: string
     }
@@ -257,8 +259,13 @@ export class ImportParser {
       const r = mapRowToObject(headerRow, record)
       if (getRawMainTranslation(r, 'name', mainLanguage)) {
         if (currentRow) {
-          populateOptionGroupValues(currentRow)
-          results.push(currentRow)
+          const multiVariantOptionsError = validateMultiVariantOptionRequirements(currentRow)
+          if (multiVariantOptionsError) {
+            errors.push(multiVariantOptionsError + ` on line ${line - 1}`)
+          } else {
+            populateOptionGroupValues(currentRow)
+            results.push(currentRow)
+          }
         }
         currentRow = {
           product: await this.parseProductFromRecord(r, usedLanguages, mainLanguage),
@@ -277,8 +284,13 @@ export class ImportParser {
       }
     }
     if (currentRow) {
-      populateOptionGroupValues(currentRow)
-      results.push(currentRow)
+      const multiVariantOptionsError = validateMultiVariantOptionRequirements(currentRow)
+      if (multiVariantOptionsError) {
+        errors.push(multiVariantOptionsError + ` on line ${line}`)
+      } else {
+        populateOptionGroupValues(currentRow)
+        results.push(currentRow)
+      }
     }
     return { results, errors, processed: totalProducts }
   }
@@ -435,6 +447,7 @@ export class ImportParser {
     const translationCodes = usedLanguages.length === 0 ? [mainLanguage] : usedLanguages
 
     const optionGroups: ParsedOptionGroup[] = []
+    let optionGroupsProvided = false
     for (const languageCode of translationCodes) {
       const rawTranslOptionGroups = r.hasOwnProperty(`optionGroups:${languageCode}`)
         ? r[`optionGroups:${languageCode}`]
@@ -443,6 +456,7 @@ export class ImportParser {
       if (!rawTranslOptionGroups) {
         continue
       }
+      optionGroupsProvided = true
       const translatedOptionGroups = parseStringArray(rawTranslOptionGroups)
       if (optionGroups.length === 0) {
         for (const translatedOptionGroup of translatedOptionGroups) {
@@ -517,13 +531,18 @@ export class ImportParser {
           { value: name, entityName: 'Product', fieldName: 'slug' },
         )
       }
+      const hasDescriptionColumn =
+        translatedFields.hasOwnProperty('description') || r.hasOwnProperty('description')
+
       return {
         languageCode,
         name,
         slug,
-        description: translatedFields.hasOwnProperty('description')
-          ? parseString(translatedFields.description)
-          : r.description,
+        description: hasDescriptionColumn
+          ? translatedFields.hasOwnProperty('description')
+            ? parseString(translatedFields.description)
+            : parseString(r.description)
+          : undefined,
         customFields: parsedCustomFields,
       }
     })
@@ -533,6 +552,7 @@ export class ImportParser {
       assetPaths: jsonAssets.length ? jsonAssets.map(({ url }) => url) : parseStringArray(r.assets),
       assetsJson: jsonAssets,
       optionGroups,
+      optionGroupsProvided,
       facets,
       translations: await Promise.all(translations),
     }
@@ -545,6 +565,8 @@ export class ImportParser {
     mainLanguage: LanguageCode,
   ): Promise<ParsedProductVariant> {
     const translationCodes = usedLanguages.length === 0 ? [mainLanguage] : usedLanguages
+    const optionValuesProvided =
+      r.hasOwnProperty('optionValues') || r.hasOwnProperty(`optionValues:${mainLanguage}`)
 
     const facets: ParsedFacet[] = []
     for (const languageCode of translationCodes) {
@@ -594,24 +616,32 @@ export class ImportParser {
     })
 
     const jsonAssets = parseAssetsIfJson(r.variantAssets)
-    const variantIsEnabled = r.enabled == null || r.enabled === '' ? true : parseBoolean(r.enabled)
+    const hasEnabledColumn = r.enabled != null
+    const variantIsEnabled = hasEnabledColumn
+      ? r.enabled === ''
+        ? undefined
+        : parseBoolean(r.enabled)
+      : undefined
     const parsedVariant: ParsedProductVariant = {
       sku: parseString(r.sku),
       price: r.price ? parseNumber(r.price) : undefined,
-      taxCategory: parseString(r.taxCategory),
-      stockOnHand: parseNumber(r.stockOnHand),
+      taxCategory: r.hasOwnProperty('taxCategory') ? parseString(r.taxCategory) : undefined,
+      stockOnHand: r.hasOwnProperty('stockOnHand') ? parseNumber(r.stockOnHand) : undefined,
       enabled: variantIsEnabled,
       trackInventory:
-        r.trackInventory == null || r.trackInventory === ''
-          ? GlobalFlag.INHERIT
-          : parseBoolean(r.trackInventory)
-            ? GlobalFlag.TRUE
-            : GlobalFlag.FALSE,
+        r.trackInventory == null
+          ? undefined
+          : r.trackInventory === ''
+            ? undefined
+            : parseBoolean(r.trackInventory)
+              ? GlobalFlag.TRUE
+              : GlobalFlag.FALSE,
       assetPaths: jsonAssets.length
         ? jsonAssets.map(({ url }) => url)
         : parseStringArray(r.variantAssets),
       assetsJson: jsonAssets,
       facets,
+      optionValuesProvided,
       translations,
     }
     return parsedVariant
@@ -733,9 +763,28 @@ function validateOptionValueCount(
   const optionValueKeys = Object.keys(r).filter((key) => key.startsWith('optionValues'))
   for (const key of optionValueKeys) {
     const optionValues = parseStringArray(r[key])
-    if (currentRow.product.optionGroups.length !== optionValues.length && key === mainLanguage) {
+    const isMainLanguageOptionValueColumn =
+      key === 'optionValues' || key === `optionValues:${mainLanguage}`
+    if (
+      currentRow.product.optionGroups.length !== optionValues.length &&
+      isMainLanguageOptionValueColumn
+    ) {
       return `The number of optionValues in column '${key}' must match the number of optionGroups`
     }
+  }
+}
+
+function validateMultiVariantOptionRequirements(
+  row: ParsedProductWithVariants,
+): string | undefined {
+  if (row.variants.length <= 1) {
+    return
+  }
+  if (!row.product.optionGroupsProvided || row.product.optionGroups.length === 0) {
+    return 'optionGroups and optionValues are required when importing products with multiple variants'
+  }
+  if (row.variants.some((variant) => !variant.optionValuesProvided)) {
+    return 'optionGroups and optionValues are required when importing products with multiple variants'
   }
 }
 

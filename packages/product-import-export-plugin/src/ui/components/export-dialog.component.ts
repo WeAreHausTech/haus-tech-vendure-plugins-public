@@ -5,7 +5,6 @@ import { SharedModule } from '@vendure/admin-ui/core'
 import { uniq } from 'lodash'
 
 type ProductFields =
-  | 'productId'
   | 'name'
   | 'slug'
   | 'description'
@@ -51,6 +50,7 @@ export class ExportDialogComponent
     AfterViewInit,
     OnInit
 {
+  private mandatoryOptionFields: Array<ProductFields | VariantFields> = ['optionGroups', 'optionValues']
   @ViewChild('fileNameInput', { static: false }) fileNameElement: ElementRef<HTMLInputElement>
 
   resolveWith: (result?: {
@@ -67,7 +67,6 @@ export class ExportDialogComponent
   exportAssetsAs: 'url' | 'json' = 'url'
   selectedExportFields: ExportFields = []
   availableExportFields: ExportFields = [
-    'productId',
     'name',
     'slug',
     'description',
@@ -99,6 +98,7 @@ export class ExportDialogComponent
     this.selectedExportFields = uniq([
       ...(this.config.defaultExportFields || []),
       ...(this.config.requiredExportFields || []),
+      ...this.mandatoryOptionFields,
     ])
   }
 
@@ -137,6 +137,9 @@ export class ExportDialogComponent
   }
 
   toggleExportFieldSelection(fieldName: ProductFields | VariantFields) {
+    if (this.mandatoryOptionFields.includes(fieldName)) {
+      return
+    }
     const index = this.selectedExportFields.indexOf(fieldName)
     if (index > -1) {
       this.selectedExportFields.splice(index, 1)
@@ -158,8 +161,13 @@ export class ExportDialogComponent
         ...this.availableExportFields.filter((field) =>
           this.config.requiredExportFields?.includes(field),
         ),
+        ...this.mandatoryOptionFields,
       ]
       this.selectedFields = []
     }
+  }
+
+  isMandatoryExportField(field: ProductFields | VariantFields): boolean {
+    return this.mandatoryOptionFields.includes(field)
   }
 }

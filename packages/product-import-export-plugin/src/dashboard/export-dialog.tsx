@@ -36,13 +36,13 @@ export function ExportDialog({
   productIds,
   isExportAll = false,
 }: ExportDialogProps) {
+  const mandatoryOptionFields: Array<ProductFields | VariantFields> = ['optionGroups', 'optionValues']
   const [fileName, setFileName] = useState('')
   const [customFields, setCustomFields] = useState<string[]>([])
   const [selectedFields, setSelectedFields] = useState<string[]>([])
   const [exportAssetsAs, setExportAssetsAs] = useState<'url' | 'json'>('url')
   const [selectedExportFields, setSelectedExportFields] = useState<ExportFields>([])
   const [availableExportFields] = useState<ExportFields>([
-    'productId',
     'name',
     'slug',
     'description',
@@ -101,10 +101,15 @@ export function ExportDialog({
           configData.exportOptions?.defaultExportFields ||
           configData.exportOptions?.requiredExportFields
         ) {
-          setSelectedExportFields([
-            ...(configData.exportOptions.defaultExportFields || []),
-            ...(configData.exportOptions.requiredExportFields || []),
-          ])
+          setSelectedExportFields(
+            Array.from(
+              new Set([
+                ...(configData.exportOptions.defaultExportFields || []),
+                ...(configData.exportOptions.requiredExportFields || []),
+                ...mandatoryOptionFields,
+              ]),
+            ) as ExportFields,
+          )
         }
       } catch (error) {
         console.error('Failed to fetch config:', error)
@@ -123,6 +128,9 @@ export function ExportDialog({
   }
 
   const toggleExportFieldSelection = (fieldName: ProductFields | VariantFields) => {
+    if (mandatoryOptionFields.includes(fieldName)) {
+      return
+    }
     setSelectedExportFields((prev) =>
       prev.includes(fieldName) ? prev.filter((f) => f !== fieldName) : [...prev, fieldName],
     )
@@ -134,7 +142,10 @@ export function ExportDialog({
       setSelectedExportFields([...availableExportFields])
       setSelectedFields([...customFields])
     } else {
-      setSelectedExportFields([...(config?.requiredExportFields || [])])
+      setSelectedExportFields([
+        ...(config?.requiredExportFields || []),
+        ...mandatoryOptionFields,
+      ])
       setSelectedFields([])
     }
   }
@@ -220,7 +231,10 @@ export function ExportDialog({
                     id={`field-${field}`}
                     checked={selectedExportFields.includes(field)}
                     onCheckedChange={() => toggleExportFieldSelection(field)}
-                    disabled={config?.requiredExportFields?.includes(field)}
+                    disabled={
+                      config?.requiredExportFields?.includes(field) ||
+                      mandatoryOptionFields.includes(field)
+                    }
                   />
                   <Label htmlFor={`field-${field}`} className="font-normal">
                     {field}

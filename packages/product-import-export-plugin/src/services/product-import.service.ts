@@ -8,31 +8,33 @@ import {
   SearchService,
   LanguageCode,
   EventBus,
-  CollectionService,
   ProductService,
+  Logger,
 } from '@vendure/core'
-import { RequestContext, ProductEvent, Product } from '@vendure/core'
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
-import { PluginInitOptions, UpdatingStrategy } from '../types'
+import { RequestContext, ProductEvent } from '@vendure/core'
+import { IMPORT_JOB_STORAGE_STRATEGY } from '../constants'
+import { UpdatingStrategy } from '../types'
 import { ProductImporter } from '../providers/import-providers/product-importer'
 import { omit } from 'lodash'
+import { ImportJobStorageStrategy } from './import-storage/import-job-storage-strategy'
 
 @Injectable()
 export class ProductImportService implements OnModuleInit {
+  private readonly loggerCtx = 'ProductImportService'
   private productImportQueue: JobQueue<{
     ctx: SerializedRequestContext
-    fileContent: string
+    storageKey: string
+    fileName: string
     updateProductSlug: boolean
     mainLanguage: LanguageCode
     updatingStrategy: UpdatingStrategy
   }>
 
   constructor(
-    @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
+    @Inject(IMPORT_JOB_STORAGE_STRATEGY) private importJobStorageStrategy: ImportJobStorageStrategy,
     private jobQueueService: JobQueueService,
     private productImporter: ProductImporter,
     private searchService: SearchService,
-    private collectionService: CollectionService,
     private productService: ProductService,
     private eventBus: EventBus,
   ) {}
@@ -41,44 +43,46 @@ export class ProductImportService implements OnModuleInit {
     this.productImportQueue = await this.jobQueueService.createQueue({
       name: 'product-import',
       process: async (job) => {
-        // Deserialize the RequestContext from the job data
         const ctx = RequestContext.deserialize(job.data.ctx)
-        let jobResult: ImportProgress
-        return new Promise((resolve, reject) => {
-          this.productImporter
-            .parseAndImport(
-              job.data.fileContent,
-              ctx,
-              job.data.updateProductSlug,
-              job.data.mainLanguage,
-              job.data.updatingStrategy,
-            )
-            .subscribe({
-              next: (result) => {
-                const processedCount = result.processed
-                const importedCount = result.imported
-                const percentage = (importedCount / processedCount) * 100
-                job.setProgress(percentage)
-                jobResult = result
-              },
-              complete: async () => {
-                // Hack for triggering apply-collection-filters job
-                const firstProduct = await this.productService.findAll(ctx, {
-                  take: 1,
-                })
-
-                this.eventBus.publish(new ProductEvent(ctx, firstProduct.items[0], 'updated'))
-
-                // Reindex the search index
-                await this.searchService.reindex(ctx)
-
-                resolve(omit(jobResult, 'currentProduct'))
-              },
-              error: (err) => {
-                reject(err)
-              },
-            })
-        })
+        let jobResult: ImportProgress | undefined
+        try {
+          const fileContent = await this.importJobStorageStrategy.getImportFileContent(
+            ctx,
+            job.data.storageKey,
+          )
+          return await new Promise<ImportProgress>((resolve, reject) => {
+            this.productImporter
+              .parseAndImport(
+                fileContent,
+                ctx,
+                job.data.updateProductSlug,
+                job.data.mainLanguage,
+                job.data.updatingStrategy,
+              )
+              .subscribe({
+                next: (result) => {
+                  const processedCount = result.processed || 1
+                  const importedCount = result.imported || 0
+                  const percentage = (importedCount / processedCount) * 100
+                  job.setProgress(percentage)
+                  jobResult = result
+                },
+                complete: () => {
+                  resolve(
+                    jobResult ?? { imported: 0, processed: 0, errors: [], currentProduct: '' },
+                  )
+                },
+                error: (err) => {
+                  reject(err)
+                },
+              })
+          }).then(async (result) => {
+            await this.runPostImportTasks(ctx, result)
+            return omit(result, 'currentProduct') as ImportProgress
+          })
+        } finally {
+          await this.cleanupStoredImportFile(ctx, job.data.storageKey)
+        }
       },
     })
   }
@@ -90,27 +94,58 @@ export class ProductImportService implements OnModuleInit {
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
   ) {
-    const fileContent = file.buffer.toString('utf-8')
+    const storageKey = await this.importJobStorageStrategy.storeImportFile(ctx, {
+      originalname: file.originalname,
+      buffer: file.buffer,
+    })
 
     return this.triggerProductImport(
       ctx,
-      fileContent,
+      storageKey,
+      file.originalname,
       updateProductSlug,
       mainLanguage,
       updatingStrategy,
     )
   }
 
+  private async cleanupStoredImportFile(ctx: RequestContext, storageKey: string): Promise<void> {
+    try {
+      await this.importJobStorageStrategy.deleteImportFile(ctx, storageKey)
+    } catch (error) {
+      Logger.warn(
+        `Failed to cleanup stored import file "${storageKey}": ${(error as Error).message}`,
+        this.loggerCtx,
+      )
+    }
+  }
+
+  private async runPostImportTasks(ctx: RequestContext, result: ImportProgress): Promise<void> {
+    if (result.imported <= 0) {
+      return
+    }
+    const firstProduct = await this.productService.findAll(ctx, { take: 1 })
+    const firstItem = firstProduct.items[0]
+    if (firstItem) {
+      this.eventBus.publish(new ProductEvent(ctx, firstItem, 'updated'))
+    } else {
+      Logger.warn('Skipping ProductEvent publish because no product was found', this.loggerCtx)
+    }
+    await this.searchService.reindex(ctx)
+  }
+
   private triggerProductImport(
     ctx: RequestContext,
-    fileContent: string,
+    storageKey: string,
+    fileName: string,
     updateProductSlug: boolean,
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
   ) {
     return this.productImportQueue.add({
       ctx: ctx.serialize(),
-      fileContent,
+      storageKey,
+      fileName,
       updateProductSlug,
       mainLanguage,
       updatingStrategy,

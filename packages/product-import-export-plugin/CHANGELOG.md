@@ -1,3 +1,24 @@
+## 3.3.2-next.2
+
+### 🚀 Features
+
+- **product-import-export-plugin:** enhance email notification and import/export functionality ([c133dc5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/c133dc5))
+
+## 3.3.2-next.1
+
+### 🚀 Features
+
+- **product-import-export-plugin:** enforce import/export acceptance criteria and enhance documentation ([b1a93b6](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/b1a93b6))
+- **product-import-export-plugin:** update pre-version command and clean up export artifacts ([1cde024](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1cde024))
+
+## 3.3.2-next.0
+
+### 🚀 Features
+
+- **product-import-export-plugin:** optimize asset handling and caching in product importer ([9d2888e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9d2888e))
+- **product-import-export-plugin:** enhance testing and export functionality ([1764eb2](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1764eb2))
+- **product-import-export-plugin:** enforce import/export acceptance criteria (column-presence updates, multi-variant option requirements, no ProductID export option, clearer import CTA, and strict required relation custom-field validation)
+
 ## 3.3.1
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
