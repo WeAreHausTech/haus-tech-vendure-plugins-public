@@ -337,7 +337,7 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(smallRow).toBeDefined()
     expect(mediumRow).toBeDefined()
 
-    expect(smallRow?.[idx.optionGroups]).toBe('Size')
+    expect(smallRow?.[idx.optionGroups]).toBe('Size:option-group-test-product-size')
     expect(smallRow?.[idx.optionValues]).toBe('Small')
     expect(smallRow?.[idx.stockOnHand]).toBe('3')
 
@@ -351,6 +351,10 @@ describe('ProductImportExportPlugin e2e', () => {
   it('shares an option group across products that use the name:code syntax', async () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(
+      EXPORT_STORAGE_STRATEGY,
+    )
     const connection = server.app.get(TransactionalConnection)
 
     const ctx = await requestContextService.create({
@@ -418,6 +422,32 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(sharedProductIds).toEqual([shoeA?.id, shoeB?.id].sort())
     const sharedOptionCodes = (sharedGroup?.options ?? []).map((o) => o.code).sort()
     expect(sharedOptionCodes).toEqual(['large', 'medium', 'small'])
+
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'shared-option-groups-export.csv',
+      '',
+      'url',
+      'name,sku,optionGroups,optionValues,stockOnHand',
+    )
+    const stream = await exportStorageStrategy.getExportFileStream(ctx, fileName)
+    const exportedCsv = await streamToString(stream)
+    const lines = exportedCsv.trim().split(/\r?\n/)
+    const header = lines[0].split(',')
+    const rows = lines.slice(1).map((line) => line.split(','))
+    const idx = {
+      optionGroups: header.indexOf('optionGroups:en'),
+      sku: header.indexOf('sku'),
+    }
+    const shoeARow = rows.find((row) => row[idx.sku] === 'SHOE-A-S')
+    const shoeBRow = rows.find((row) => row[idx.sku] === 'SHOE-B-S')
+    const phoneRow = rows.find((row) => row[idx.sku] === 'PHONE-4G')
+    expect(shoeARow?.[idx.optionGroups]).toBe('size:shoe-size')
+    expect(shoeBRow?.[idx.optionGroups]).toBe('size:shoe-size')
+    expect(phoneRow?.[idx.optionGroups]).toBe(`size:${phone?.optionGroups[0].code}`)
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
   })
 
   it('reports parser error when optionValues count mismatches optionGroups', async () => {
