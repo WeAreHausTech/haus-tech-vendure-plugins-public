@@ -280,12 +280,6 @@ export class ExtendedFastImporterService {
     return option.id
   }
 
-  /**
-   * Detaches all option groups from the product without deleting the underlying
-   * ProductOptionGroup or ProductOption entities. Since v3.6, option groups are
-   * shared resources that may be linked to multiple products, so we must not delete
-   * them here as it could orphan options used by other products.
-   */
   async removeOptionGroupsFromProduct(productId: ID) {
     this.ensureInitialized()
     const product = await this.connection.getRepository(this.importCtx, Product).findOne({
