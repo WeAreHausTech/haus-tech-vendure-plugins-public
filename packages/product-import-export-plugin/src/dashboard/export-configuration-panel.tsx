@@ -276,32 +276,6 @@ export const ExportConfigurationPanel = forwardRef<
         />
       </div>
 
-
-      {bothAssetModes ? (
-        <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2">
-          <Label className="shrink-0">Export assets as</Label>
-          <RadioGroup
-            value={exportAssetsAs}
-            onValueChange={(val) => setExportAssetsAs(val as 'url' | 'json')}
-            className="flex flex-row flex-wrap gap-6"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="url" id={`${idPrefix}-assets-url`} />
-              <Label htmlFor={`${idPrefix}-assets-url`} className="font-normal">
-                URL
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="json" id={`${idPrefix}-assets-json`} />
-              <Label htmlFor={`${idPrefix}-assets-json`} className="font-normal">
-                JSON
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-      ) : null}
-
-
       <Accordion
         className="border rounded-lg px-3"
         defaultValue={
@@ -310,14 +284,9 @@ export const ExportConfigurationPanel = forwardRef<
       >
         <AccordionItem value="select-fields" className="border-0">
           <AccordionTrigger className="group/trigger flex w-full items-center gap-3 py-3 text-sm hover:no-underline [&>svg:last-child]:size-4 [&>svg:last-child]:shrink-0 [&>svg:last-child]:self-center">
-            <span className="bg-primary/10 text-primary flex size-4 shrink-0 items-center justify-center self-center rounded-full">
-              <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/trigger:rotate-90" />
-            </span>
+            <ChevronRight className="text-primary size-4 shrink-0 self-center transition-transform duration-200 group-data-[state=open]/trigger:rotate-90" />
             <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 self-center text-left leading-snug">
-              <span className="font-medium text-foreground">Advanced settings</span>
-              <span className="font-normal text-muted-foreground">
-                (Select fields to export)
-              </span>
+              <span className="font-medium text-foreground">Configure fields to export</span>
             </span>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pb-4 pt-4 border-t border-border">
@@ -373,6 +342,42 @@ export const ExportConfigurationPanel = forwardRef<
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {bothAssetModes ? (
+        <Accordion className="border rounded-lg px-3" defaultValue={[]}>
+          <AccordionItem value="advanced-settings" className="border-0">
+            <AccordionTrigger className="group/trigger flex w-full items-center gap-3 py-3 text-sm hover:no-underline [&>svg:last-child]:size-4 [&>svg:last-child]:shrink-0 [&>svg:last-child]:self-center">
+              <ChevronRight className="text-primary size-4 shrink-0 self-center transition-transform duration-200 group-data-[state=open]/trigger:rotate-90" />
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 self-center text-left leading-snug">
+                <span className="font-medium text-foreground">Advanced settings</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pb-4 pt-4 border-t border-border">
+              <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2 pt-2">
+                <Label className="shrink-0">Export assets as</Label>
+                <RadioGroup
+                  value={exportAssetsAs}
+                  onValueChange={(val) => setExportAssetsAs(val as 'url' | 'json')}
+                  className="flex flex-row flex-wrap gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="url" id={`${idPrefix}-assets-url`} />
+                    <Label htmlFor={`${idPrefix}-assets-url`} className="font-normal">
+                      URL only
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="json" id={`${idPrefix}-assets-json`} />
+                    <Label htmlFor={`${idPrefix}-assets-json`} className="font-normal">
+                      Full JSON
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      ) : null}
     </div>
   )
 })
