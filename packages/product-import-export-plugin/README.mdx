@@ -19,16 +19,16 @@ A Vendure plugin for importing and exporting product data via CSV. Supports bulk
 
 ## Features
 
-* **Import** – Bulk upload products from CSV with validation, custom fields, assets, facets, and variants
-* **Export** – Export products to CSV with selected fields; export all products or a selection
-* **Storage strategies** – Store exported files in S3 or locally on disk (with automatic fallback)
-* **UI** – Admin UI and Dashboard integration for import and export
+- **Import** – Bulk upload products from CSV with validation, custom fields, assets, facets, and variants
+- **Export** – Export products to CSV with selected fields; export all products or a selection
+- **Storage strategies** – Store exported files in S3 or locally on disk (with automatic fallback)
+- **UI** – Admin UI and Dashboard integration for import and export
 
 ![Dashboard UI](assets/Screenshot-dashboard-ui.png)
 
 ## Compatibility
 
-Vendure **^2.0.0** or **^3.0.0**
+Vendure **^3.6.0**
 
 ## Getting started
 
@@ -65,13 +65,13 @@ export const config = {
 
 ### Import options
 
-| Option                   | Type                                            | Default    | Description                                                                                                                  |
-| ------------------------ | ----------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `updateProductSlug`      | `boolean`                                       | `true`     | Update product slug from the `name` field in the CSV                                                                         |
-| `restoreSoftDeleted`     | `boolean`                                       | `true`     | Restore soft-deleted products/variants found by id or SKU during import. If `false`, new products will be created instead. |
-| `storageStrategy`        | `ImportJobStorageStrategy`                      | local disk | Strategy instance for queued import file storage and retrieval.                                                              |
-| `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                  |
-| `importJobStorage`       | `'local' \| 's3'`                              | `'local'`  | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                          |
+| Option                   | Type                                               | Default     | Description                                                                                                                |
+| ------------------------ | -------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `updateProductSlug`      | `boolean`                                          | `true`      | Update product slug from the `name` field in the CSV                                                                       |
+| `restoreSoftDeleted`     | `boolean`                                          | `true`      | Restore soft-deleted products/variants found by id or SKU during import. If `false`, new products will be created instead. |
+| `storageStrategy`        | `ImportJobStorageStrategy`                         | local disk  | Strategy instance for queued import file storage and retrieval.                                                            |
+| `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                |
+| `importJobStorage`       | `'local' \| 's3'`                                  | `'local'`   | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                        |
 
 Available import storage strategies:
 
@@ -94,8 +94,8 @@ Available import storage strategies:
 
 The plugin supports configurable storage for exported files:
 
-* **S3** – Stores export files in an S3-compatible bucket
-* **Disk (default)** – Saves files locally on the server
+- **S3** – Stores export files in an S3-compatible bucket
+- **Disk (default)** – Saves files locally on the server
 
 ## CSV Format for Import
 
@@ -106,27 +106,49 @@ The plugin supports configurable storage for exported files:
 
 ### Optional columns
 
-| Column                        | Format                                                       | Example                                                                                    |
-| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `name`, `slug`, `description` | Text, or `name:en`, `name:sv` for translations               | `My Product`                                                                               |
-| `assets`                      | Pipe-separated URLs, or JSON `[{"url":"...","name":"..."}]`  | `https://example.com/1.jpg\|https://example.com/2.jpg`                                     |
-| `facets`                      | `facet:value` pairs, pipe-separated                          | `Brand:Acme\|Category:Electronics`                                                         |
-| `optionGroups`                | Pipe-separated group names                                   | `Size\|Color`                                                                              |
-| `optionValues`                | Pipe-separated values (order matches option groups)          | `Large\|Blue`                                                                              |
-| `price`                       | Number (in smallest currency unit)                           | `9999`                                                                                     |
-| `taxCategory`                 | Tax category name                                            | `standard`                                                                                 |
-| `stockOnHand`                 | Number                                                       | `100`                                                                                      |
-| `trackInventory`              | `true` or `false`                                            | `true`                                                                                     |
-| `variantAssets`               | Same format as `assets`                                      | `https://example.com/variant.jpg`                                                          |
-| `variantFacets`               | Same format as `facets`                                      | `Material:Cotton`                                                                          |
-| `enabled`                     | `true` or `false`                                            | `true`                                                                                     |
-| Custom fields                 | Column name = custom field name; value depends on field type | Add columns for any Product or ProductVariant custom fields defined in your Vendure config |
+| Column                        | Format                                                                                                                             | Example                                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `name`, `slug`, `description` | Text, or `name:en`, `name:sv` for translations                                                                                     | `My Product`                                                                               |
+| `assets`                      | Pipe-separated URLs, or JSON `[{"url":"...","name":"..."}]`                                                                        | `https://example.com/1.jpg\|https://example.com/2.jpg`                                     |
+| `facets`                      | `facet:value` pairs, pipe-separated                                                                                                | `Brand:Acme\|Category:Electronics`                                                         |
+| `optionGroups`                | Pipe-separated group names. Use `name:code` to share a group across products (see [Sharing option groups](#sharing-option-groups)) | `Size\|Color` or `size:shoe-size`                                                          |
+| `optionValues`                | Pipe-separated values (order matches option groups)                                                                                | `Large\|Blue`                                                                              |
+| `price`                       | Number (in smallest currency unit)                                                                                                 | `9999`                                                                                     |
+| `taxCategory`                 | Tax category name                                                                                                                  | `standard`                                                                                 |
+| `stockOnHand`                 | Number                                                                                                                             | `100`                                                                                      |
+| `trackInventory`              | `true` or `false`                                                                                                                  | `true`                                                                                     |
+| `variantAssets`               | Same format as `assets`                                                                                                            | `https://example.com/variant.jpg`                                                          |
+| `variantFacets`               | Same format as `facets`                                                                                                            | `Material:Cotton`                                                                          |
+| `enabled`                     | `true` or `false`                                                                                                                  | `true`                                                                                     |
+| Custom fields                 | Column name = custom field name; value depends on field type                                                                       | Add columns for any Product or ProductVariant custom fields defined in your Vendure config |
 
 #### Import behavior rules
 
 - If a column is omitted from the CSV header, that field is left unchanged on existing products/variants.
 - If a column exists in the header but the cell is empty, that field is explicitly cleared.
 - For products with more than one variant, `optionGroups` and `optionValues` are required.
+
+#### Sharing option groups
+
+By default, each product gets its own option groups. To **share an option group** across
+multiple products (e.g. a common "Size" group for all shoes), use the `name:code` syntax in the
+`optionGroups` column: `size:shoe-size`. All products that reference the same code will share
+a single option group. Products using a plain name (e.g. just `size`) will each get their own
+independent option group.
+
+```csv
+...optionGroups     , optionValues , ...
+# Each shoe product shares a single "shoe-size" option group:
+"size:shoe-size"    , Small        , ...
+"size:shoe-size"    , Medium       , ...
+# This product gets its own independent "size" group:
+"size"              , 4GB          , ...
+```
+
+The first product to reference a given code defines the full set of option values for that
+shared group; subsequent products may use any subset of those values. Codes are language-
+agnostic — only the `name` portion before the colon is translated per language column
+(`optionGroups:en`, `optionGroups:sv`, etc.).
 
 #### Multi-language support
 
@@ -194,7 +216,11 @@ Note: templates for `@vendure/email-plugin` should be valid MJML.
 
 ```typescript
 import path from 'path'
-import { DefaultEmailPlugin, FileBasedTemplateLoader, defaultEmailHandlers } from '@vendure/email-plugin'
+import {
+  DefaultEmailPlugin,
+  FileBasedTemplateLoader,
+  defaultEmailHandlers,
+} from '@vendure/email-plugin'
 import {
   withProductExportedHandler,
   withProductExportedTemplateFallback,

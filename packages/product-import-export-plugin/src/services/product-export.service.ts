@@ -296,7 +296,7 @@ export class ProductExportService {
     const optionGroupNames = languages.reduce(
       (acc, lang) => {
         acc[lang] = sortBy(optionGroups, (g) => g.id)
-          .map((group) => this.mapTranslations(group.translations, 'name', [lang])[lang])
+          .map((group) => this.formatOptionGroupForExport(group, lang))
           .filter((name) => name)
           .join('|')
         return acc
@@ -565,6 +565,17 @@ export class ProductExportService {
       return ''
     }
     return `${facetNameTranslations[lang]}:${facetValueTranslations[lang]}`
+  }
+
+  private formatOptionGroupForExport(group: any, lang: LanguageCode): string {
+    const translatedName = this.mapTranslations(group.translations, 'name', [lang])[lang]
+    if (!translatedName) {
+      return ''
+    }
+    if (!group.code) {
+      return translatedName
+    }
+    return `${translatedName}:${group.code}`
   }
 
   async hasMultiVariantProducts(ctx: RequestContext, selectionIds?: ID[]): Promise<boolean> {

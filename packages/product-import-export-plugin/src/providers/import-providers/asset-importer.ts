@@ -18,7 +18,6 @@ import axios from 'axios'
 import path from 'path'
 import { from, lastValueFrom } from 'rxjs'
 import { delay, retryWhen, take, tap } from 'rxjs/operators'
-import { compact } from 'lodash'
 
 /**
  * @description
@@ -73,14 +72,22 @@ export class ExtendedAssetImporter implements OnModuleInit {
         })
 
         if (assetFromHash) {
-          // Check if the asset name has changed
-          if (
-            (assetPath.name && assetFromHash.name !== assetPath.name) ||
-            assetFromHash.channels.some((channel) => channel.id !== ctx?.channelId)
-          ) {
-            assetFromHash.name = assetPath.name || assetFromHash.name
-            assetFromHash.channels.push(ctx?.channel as Channel)
-            await this.connection.getRepository(ctx, Asset).save(assetFromHash)
+          const nameHasChanged = !!assetPath.name && assetFromHash.name !== assetPath.name
+          const channelsNeedUpdate =
+            !!ctx?.channel &&
+            assetFromHash.channels.every((channel) => channel.id !== ctx.channelId)
+          if (nameHasChanged || channelsNeedUpdate) {
+            if (nameHasChanged && ctx && assetPath.name) {
+              await this.assetService.update(ctx, {
+                id: assetFromHash.id,
+                name: assetPath.name,
+              })
+              assetFromHash.name = assetPath.name as Asset['name']
+            }
+            if (channelsNeedUpdate && ctx.channel) {
+              assetFromHash.channels.push(ctx.channel)
+              await this.connection.getRepository(ctx, Asset).save(assetFromHash)
+            }
           }
           this.assetMap.set(assetPath.url, assetFromHash)
           assets.push(assetFromHash)
@@ -112,7 +119,10 @@ export class ExtendedAssetImporter implements OnModuleInit {
 
             if (assetFromHash) {
               shouldDeleteCreatedAsset = true
-              assetToUpdate = { ...assetFromHash, name: assetPath.name || assetFromHash.name }
+              assetToUpdate = {
+                ...assetFromHash,
+                name: (assetPath.name || assetFromHash.name) as Asset['name'],
+              }
             }
 
             if (assetPath.id) {
@@ -126,13 +136,20 @@ export class ExtendedAssetImporter implements OnModuleInit {
             this.assetMap.set(assetPath.url, assetToUpdate)
             assets.push(assetToUpdate)
 
-            assetToUpdate.name = assetPath.name || assetToUpdate.name
+            const resolvedName = (assetPath.name || assetToUpdate.name) as Asset['name']
+            assetToUpdate.name = resolvedName
             assetToUpdate.channels.push(ctx?.channel as Channel)
             assetToUpdate.customFields = {
               ...assetToUpdate.customFields,
               hash: assetHash,
             }
             await this.connection.getRepository(ctx, Asset).save(assetToUpdate)
+            if (ctx && assetPath.name) {
+              await this.assetService.update(ctx, {
+                id: assetToUpdate.id,
+                name: assetPath.name,
+              })
+            }
 
             if (shouldDeleteCreatedAsset) {
               await this.connection.getRepository(ctx, Asset).delete(createdAsset.id)
