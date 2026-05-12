@@ -1,3 +1,21 @@
+## 3.3.2-next.3
+
+### 🚀 Features
+
+- **product-import-export-plugin:** add popover help for export asset options ([7aa8373](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/7aa8373))
+- **product-import-export-plugin:** implement export configuration panel and enhance export dialog ([d2e1f34](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/d2e1f34))
+- **product-import-export-plugin:** enhance product export functionality and update tests ([de56d44](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/de56d44))
+- **product-import-export-plugin:** update dependencies and enhance import/export functionality ([9c78665](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9c78665))
+- **product-import-export-plugin:** enhance email notification and import/export functionality ([c133dc5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/c133dc5))
+- **product-import-export-plugin:** enforce import/export acceptance criteria and enhance documentation ([b1a93b6](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/b1a93b6))
+- **product-import-export-plugin:** update pre-version command and clean up export artifacts ([1cde024](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1cde024))
+- **product-import-export-plugin:** optimize asset handling and caching in product importer ([9d2888e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9d2888e))
+- **product-import-export-plugin:** enhance testing and export functionality ([1764eb2](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1764eb2))
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** update dashboard and export settings screenshots ([2129b39](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/2129b39))
+
 ## 3.3.2-next.2
 
 ### 🚀 Features
