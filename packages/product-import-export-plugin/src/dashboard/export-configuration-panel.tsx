@@ -6,11 +6,14 @@ import {
   Checkbox,
   Input,
   Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   RadioGroup,
   RadioGroupItem,
   toast,
 } from '@vendure/dashboard'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, InfoIcon } from 'lucide-react'
 import {
   useCallback,
   useEffect,
@@ -354,7 +357,37 @@ export const ExportConfigurationPanel = forwardRef<
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pb-4 pt-4 border-t border-border">
               <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2 pt-2">
-                <Label className="shrink-0">Export assets as</Label>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Label className="font-medium">Export assets as</Label>
+                  <Popover>
+                    <PopoverTrigger
+                      type="button"
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label="What does export assets as mean?"
+                    >
+                      <InfoIcon className="h-4 w-4" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 text-sm" align="start" side="top">
+                      <p className="font-medium text-foreground">Asset columns in the CSV</p>
+                      <p className="mt-2 text-muted-foreground">
+                        Controls how product and variant asset fields are serialized in the export.
+                      </p>
+                      <ul className="mt-3 list-disc space-y-2 pl-4 text-muted-foreground">
+                        <li>
+                          <span className="font-medium text-foreground">URL only</span> — each cell
+                          lists asset file URLs separated by{' '}
+                          <span className="font-mono text-xs">|</span>.
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">Full JSON</span> — each cell
+                          contains JSON with <span className="font-mono text-xs">id</span>,{' '}
+                          <span className="font-mono text-xs">name</span>, and{' '}
+                          <span className="font-mono text-xs">url</span> per asset.
+                        </li>
+                      </ul>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <RadioGroup
                   value={exportAssetsAs}
                   onValueChange={(val) => setExportAssetsAs(val as 'url' | 'json')}
