@@ -28,6 +28,7 @@ import {
   TrashIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useActiveChannelKey } from './use-active-channel-key'
 import { getChannelHeader, getServerLocation } from './utils'
 
 interface ExportedFile {
@@ -39,6 +40,7 @@ interface ExportedFile {
 const ITEMS_PER_PAGE = 8
 
 export function ExportedList() {
+  const activeChannelId = useActiveChannelKey()
   const [exportedFiles, setExportedFiles] = useState<ExportedFile[]>([])
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -71,8 +73,11 @@ export function ExportedList() {
   }
 
   useEffect(() => {
-    getExportFiles()
-  }, [])
+    if (!activeChannelId) return
+    setSearch('')
+    setCurrentPage(1)
+    void getExportFiles()
+  }, [activeChannelId])
 
   const filteredFiles = useMemo(() => {
     let result = exportedFiles

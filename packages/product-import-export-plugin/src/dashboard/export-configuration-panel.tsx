@@ -14,14 +14,8 @@ import {
   toast,
 } from '@vendure/dashboard'
 import { ChevronRight, InfoIcon } from 'lucide-react'
-import {
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  forwardRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useImperativeHandle, useMemo, forwardRef, useState } from 'react'
+import { useActiveChannelKey } from './use-active-channel-key'
 import {
   getServerLocation,
   getChannelHeader,
@@ -86,6 +80,7 @@ export const ExportConfigurationPanel = forwardRef<
   ref,
 ) {
   const resolvedProductIds = productIds ?? []
+  const activeChannelId = useActiveChannelKey()
 
   const [config, setConfig] = useState<PluginInitOptions['exportOptions'] | null>(null)
 
@@ -100,7 +95,7 @@ export const ExportConfigurationPanel = forwardRef<
   const productIdsFetchKey = resolvedProductIds.join(',')
 
   useEffect(() => {
-    if (!active) return
+    if (!active || !activeChannelId) return
 
     const fetchInitial = async () => {
       try {
@@ -121,9 +116,7 @@ export const ExportConfigurationPanel = forwardRef<
               ...getChannelHeader(),
             },
             credentials: 'include',
-            body: JSON.stringify(
-              resolvedProductIds.length > 0 ? resolvedProductIds : [],
-            ),
+            body: JSON.stringify(resolvedProductIds.length > 0 ? resolvedProductIds : []),
           }),
         ])
 
@@ -157,7 +150,7 @@ export const ExportConfigurationPanel = forwardRef<
     }
 
     fetchInitial()
-  }, [active, productIdsFetchKey])
+  }, [active, activeChannelId, productIdsFetchKey])
 
   const derivedToggleAll = useMemo(() => {
     const allStandard = AVAILABLE_EXPORT_FIELDS.every((f) => selectedExportFields.includes(f))
@@ -180,9 +173,7 @@ export const ExportConfigurationPanel = forwardRef<
   const toggleExportField = (fieldName: ProductFields | VariantFields) => {
     if (MANDATORY_OPTION_FIELDS.includes(fieldName)) return
     setSelectedExportFields((prev) =>
-      prev.includes(fieldName)
-        ? prev.filter((f) => f !== fieldName)
-        : [...prev, fieldName],
+      prev.includes(fieldName) ? prev.filter((f) => f !== fieldName) : [...prev, fieldName],
     )
   }
 
@@ -192,10 +183,7 @@ export const ExportConfigurationPanel = forwardRef<
       setSelectedExportFields([...AVAILABLE_EXPORT_FIELDS])
       setSelectedCustomFields([...customFieldNames])
     } else {
-      setSelectedExportFields([
-        ...(config?.requiredExportFields || []),
-        ...MANDATORY_OPTION_FIELDS,
-      ])
+      setSelectedExportFields([...(config?.requiredExportFields || []), ...MANDATORY_OPTION_FIELDS])
       setSelectedCustomFields([])
     }
   }
@@ -281,9 +269,7 @@ export const ExportConfigurationPanel = forwardRef<
 
       <Accordion
         className="border rounded-lg px-3"
-        defaultValue={
-          fieldsAccordionDefaultOpen ? ['select-fields'] : ([] as string[])
-        }
+        defaultValue={fieldsAccordionDefaultOpen ? ['select-fields'] : ([] as string[])}
       >
         <AccordionItem value="select-fields" className="border-0">
           <AccordionTrigger className="group/trigger flex w-full items-center gap-3 py-3 text-sm hover:no-underline [&>svg:last-child]:size-4 [&>svg:last-child]:shrink-0 [&>svg:last-child]:self-center">

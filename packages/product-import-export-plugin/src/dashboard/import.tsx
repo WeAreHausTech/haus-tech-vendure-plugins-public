@@ -28,6 +28,7 @@ import {
 import { useState, useRef, useEffect } from 'react'
 import type { LanguageCode, Channel } from '@vendure/core'
 import { size, startsWith, endsWith, uniq } from 'lodash-es'
+import { useActiveChannelKey } from './use-active-channel-key'
 import {
   getServerLocation,
   getChannelHeader,
@@ -56,8 +57,23 @@ export function ProductImportBlock() {
   const [config, setConfig] = useState<PluginInitOptions | null>(null)
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const activeChannelId = useActiveChannelKey()
 
   useEffect(() => {
+    setSelectedFile(null)
+    setValidateFile(null)
+    setSelectedMainLanguage(undefined)
+    setAvailableLanguages([])
+    setUpdatingStrategy('merge')
+    setOptionsOpen(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [activeChannelId])
+
+  useEffect(() => {
+    if (!activeChannelId) return
+
     const fetchConfig = async () => {
       try {
         const serverPath = getServerLocation()
@@ -93,7 +109,7 @@ export function ProductImportBlock() {
     }
 
     fetchConfig()
-  }, [])
+  }, [activeChannelId])
 
   const splitLines = (text: string): string[] => {
     return text.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
