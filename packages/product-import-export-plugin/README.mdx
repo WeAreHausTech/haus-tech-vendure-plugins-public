@@ -1,6 +1,6 @@
 ---
 name: product-import-export-plugin
-title: Product Import & Export Plugin
+title: Product Import & Export
 description: Vendure plugin for importing and exporting product data via CSV.
 version: 3.3.1
 tags:
@@ -19,10 +19,10 @@ A Vendure plugin for importing and exporting product data via CSV. Supports bulk
 
 ## Features
 
-* **Import** – Bulk upload products from CSV with validation, custom fields, assets, facets, and variants
-* **Export** – Export products to CSV with selected fields; export all products or a selection
-* **Storage strategies** – Store exported files in S3 or locally on disk (with automatic fallback)
-* **UI** – Admin UI and Dashboard integration for import and export
+- **Import** – Bulk upload products from CSV with validation, custom fields, assets, facets, and variants
+- **Export** – Export products to CSV with selected fields; export all products or a selection
+- **Storage strategies** – Store exported files in S3 or locally on disk (with automatic fallback)
+- **UI** – Admin UI and Dashboard integration for import and export
 
 ![Dashboard UI](assets/Screenshot-dashboard-ui.png)
 
@@ -65,13 +65,13 @@ export const config = {
 
 ### Import options
 
-| Option                   | Type                                            | Default    | Description                                                                                                                  |
-| ------------------------ | ----------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `updateProductSlug`      | `boolean`                                       | `true`     | Update product slug from the `name` field in the CSV                                                                         |
-| `restoreSoftDeleted`     | `boolean`                                       | `true`     | Restore soft-deleted products/variants found by id or SKU during import. If `false`, new products will be created instead. |
-| `storageStrategy`        | `ImportJobStorageStrategy`                      | local disk | Strategy instance for queued import file storage and retrieval.                                                              |
-| `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                  |
-| `importJobStorage`       | `'local' \| 's3'`                              | `'local'`  | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                          |
+| Option                   | Type                                               | Default     | Description                                                                                                                |
+| ------------------------ | -------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `updateProductSlug`      | `boolean`                                          | `true`      | Update product slug from the `name` field in the CSV                                                                       |
+| `restoreSoftDeleted`     | `boolean`                                          | `true`      | Restore soft-deleted products/variants found by id or SKU during import. If `false`, new products will be created instead. |
+| `storageStrategy`        | `ImportJobStorageStrategy`                         | local disk  | Strategy instance for queued import file storage and retrieval.                                                            |
+| `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                |
+| `importJobStorage`       | `'local' \| 's3'`                                  | `'local'`   | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                        |
 
 Available import storage strategies:
 
@@ -94,8 +94,8 @@ Available import storage strategies:
 
 The plugin supports configurable storage for exported files:
 
-* **S3** – Stores export files in an S3-compatible bucket
-* **Disk (default)** – Saves files locally on the server
+- **S3** – Stores export files in an S3-compatible bucket
+- **Disk (default)** – Saves files locally on the server
 
 ## CSV Format for Import
 
@@ -194,7 +194,11 @@ Note: templates for `@vendure/email-plugin` should be valid MJML.
 
 ```typescript
 import path from 'path'
-import { DefaultEmailPlugin, FileBasedTemplateLoader, defaultEmailHandlers } from '@vendure/email-plugin'
+import {
+  DefaultEmailPlugin,
+  FileBasedTemplateLoader,
+  defaultEmailHandlers,
+} from '@vendure/email-plugin'
 import {
   withProductExportedHandler,
   withProductExportedTemplateFallback,

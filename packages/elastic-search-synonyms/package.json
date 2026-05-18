@@ -1,0 +1,32 @@
+{
+  "name": "@haus-tech/elastic-search-synonyms",
+  "version": "3.6.0",
+  "description": "Vendure plugin for managing Elasticsearch synonyms via the admin UI",
+  "author": "Haus Tech",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "vendure",
+    "plugin",
+    "elasticsearch",
+    "synonyms",
+    "search"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": [
+    "src",
+    "README.mdx",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "@elastic/elasticsearch": "^8.0.0 || ^9.0.0",
+    "@vendure/core": "^3.6.0"
+  }
+}

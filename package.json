@@ -21,6 +21,7 @@
     "packages/*"
   ],
   "devDependencies": {
+    "@elastic/elasticsearch": "^9.0.0",
     "@haus-tech/prettier-config": "^1.0.3",
     "@nx/devkit": "21.4.1",
     "@nx/eslint": "21.4.1",

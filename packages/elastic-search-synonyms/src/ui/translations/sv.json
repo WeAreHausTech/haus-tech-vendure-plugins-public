@@ -1,0 +1,45 @@
+{
+  "synonyms": {
+    "nav": "Synonymer",
+    "title": "Synonymer",
+    "listTitle": "Synonymer",
+    "detailTitle": "Synonymgrupp",
+    "table": {
+      "create": "Lägg till ny grupp",
+      "synonyms": "Synonymer",
+      "updated": "Uppdaterat den",
+      "edit": "Redigera",
+      "empty": "Inga synonymgrupper hittades.",
+      "loading": "Laddar..."
+    },
+    "detail": {
+      "language": "Språk",
+      "created": "Tillagd den",
+      "updated": "Uppdaterad den",
+      "chipsHint": "Klicka på en chip för att ta bort",
+      "synonyms": "Synonymer",
+      "addLabel": "Lägg till ny synonym",
+      "add": "Lägg till",
+      "create": "Skapa",
+      "update": "Uppdatera",
+      "delete": "Ta bort grupp",
+      "cancel": "Avbryt",
+      "delete-confirm-title": "Ta bort synonymgrupp",
+      "delete-confirm-body": "Är du säker på att du vill ta bort denna synonymgrupp? Detta går inte att ångra.",
+      "delete-confirm-cancel": "Avbryt",
+      "delete-confirm-delete": "Ta bort",
+      "delete-tag-title": "Ta bort synonym",
+      "delete-tag-body": "Ta bort synonymen {value} från denna grupp?",
+      "delete-tag-cancel": "Avbryt",
+      "delete-tag-delete": "Ta bort"
+    },
+    "bulk-action": {
+      "delete": "Ta bort",
+      "delete-confirm-title": "Vill du radera {count} synonymgrupper?",
+      "delete-confirm-body": "Är du säker på att du vill ta bort dessa synonymgrupper? Detta går inte att ångra.",
+      "delete-confirm-cancel": "Avbryt",
+      "delete-confirm-delete": "Ta bort",
+      "delete-success": "Raderade {count} synonymgrupper"
+    }
+  }
+}

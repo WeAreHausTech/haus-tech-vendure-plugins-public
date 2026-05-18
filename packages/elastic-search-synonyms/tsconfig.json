@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/packages/elastic-search-synonyms",
+    "rootDir": "./src",
+    "types": ["node"],
+    "lib": ["es2022", "dom"]
+  },
+  "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.config.ts", "src/dashboard/**/*"],
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "./tsconfig.dashboard.json"
+    }
+  ]
+}

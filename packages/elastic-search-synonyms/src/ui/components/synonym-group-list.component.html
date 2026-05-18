@@ -1,0 +1,92 @@
+<vdr-page-block>
+  <vdr-action-bar>
+    <vdr-ab-left></vdr-ab-left>
+    <vdr-ab-right>
+      <a class="btn primary" [routerLink]="['/extensions', 'synonyms', 'create']">
+        <clr-icon shape="plus"></clr-icon>
+        {{ 'synonyms.table.create' | translate }}
+      </a>
+    </vdr-ab-right>
+  </vdr-action-bar>
+</vdr-page-block>
+<vdr-data-table-2
+  [id]="dataTableListId"
+  [items]="items$ | async"
+  [itemsPerPage]="itemsPerPage$ | async"
+  [totalItems]="totalItems$ | async"
+  [currentPage]="currentPage$ | async"
+  (pageChange)="setPageNumber($event)"
+  (itemsPerPageChange)="setItemsPerPage($event)"
+>
+  <vdr-bulk-action-menu
+    locationId="synonym-group-list"
+    [hostComponent]="this"
+    [selectionManager]="selectionManager"
+  />
+
+  <vdr-dt2-column
+    [heading]="'common.id' | translate"
+    id="id"
+    [hiddenByDefault]="true"
+    [sort]="sorts.get('id')"
+  >
+    <ng-template let-g="item">
+      {{ g.id }}
+    </ng-template>
+  </vdr-dt2-column>
+  <vdr-dt2-column [heading]="'synonyms.table.synonyms' | translate" id="synonyms">
+    <ng-template let-g="item">
+      <div
+        class="flex flex-wrap gap-2"
+        style="
+          flex-wrap: wrap;
+          max-width: 500px;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 4px;
+        "
+      >
+        <vdr-chip *ngFor="let s of g.synonyms | slice : 0 : displayLimit[g.id] || 3">{{
+          s
+        }}</vdr-chip>
+        <button
+          class="button-small"
+          *ngIf="g.synonyms.length > initialLimit"
+          (click)="toggleDisplayLimit(g)"
+        >
+          <ng-container *ngIf="(displayLimit[g.id] || 0) < g.synonyms.length; else collapse">
+            <clr-icon shape="plus"></clr-icon>
+            {{ g.synonyms.length - initialLimit }}
+          </ng-container>
+          <ng-template #collapse>
+            <clr-icon shape="minus"></clr-icon>
+          </ng-template>
+        </button>
+      </div>
+    </ng-template>
+  </vdr-dt2-column>
+
+  <vdr-dt2-column
+    [heading]="'synonyms.table.updated' | translate"
+    id="updated"
+    [sort]="sorts.get('updatedAt')"
+  >
+    <ng-template let-g="item">
+      {{ g.updatedAt | timeAgo }}
+    </ng-template>
+  </vdr-dt2-column>
+
+  <vdr-dt2-column [heading]="'synonyms.table.edit' | translate" id="actions">
+    <ng-template let-g="item">
+      <button
+        class="btn btn-secondary btn-sm"
+        style="border-radius: 9999px; padding: 2px 10px"
+        [routerLink]="['/extensions', 'synonyms', g.id]"
+      >
+        <clr-icon shape="note" class="mr-1"></clr-icon>
+        {{ 'synonyms.table.edit' | translate }}
+      </button>
+    </ng-template>
+  </vdr-dt2-column>
+</vdr-data-table-2>
