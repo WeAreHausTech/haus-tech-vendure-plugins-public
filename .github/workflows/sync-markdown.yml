@@ -38,6 +38,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Audit dependencies
+        run: yarn npm audit --severity high --recursive
       - name: Update README versions with package.json
         run: yarn update-readmes
 

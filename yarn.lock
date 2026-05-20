@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 8
+  version: 10
   cacheKey: 10c0
 
 "@0no-co/graphql.web@npm:^1.0.5":
@@ -3770,8 +3770,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@haus-tech/haus-vendure-plugins-public@workspace:."
   dependencies:
-    "@haus-tech/prettier-config": "npm:^1.0.3"
-    "@nestjs/graphql": "npm:^13.1.0"
+    "@haus-tech/prettier-config": "npm:1.0.3"
+    "@nestjs/graphql": "npm:13.2.4"
     "@nx/devkit": "npm:21.4.1"
     "@nx/eslint": "npm:21.4.1"
     "@nx/eslint-plugin": "npm:21.4.1"
@@ -3779,54 +3779,54 @@ __metadata:
     "@nx/vite": "npm:21.4.1"
     "@nx/web": "npm:21.4.1"
     "@nx/workspace": "npm:21.4.1"
-    "@swc-node/register": "npm:~1.9.2"
-    "@swc/core": "npm:^1.15.21"
-    "@swc/helpers": "npm:~0.5.17"
-    "@types/express": "npm:^4.17.23"
-    "@types/lodash-es": "npm:^4"
-    "@types/multer": "npm:^1.4.13"
-    "@types/node": "npm:^20.19.11"
-    "@types/progress": "npm:^2.0.7"
-    "@types/slug": "npm:^5.0.9"
-    "@typescript-eslint/eslint-plugin": "npm:^8.41.0"
-    "@typescript-eslint/parser": "npm:^8.41.0"
+    "@swc-node/register": "npm:1.9.2"
+    "@swc/core": "npm:1.15.21"
+    "@swc/helpers": "npm:0.5.17"
+    "@types/express": "npm:4.17.25"
+    "@types/lodash-es": "npm:4.17.12"
+    "@types/multer": "npm:1.4.13"
+    "@types/node": "npm:20.19.35"
+    "@types/progress": "npm:2.0.7"
+    "@types/slug": "npm:5.0.9"
+    "@typescript-eslint/eslint-plugin": "npm:8.56.1"
+    "@typescript-eslint/parser": "npm:8.56.1"
     "@vendure/admin-ui-plugin": "npm:3.5"
     "@vendure/asset-server-plugin": "npm:3.5"
     "@vendure/core": "npm:3.5"
-    "@vendure/dashboard": "npm:^3.5.0"
+    "@vendure/dashboard": "npm:3.5.5"
     "@vendure/elasticsearch-plugin": "npm:3.5"
     "@vendure/email-plugin": "npm:3.5"
-    "@vendure/testing": "npm:^3.6.0"
+    "@vendure/testing": "npm:3.6.0"
     "@vendure/ui-devkit": "npm:3.5"
     "@vitest/coverage-v8": "npm:4.1.2"
-    "@vitest/ui": "npm:^4.1.2"
-    bottleneck: "npm:^2.19.5"
-    copyfiles: "npm:^2.4.1"
-    csv-writer: "npm:^1.6.0"
-    eslint: "npm:^9.34.0"
-    eslint-plugin-import: "npm:^2.32.0"
+    "@vitest/ui": "npm:4.1.2"
+    bottleneck: "npm:2.19.5"
+    copyfiles: "npm:2.4.1"
+    csv-writer: "npm:1.6.0"
+    eslint: "npm:9.39.3"
+    eslint-plugin-import: "npm:2.32.0"
     graphql: "npm:16.11.0"
-    graphql-tag: "npm:^2.12.6"
+    graphql-tag: "npm:2.12.6"
     jiti: "npm:2.5.1"
-    lodash-es: "npm:^4.17.21"
-    multer: "npm:^1.4.5-lts.2"
+    lodash-es: "npm:4.17.23"
+    multer: "npm:1.4.5-lts.2"
     nx: "npm:21.4.1"
     prettier: "npm:3.6.2"
-    rimraf: "npm:^4.4.1"
-    slug: "npm:^9.1.0"
-    ts-node: "npm:^10.9.2"
-    tsx: "npm:^4.20.5"
-    typescript: "npm:^5.9.2"
-    typescript-eslint: "npm:^8.41.0"
-    unplugin-swc: "npm:^1.5.9"
-    vite: "npm:^6.3.5"
-    vite-tsconfig-paths: "npm:^5.1.4"
-    vitest: "npm:^4.1.2"
-    vitest-canvas-mock: "npm:^0.3.3"
+    rimraf: "npm:4.4.1"
+    slug: "npm:9.1.0"
+    ts-node: "npm:10.9.2"
+    tsx: "npm:4.21.0"
+    typescript: "npm:5.9.3"
+    typescript-eslint: "npm:8.56.1"
+    unplugin-swc: "npm:1.5.9"
+    vite: "npm:6.4.1"
+    vite-tsconfig-paths: "npm:5.1.4"
+    vitest: "npm:4.1.2"
+    vitest-canvas-mock: "npm:0.3.3"
   languageName: unknown
   linkType: soft
 
-"@haus-tech/prettier-config@npm:^1.0.3":
+"@haus-tech/prettier-config@npm:1.0.3":
   version: 1.0.3
   resolution: "@haus-tech/prettier-config@npm:1.0.3"
   peerDependencies:
@@ -5343,7 +5343,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nestjs/graphql@npm:^13.1.0":
+"@nestjs/graphql@npm:13.2.4":
   version: 13.2.4
   resolution: "@nestjs/graphql@npm:13.2.4"
   dependencies:
@@ -8479,7 +8479,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc-node/register@npm:~1.9.2":
+"@swc-node/register@npm:1.9.2":
   version: 1.9.2
   resolution: "@swc-node/register@npm:1.9.2"
   dependencies:
@@ -8590,7 +8590,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core@npm:^1.15.21":
+"@swc/core@npm:1.15.21":
   version: 1.15.21
   resolution: "@swc/core@npm:1.15.21"
   dependencies:
@@ -8649,7 +8649,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/helpers@npm:~0.5.17":
+"@swc/helpers@npm:0.5.17":
   version: 0.5.17
   resolution: "@swc/helpers@npm:0.5.17"
   dependencies:
@@ -9740,7 +9740,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express@npm:*, @types/express@npm:^4.17.13, @types/express@npm:^4.17.21, @types/express@npm:^4.17.23":
+"@types/express@npm:*, @types/express@npm:4.17.25, @types/express@npm:^4.17.13, @types/express@npm:^4.17.21":
   version: 4.17.25
   resolution: "@types/express@npm:4.17.25"
   dependencies:
@@ -9833,7 +9833,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash-es@npm:^4":
+"@types/lodash-es@npm:4.17.12":
   version: 4.17.12
   resolution: "@types/lodash-es@npm:4.17.12"
   dependencies:
@@ -9880,7 +9880,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/multer@npm:^1.4.13":
+"@types/multer@npm:1.4.13":
   version: 1.4.13
   resolution: "@types/multer@npm:1.4.13"
   dependencies:
@@ -9908,7 +9908,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^20.19.11":
+"@types/node@npm:*, @types/node@npm:20.19.35":
   version: 20.19.35
   resolution: "@types/node@npm:20.19.35"
   dependencies:
@@ -9940,7 +9940,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/progress@npm:^2.0.7":
+"@types/progress@npm:2.0.7":
   version: 2.0.7
   resolution: "@types/progress@npm:2.0.7"
   dependencies:
@@ -10025,7 +10025,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/slug@npm:^5.0.9":
+"@types/slug@npm:5.0.9":
   version: 5.0.9
   resolution: "@types/slug@npm:5.0.9"
   checksum: 10c0/6d5366d80d83a8d08b7d33ea14394511997de2d6001d1e463a5141aa10bf0dd1ec801e0e248b8a84239142064f96918638db7ca2c745c85891d6c34c309ad3a6
@@ -10080,7 +10080,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:8.56.1, @typescript-eslint/eslint-plugin@npm:^8.41.0":
+"@typescript-eslint/eslint-plugin@npm:8.56.1":
   version: 8.56.1
   resolution: "@typescript-eslint/eslint-plugin@npm:8.56.1"
   dependencies:
@@ -10100,7 +10100,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/parser@npm:8.56.1, @typescript-eslint/parser@npm:^8.41.0":
+"@typescript-eslint/parser@npm:8.56.1":
   version: 8.56.1
   resolution: "@typescript-eslint/parser@npm:8.56.1"
   dependencies:
@@ -10370,7 +10370,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vendure/dashboard@npm:^3.5.0":
+"@vendure/dashboard@npm:3.5.5":
   version: 3.5.5
   resolution: "@vendure/dashboard@npm:3.5.5"
   dependencies:
@@ -10504,7 +10504,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vendure/testing@npm:^3.6.0":
+"@vendure/testing@npm:3.6.0":
   version: 3.6.0
   resolution: "@vendure/testing@npm:3.6.0"
   dependencies:
@@ -10659,7 +10659,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/ui@npm:^4.1.2":
+"@vitest/ui@npm:4.1.2":
   version: 4.1.2
   resolution: "@vitest/ui@npm:4.1.2"
   dependencies:
@@ -11775,7 +11775,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bottleneck@npm:^2.19.5":
+"bottleneck@npm:2.19.5, bottleneck@npm:^2.19.5":
   version: 2.19.5
   resolution: "bottleneck@npm:2.19.5"
   checksum: 10c0/b0f72e45b2e0f56a21ba720183f16bef8e693452fb0495d997fa354e42904353a94bd8fd429868e6751bc85e54b6755190519eed5a0ae0a94a5185209ae7c6d0
@@ -12602,7 +12602,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"copyfiles@npm:^2.4.1":
+"copyfiles@npm:2.4.1":
   version: 2.4.1
   resolution: "copyfiles@npm:2.4.1"
   dependencies:
@@ -12855,7 +12855,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"csv-writer@npm:^1.6.0":
+"csv-writer@npm:1.6.0":
   version: 1.6.0
   resolution: "csv-writer@npm:1.6.0"
   checksum: 10c0/9d30518c6cc7489e0cd8a3a83d6b014c27ed537d6e4a866f901065ddf49e06e4815a4204ce02c3c0024fd8e648e4a2efbdb318a1c63ddb3026282682d3a665e3
@@ -13994,7 +13994,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-import@npm:^2.32.0":
+"eslint-plugin-import@npm:2.32.0":
   version: 2.32.0
   resolution: "eslint-plugin-import@npm:2.32.0"
   dependencies:
@@ -14071,7 +14071,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.34.0":
+"eslint@npm:9.39.3":
   version: 9.39.3
   resolution: "eslint@npm:9.39.3"
   dependencies:
@@ -17286,7 +17286,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash-es@npm:^4.17.21":
+"lodash-es@npm:4.17.23":
   version: 4.17.23
   resolution: "lodash-es@npm:4.17.23"
   checksum: 10c0/3150fb6660c14c7a6b5f23bd11597d884b140c0e862a17fdb415aaa5ef7741523182904a6b7929f04e5f60a11edb5a79499eb448734381c99ffb3c4734beeddd
@@ -18542,19 +18542,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"multer@npm:2.1.0":
-  version: 2.1.0
-  resolution: "multer@npm:2.1.0"
-  dependencies:
-    append-field: "npm:^1.0.0"
-    busboy: "npm:^1.6.0"
-    concat-stream: "npm:^2.0.0"
-    type-is: "npm:^1.6.18"
-  checksum: 10c0/5b374b9a3dbdfe28bbcacbc070cfa8d81a94f74d2fbf979d96802750b7a463ea54c996faee9d25f323a0c67f55e4f82b2b5f034d91e174daf7bcfb7e0f52c165
-  languageName: node
-  linkType: hard
-
-"multer@npm:^1.4.5-lts.2":
+"multer@npm:1.4.5-lts.2":
   version: 1.4.5-lts.2
   resolution: "multer@npm:1.4.5-lts.2"
   dependencies:
@@ -18566,6 +18554,18 @@ __metadata:
     type-is: "npm:^1.6.4"
     xtend: "npm:^4.0.0"
   checksum: 10c0/59c934621bde284e04e25aa35ef79f8a9ed0c2ac4c5bae4c2880670105ec1645480ae57a84ed92323b2a8d8f875ca3189ad8a18fa0ed0bdc6fd26553d9426883
+  languageName: node
+  linkType: hard
+
+"multer@npm:2.1.0":
+  version: 2.1.0
+  resolution: "multer@npm:2.1.0"
+  dependencies:
+    append-field: "npm:^1.0.0"
+    busboy: "npm:^1.6.0"
+    concat-stream: "npm:^2.0.0"
+    type-is: "npm:^1.6.18"
+  checksum: 10c0/5b374b9a3dbdfe28bbcacbc070cfa8d81a94f74d2fbf979d96802750b7a463ea54c996faee9d25f323a0c67f55e4f82b2b5f034d91e174daf7bcfb7e0f52c165
   languageName: node
   linkType: hard
 
@@ -20851,6 +20851,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"rimraf@npm:4.4.1":
+  version: 4.4.1
+  resolution: "rimraf@npm:4.4.1"
+  dependencies:
+    glob: "npm:^9.2.0"
+  bin:
+    rimraf: dist/cjs/src/bin.js
+  checksum: 10c0/8c5e142d26d8b222be9dc9a1a41ba48e95d8f374e813e66a8533e87c6180174fcb3f573b9b592eca12740ebf8b78526d136acd971d4a790763d6f2232c34fa24
+  languageName: node
+  linkType: hard
+
 "rimraf@npm:^3.0.2":
   version: 3.0.2
   resolution: "rimraf@npm:3.0.2"
@@ -20859,17 +20870,6 @@ __metadata:
   bin:
     rimraf: bin.js
   checksum: 10c0/9cb7757acb489bd83757ba1a274ab545eafd75598a9d817e0c3f8b164238dd90eba50d6b848bd4dcc5f3040912e882dc7ba71653e35af660d77b25c381d402e8
-  languageName: node
-  linkType: hard
-
-"rimraf@npm:^4.4.1":
-  version: 4.4.1
-  resolution: "rimraf@npm:4.4.1"
-  dependencies:
-    glob: "npm:^9.2.0"
-  bin:
-    rimraf: dist/cjs/src/bin.js
-  checksum: 10c0/8c5e142d26d8b222be9dc9a1a41ba48e95d8f374e813e66a8533e87c6180174fcb3f573b9b592eca12740ebf8b78526d136acd971d4a790763d6f2232c34fa24
   languageName: node
   linkType: hard
 
@@ -21670,7 +21670,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"slug@npm:^9.1.0":
+"slug@npm:9.1.0":
   version: 9.1.0
   resolution: "slug@npm:9.1.0"
   bin:
@@ -22464,7 +22464,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-node@npm:^10.9.2":
+"ts-node@npm:10.9.2":
   version: 10.9.2
   resolution: "ts-node@npm:10.9.2"
   dependencies:
@@ -22560,7 +22560,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:^4.19.2, tsx@npm:^4.20.5":
+"tsx@npm:4.21.0, tsx@npm:^4.19.2":
   version: 4.21.0
   resolution: "tsx@npm:4.21.0"
   dependencies:
@@ -22775,7 +22775,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript-eslint@npm:^8.41.0":
+"typescript-eslint@npm:8.56.1":
   version: 8.56.1
   resolution: "typescript-eslint@npm:8.56.1"
   dependencies:
@@ -22790,7 +22790,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.9.2":
+"typescript@npm:5.9.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
   bin:
@@ -22810,7 +22810,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.9.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>":
   version: 5.9.3
   resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:
@@ -22978,7 +22978,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"unplugin-swc@npm:^1.5.9":
+"unplugin-swc@npm:1.5.9":
   version: 1.5.9
   resolution: "unplugin-swc@npm:1.5.9"
   dependencies:
@@ -23214,7 +23214,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-tsconfig-paths@npm:^5.1.4":
+"vite-tsconfig-paths@npm:5.1.4":
   version: 5.1.4
   resolution: "vite-tsconfig-paths@npm:5.1.4"
   dependencies:
@@ -23230,7 +23230,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:6.4.1, vite@npm:^6.3.5, vite@npm:^6.3.6":
+"vite@npm:6.4.1, vite@npm:^6.3.6":
   version: 6.4.1
   resolution: "vite@npm:6.4.1"
   dependencies:
@@ -23342,7 +23342,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest-canvas-mock@npm:^0.3.3":
+"vitest-canvas-mock@npm:0.3.3":
   version: 0.3.3
   resolution: "vitest-canvas-mock@npm:0.3.3"
   dependencies:
@@ -23353,7 +23353,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^4.1.2":
+"vitest@npm:4.1.2":
   version: 4.1.2
   resolution: "vitest@npm:4.1.2"
   dependencies:

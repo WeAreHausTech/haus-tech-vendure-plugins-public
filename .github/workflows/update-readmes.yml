@@ -33,6 +33,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Audit dependencies
+        run: yarn npm audit --severity high --recursive
       - name: Run update-readmes script
         run: yarn update-readmes
 
