@@ -2,7 +2,7 @@
  * @description
  * The plugin can be configured using the following options:
  */
-import { ID } from '@vendure/core'
+import { ID, LanguageCode } from '@vendure/core'
 
 export interface PluginInitOptions {
   /** Maximum total bytes (UTF-8) allowed for a single synonym group line when synced to Elasticsearch */
@@ -22,7 +22,7 @@ export interface PluginInitOptions {
 export interface SynonymGroup {
   id: ID
   synonyms: string[]
-  languageCode: string
+  languageCode: LanguageCode
   createdAt: Date
   updatedAt: Date
 }

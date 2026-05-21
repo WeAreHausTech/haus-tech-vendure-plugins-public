@@ -18,6 +18,7 @@
       "updated": "Updated",
       "chipsHint": "Click a chip to remove it",
       "addLabel": "Add new synonym",
+      "comma-not-allowed": "Synonyms cannot contain commas. Add one term at a time.",
       "synonyms": "Synonyms",
       "add": "Add",
       "create": "Create",

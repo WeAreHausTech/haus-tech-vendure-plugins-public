@@ -1,5 +1,4 @@
 import {
-  ActionBarItem,
   Badge,
   Button,
   DashboardRouteDefinition,
@@ -8,6 +7,7 @@ import {
   Label,
   Page,
   PageActionBar,
+  PageActionBarRight,
   PageBlock,
   PageLayout,
   PageTitle,
@@ -15,6 +15,7 @@ import {
 } from '@vendure/dashboard'
 import { useNavigate } from '@tanstack/react-router'
 import { LightbulbIcon, X } from 'lucide-react'
+import type { LanguageCode } from '@vendure/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -39,7 +40,7 @@ function SynonymGroupDetailPage({ route }: { route: { useParams: () => { id: str
           synonyms: string[]
           createdAt: string
           updatedAt: string
-          languageCode: string
+          languageCode: LanguageCode
         }
         | null
         | undefined,
@@ -108,13 +109,12 @@ function SynonymGroupDetailPage({ route }: { route: { useParams: () => { id: str
   const addTagFromInput = () => {
     const raw = newTag.trim()
     if (!raw) return
-    const candidates = raw
-      .split(',')
-      .map((token) => token.trim())
-      .filter((token) => token)
-    const toAdd = candidates.filter((c) => !synonyms.includes(c))
-    if (toAdd.length > 0) {
-      updateSynonymsInForm([...synonyms, ...toAdd])
+    if (raw.includes(',')) {
+      toast.error('Synonyms cannot contain commas. Add one term at a time.')
+      return
+    }
+    if (!synonyms.includes(raw)) {
+      updateSynonymsInForm([...synonyms, raw])
     }
     setNewTag('')
   }
@@ -134,8 +134,6 @@ function SynonymGroupDetailPage({ route }: { route: { useParams: () => { id: str
   }
 
   const canSubmit = synonyms.length > 0 && form.formState.isValid
-  const previewTerm = synonyms[0]
-  const matchedTerms = synonyms.slice(1)
 
   return (
     <Page pageId="synonym-group-detail" form={form} submitHandler={submitHandler}>
@@ -143,7 +141,7 @@ function SynonymGroupDetailPage({ route }: { route: { useParams: () => { id: str
         {creatingNewEntity ? 'New synonym set' : 'Manage synonym set'}
       </PageTitle>
       <PageActionBar>
-        <ActionBarItem itemId="cancel-synonym-group">
+        <PageActionBarRight>
           <Button
             type="button"
             variant="outline"
@@ -151,15 +149,13 @@ function SynonymGroupDetailPage({ route }: { route: { useParams: () => { id: str
           >
             Cancel
           </Button>
-        </ActionBarItem>
-        <ActionBarItem itemId="save-synonym-group">
           <Button
             type="submit"
             disabled={!form.formState.isDirty || !canSubmit || isPending}
           >
             {creatingNewEntity ? 'Create' : 'Save changes'}
           </Button>
-        </ActionBarItem>
+        </PageActionBarRight>
       </PageActionBar>
       <PageLayout>
         <PageBlock column="side" blockId="synonym-help">

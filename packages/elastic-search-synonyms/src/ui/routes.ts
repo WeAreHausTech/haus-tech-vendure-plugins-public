@@ -6,6 +6,18 @@ import {
   getSynonymGroupDetailDocument,
 } from './components/synonym-group-detail.component'
 
+function synonymDetailBreadcrumbLabel(entity?: { synonyms?: string[] } | null): string {
+  if (!entity) {
+    return _('synonyms.detail.create')
+  }
+  const synonyms = entity.synonyms
+  if (!synonyms?.length) {
+    return _('synonyms.detailTitle')
+  }
+  const text = synonyms.join(', ')
+  return text.length > 20 ? `${text.slice(0, 20)}...` : text
+}
+
 export default [
   registerRouteComponent({
     component: SynonymGroupListComponent,
@@ -26,7 +38,7 @@ export default [
         link: ['/extensions', 'synonyms'],
       },
       {
-        label: `${entity?.synonyms.join(', ').slice(0, 20)}...`,
+        label: synonymDetailBreadcrumbLabel(entity),
         link: [],
       },
     ],

@@ -137,13 +137,12 @@ export class SynonymGroupDetailComponent
   addTagFromInput() {
     const raw = this.newTag.trim()
     if (!raw) return
-    const candidates = raw
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t)
-    const toAdd = candidates.filter((c) => !this.synonyms.includes(c))
-    if (toAdd.length > 0) {
-      this.synonyms = [...this.synonyms, ...toAdd]
+    if (raw.includes(',')) {
+      this.notifications.error(this.translate.instant('synonyms.detail.comma-not-allowed'))
+      return
+    }
+    if (!this.synonyms.includes(raw)) {
+      this.synonyms = [...this.synonyms, raw]
       // Mark form as dirty to enable save button
       this.detailForm.markAsDirty()
     }

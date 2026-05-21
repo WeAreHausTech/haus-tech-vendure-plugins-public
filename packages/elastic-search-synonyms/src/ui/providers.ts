@@ -7,8 +7,11 @@ import {
 } from '@vendure/admin-ui/core'
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker'
 import { graphql } from './gql'
-import { map, switchMap } from 'rxjs/operators'
-import { forkJoin, of } from 'rxjs'
+import { DeletionResult, type DeleteSynonymGroupBulkMutation } from './gql/graphql'
+import { from, of } from 'rxjs'
+import { map, mergeMap, switchMap, toArray } from 'rxjs/operators'
+
+const BULK_DELETE_CONCURRENCY = 5
 
 const deleteSynonymGroupBulkDocument = graphql(`
   mutation DeleteSynonymGroupBulk($id: ID!) {
@@ -54,18 +57,20 @@ export default [
             if (!response) {
               return of(null)
             }
-            return forkJoin(
-              ids.map((id) =>
-                dataService.mutate(deleteSynonymGroupBulkDocument, { id }).pipe(
-                  map((result: any) => {
-                    if (result.deleteSynonymGroup?.result === 'DELETED') {
-                      return id
-                    } else {
-                      throw new Error(result.deleteSynonymGroup?.message || 'Delete failed')
-                    }
-                  }),
-                ),
+            return from(ids).pipe(
+              mergeMap(
+                (id) =>
+                  dataService.mutate(deleteSynonymGroupBulkDocument, { id }).pipe(
+                    map((result: DeleteSynonymGroupBulkMutation) => {
+                      if (result.deleteSynonymGroup.result === DeletionResult.DELETED) {
+                        return id
+                      }
+                      throw new Error(result.deleteSynonymGroup.message ?? 'Delete failed')
+                    }),
+                  ),
+                BULK_DELETE_CONCURRENCY,
               ),
+              toArray(),
             )
           }),
         )

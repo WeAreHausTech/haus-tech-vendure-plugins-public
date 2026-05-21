@@ -4,6 +4,7 @@ import {
   DataService,
   TypedBaseListComponent,
   DataModule,
+  LanguageCode,
 } from '@vendure/admin-ui/core'
 import { RouterModule, Router } from '@angular/router'
 import { FormsModule } from '@angular/forms'
@@ -14,7 +15,7 @@ import { graphql } from '../gql'
 export interface SynonymGroupItem {
   id: string
   synonyms: string[]
-  languageCode: string
+  languageCode: LanguageCode
   createdAt: string
   updatedAt: string
 }

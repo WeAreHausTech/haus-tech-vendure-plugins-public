@@ -1,4 +1,4 @@
-import { ID, LanguageCode } from '@vendure/core'
+import { ID } from '@vendure/core'
 import { SynonymGroup } from '../types'
 import { SynonymGroup as SynonymEntity } from '../entity/synonym-group.entity'
 
@@ -7,7 +7,7 @@ export function toDto(entity: SynonymEntity): SynonymGroup {
     id: entity.id as ID,
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,
-    languageCode: entity.languageCode as any,
+    languageCode: entity.languageCode,
     synonyms: entity.synonyms
       .split(',')
       .map((s: string) => s.trim())
@@ -24,9 +24,9 @@ export function normalizeSynonymsInput(synonyms: string[]): string[] {
 
 export function validateSynonymsConstraints(
   synonyms: string[],
-  maxTokensPerGroup: number = 128,
-  maxGroupBytes: number = 16_000,
-  maxTokenLength: number = 128,
+  maxTokensPerGroup = 128,
+  maxGroupBytes = 16_000,
+  maxTokenLength = 128,
 ): void {
   if (!Array.isArray(synonyms) || synonyms.length === 0) {
     throw new Error('At least one synonym is required')
@@ -37,6 +37,11 @@ export function validateSynonymsConstraints(
   }
 
   for (const token of synonyms) {
+    if (token.includes(',')) {
+      throw new Error(
+        `Synonym "${token.slice(0, 50)}" cannot contain a comma. Add one term at a time.`,
+      )
+    }
     if (token.length > maxTokenLength) {
       throw new Error(
         `Synonym "${token.slice(0, 50)}…" is too long (max ${maxTokenLength} characters)`,

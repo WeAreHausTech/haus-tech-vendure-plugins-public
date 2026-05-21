@@ -184,7 +184,7 @@ export const config = {
           },
         },
       },
-      //Expand the search terms with synonyms so queries match equivalent words in for example productName
+      // Apply synonym_analyzer at query time on search fields (e.g. productName below).
       indexMappingProperties: {
         productName: {
           type: 'text',

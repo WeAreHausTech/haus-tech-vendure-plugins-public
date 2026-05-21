@@ -1,9 +1,9 @@
 import {
-  ActionBarItem,
   Badge,
   Button,
   DashboardRouteDefinition,
   ListPage,
+  PageActionBarRight,
 } from '@vendure/dashboard'
 import { Link } from '@tanstack/react-router'
 import { PencilIcon, PlusIcon } from 'lucide-react'
@@ -101,12 +101,14 @@ export const synonymGroupList: DashboardRouteDefinition = {
         }}
         defaultColumnOrder={['synonyms', 'updatedAt']}
       >
-        <ActionBarItem itemId="create-synonym-group">
-          <Button render={<Link to="./new" />}>
-            <PlusIcon className="mr-2 h-4 w-4" />
-            Create synonym set
+        <PageActionBarRight>
+          <Button asChild>
+            <Link to="./new">
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Create synonym set
+            </Link>
           </Button>
-        </ActionBarItem>
+        </PageActionBarRight>
       </ListPage>
     )
   },

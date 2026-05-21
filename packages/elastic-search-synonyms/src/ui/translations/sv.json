@@ -19,6 +19,7 @@
       "chipsHint": "Klicka på en chip för att ta bort",
       "synonyms": "Synonymer",
       "addLabel": "Lägg till ny synonym",
+      "comma-not-allowed": "Synonymer får inte innehålla kommatecken. Lägg till ett ord i taget.",
       "add": "Lägg till",
       "create": "Skapa",
       "update": "Uppdatera",
