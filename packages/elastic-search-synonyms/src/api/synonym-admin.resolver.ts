@@ -1,5 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
-import { Ctx, RequestContext, ID, PaginatedList, ListQueryOptions } from '@vendure/core'
+import {
+  Allow,
+  Ctx,
+  ID,
+  ListQueryOptions,
+  PaginatedList,
+  Permission,
+  RequestContext,
+} from '@vendure/core'
 import { SynonymService } from '../services/synonym.service'
 import { CreateSynonymGroupInput, UpdateSynonymGroupInput, SynonymGroup } from '../types'
 import { DeletionResponse } from '../gql/generated'
@@ -9,19 +17,22 @@ export class SynonymGroupResolver {
   constructor(private synonymService: SynonymService) {}
 
   @Query()
+  @Allow(Permission.ReadCatalog)
   async synonymGroup(@Ctx() ctx: RequestContext, @Args('id') id: ID): Promise<SynonymGroup | null> {
     return await this.synonymService.findOne(ctx, id)
   }
 
   @Query()
+  @Allow(Permission.ReadCatalog)
   async synonymGroups(
     @Ctx() ctx: RequestContext,
-    @Args('options') options: ListQueryOptions<SynonymGroup>,
+    @Args('options', { nullable: true }) options?: ListQueryOptions<SynonymGroup> | null,
   ): Promise<PaginatedList<SynonymGroup>> {
-    return await this.synonymService.findAll(ctx, options)
+    return await this.synonymService.findAll(ctx, options ?? {})
   }
 
   @Mutation()
+  @Allow(Permission.UpdateCatalog)
   async createSynonymGroup(
     @Ctx() ctx: RequestContext,
     @Args('input') input: CreateSynonymGroupInput,
@@ -30,6 +41,7 @@ export class SynonymGroupResolver {
   }
 
   @Mutation()
+  @Allow(Permission.UpdateCatalog)
   async updateSynonymGroup(
     @Ctx() ctx: RequestContext,
     @Args('input') input: UpdateSynonymGroupInput,
@@ -38,6 +50,7 @@ export class SynonymGroupResolver {
   }
 
   @Mutation()
+  @Allow(Permission.DeleteCatalog)
   async deleteSynonymGroup(
     @Ctx() ctx: RequestContext,
     @Args('id') id: ID,
