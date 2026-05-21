@@ -19,7 +19,7 @@ export class SynonymGroup extends VendureEntity implements ChannelAware, SoftDel
   synonyms: string
 
   @Index()
-  @Column({ type: 'varchar', length: 5 })
+  @Column('varchar')
   languageCode: LanguageCode
 
   @ManyToMany(() => Channel)
