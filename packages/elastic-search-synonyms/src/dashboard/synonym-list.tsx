@@ -103,7 +103,7 @@ export const synonymGroupList: DashboardRouteDefinition = {
       >
         <PageActionBarRight>
           <Button asChild>
-            <Link to="./new">
+            <Link to="./new" className="flex items-center gap-2">
               <PlusIcon className="mr-2 h-4 w-4" />
               Create synonym set
             </Link>
