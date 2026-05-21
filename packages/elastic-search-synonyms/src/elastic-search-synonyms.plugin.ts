@@ -1,4 +1,4 @@
-import { Logger, VendurePlugin, PluginCommonModule } from '@vendure/core'
+import { Logger, RequestContextService, VendurePlugin, PluginCommonModule } from '@vendure/core'
 import { AdminUiExtension } from '@vendure/ui-devkit/compiler'
 import path from 'path'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -45,6 +45,7 @@ export class ElasticSearchSynonymsPlugin implements OnApplicationBootstrap {
   constructor(
     private elasticSynonymsService: ElasticSynonymsService,
     private synonymService: SynonymService,
+    private requestContextService: RequestContextService,
   ) {}
 
   static init(options: PluginInitOptions = {}) {
@@ -55,16 +56,24 @@ export class ElasticSearchSynonymsPlugin implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     try {
-      const synonyms = await this.synonymService.getAll()
+      const ctx = await this.requestContextService.create({
+        apiType: 'admin',
+      })
+      const groupCount = await this.synonymService.syncAllToElasticsearch(ctx)
 
-      if (synonyms && synonyms.length > 0) {
-        await this.elasticSynonymsService.updateElasticsearchSynonyms(synonyms)
+      if (ElasticSearchSynonymsPlugin.options.channelSpecificSynonyms) {
         Logger.info(
-          `[Synonyms] Initialized ${synonyms.length} synonym group(s) in Elasticsearch`,
+          `[Synonyms] Initialized channel-specific synonym sets in Elasticsearch (${groupCount} group line(s) synced)`,
+          loggerCtx,
+        )
+      } else if (groupCount > 0) {
+        Logger.info(
+          `[Synonyms] Initialized ${groupCount} synonym group(s) in Elasticsearch`,
           loggerCtx,
         )
       } else {
-        Logger.info('[Synonyms] No synonyms found in database at startup', loggerCtx)
+        await this.elasticSynonymsService.updateElasticsearchSynonyms([])
+        Logger.info('[Synonyms] No synonyms found in database at startup; cleared global set', loggerCtx)
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)

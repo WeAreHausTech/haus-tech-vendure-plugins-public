@@ -2,19 +2,30 @@ import { Injectable, Inject } from '@nestjs/common'
 import { IsNull, Repository } from 'typeorm'
 import { SynonymGroup, CreateSynonymGroupInput, UpdateSynonymGroupInput } from '../types'
 import {
-  RequestContext,
+  ChannelService,
   ID,
-  PaginatedList,
   ListQueryBuilder,
   ListQueryOptions,
+  Logger,
+  PaginatedList,
+  RequestContext,
   TransactionalConnection,
 } from '@vendure/core'
 import { SynonymGroup as SynonymEntity } from '../entity/synonym-group.entity'
 import { ElasticSynonymsService } from './elastic-synonyms.service'
 import { PluginInitOptions } from '../types'
-import { ELASTIC_SEARCH_SYNONYMS_OPTIONS } from '../constants'
+import { ELASTIC_SEARCH_SYNONYMS_OPTIONS, loggerCtx } from '../constants'
 import { toDto, normalizeSynonymsInput, validateSynonymsConstraints } from '../utils/synonym.helper'
+import {
+  DEFAULT_SYNONYMS_SET_ID_PATTERN,
+  resolveSynonymsSetId,
+} from '../utils/synonyms-set-id.helper'
 import { DeletionResponse, DeletionResult } from '../gql/generated'
+
+type PersistResult = {
+  entity: SynonymEntity
+  channelIds: ID[]
+}
 
 @Injectable()
 export class SynonymService {
@@ -22,6 +33,7 @@ export class SynonymService {
     private connection: TransactionalConnection,
     private elasticSynonymsService: ElasticSynonymsService,
     private listQueryBuilder: ListQueryBuilder,
+    private channelService: ChannelService,
     @Inject(ELASTIC_SEARCH_SYNONYMS_OPTIONS) private readonly options: PluginInitOptions,
   ) {}
 
@@ -53,13 +65,18 @@ export class SynonymService {
       this.options.maxTokenLength,
     )
 
+    if (!ctx.channelId) {
+      throw new Error('Channel context is required to create a synonym group')
+    }
+
     return this.persistAndSyncToElasticsearch(ctx, async (repo) => {
       const synonym = repo.create({
         synonyms: normalized.join(', '),
         languageCode: ctx.languageCode,
         channels: [{ id: ctx.channelId } as any],
       })
-      return repo.save(synonym)
+      const entity = await repo.save(synonym)
+      return { entity, channelIds: [ctx.channelId] }
     })
   }
 
@@ -77,8 +94,11 @@ export class SynonymService {
       if (!synonym) {
         throw new Error(`Synonym with id ${input.id} not found`)
       }
+
+      const channelIds = await this.getChannelIdsForEntity(repo, synonym.id)
       synonym.synonyms = normalized.join(', ')
-      return repo.save(synonym)
+      const entity = await repo.save(synonym)
+      return { entity, channelIds }
     })
   }
 
@@ -90,6 +110,7 @@ export class SynonymService {
         throw new Error(`Synonym with id ${id} not found`)
       }
 
+      const channelIds = await this.getChannelIdsForEntity(repo, synonym.id)
       synonym.deletedAt = new Date()
       const result = await repo.save(synonym)
 
@@ -99,7 +120,7 @@ export class SynonymService {
         }
       }
 
-      await this.syncElasticsearchFromRepo(repo)
+      await this.syncElasticsearchForChannels(repo, txCtx, channelIds)
       return {
         result: DeletionResult.DELETED,
       }
@@ -112,9 +133,28 @@ export class SynonymService {
     return entity ? toDto(entity) : null
   }
 
-  async getAll(): Promise<string[]> {
-    const repo = this.connection.getRepository(SynonymEntity)
-    return this.getAllActiveSynonymLines(repo)
+  /**
+   * Syncs synonym rules to Elasticsearch for all channels (startup) or one global set (legacy mode).
+   */
+  async syncAllToElasticsearch(ctx: RequestContext): Promise<number> {
+    const repo = this.connection.getRepository(ctx, SynonymEntity)
+
+    if (!this.options.channelSpecificSynonyms) {
+      const synonyms = await this.getAllActiveSynonymLines(repo)
+      await this.elasticSynonymsService.updateElasticsearchSynonyms(synonyms)
+      return synonyms.length
+    }
+
+    const channels = await this.getAllChannels(ctx)
+    const updates = await Promise.all(
+      channels.map(async (channel) => ({
+        synonymsSetId: resolveSynonymsSetId(this.getSynonymsSetIdPattern(), channel),
+        synonyms: await this.getActiveSynonymLinesForChannel(repo, channel.id),
+      })),
+    )
+
+    await this.elasticSynonymsService.updateSynonymsSets(updates)
+    return updates.reduce((count, update) => count + update.synonyms.length, 0)
   }
 
   /**
@@ -123,12 +163,12 @@ export class SynonymService {
    */
   private async persistAndSyncToElasticsearch(
     ctx: RequestContext,
-    work: (repo: Repository<SynonymEntity>) => Promise<SynonymEntity>,
+    work: (repo: Repository<SynonymEntity>) => Promise<PersistResult>,
   ): Promise<SynonymGroup> {
     return this.connection.withTransaction(ctx, async (txCtx) => {
       const repo = this.connection.getRepository(txCtx, SynonymEntity)
-      const entity = await work(repo)
-      await this.syncElasticsearchFromRepo(repo)
+      const { entity, channelIds } = await work(repo)
+      await this.syncElasticsearchForChannels(repo, txCtx, channelIds)
       return toDto(entity)
     })
   }
@@ -154,9 +194,70 @@ export class SynonymService {
       .getOne()
   }
 
-  private async syncElasticsearchFromRepo(repo: Repository<SynonymEntity>): Promise<void> {
-    const synonyms = await this.getAllActiveSynonymLines(repo)
-    await this.elasticSynonymsService.updateElasticsearchSynonyms(synonyms)
+  private async getChannelIdsForEntity(
+    repo: Repository<SynonymEntity>,
+    entityId: ID,
+  ): Promise<ID[]> {
+    const entity = await repo.findOne({
+      where: { id: entityId },
+      relations: ['channels'],
+    })
+    return entity?.channels?.map((channel) => channel.id) ?? []
+  }
+
+  private async syncElasticsearchForChannels(
+    repo: Repository<SynonymEntity>,
+    ctx: RequestContext,
+    channelIds: ID[],
+  ): Promise<void> {
+    if (!this.options.channelSpecificSynonyms) {
+      const synonyms = await this.getAllActiveSynonymLines(repo)
+      await this.elasticSynonymsService.updateElasticsearchSynonyms(synonyms)
+      return
+    }
+
+    const uniqueChannelIds = [...new Set(channelIds.map(String))].map((id) => id as ID)
+    const updates = []
+
+    for (const channelId of uniqueChannelIds) {
+      const channel = await this.channelService.findOne(ctx, channelId)
+      if (!channel) {
+        Logger.warn(
+          `[Synonyms] Skipping Elasticsearch sync for unknown channel id ${channelId}`,
+          loggerCtx,
+        )
+        continue
+      }
+
+      updates.push({
+        synonymsSetId: resolveSynonymsSetId(this.getSynonymsSetIdPattern(), channel),
+        synonyms: await this.getActiveSynonymLinesForChannel(repo, channel.id),
+      })
+    }
+
+    await this.elasticSynonymsService.updateSynonymsSets(updates)
+  }
+
+  private getSynonymsSetIdPattern(): string {
+    return this.options.synonymsSetIdPattern ?? DEFAULT_SYNONYMS_SET_ID_PATTERN
+  }
+
+  private async getAllChannels(ctx: RequestContext) {
+    const result = await this.channelService.findAll(ctx, { take: 1000 })
+    return result.items
+  }
+
+  private async getActiveSynonymLinesForChannel(
+    repo: Repository<SynonymEntity>,
+    channelId: ID,
+  ): Promise<string[]> {
+    const synonyms = await repo
+      .createQueryBuilder('synonym')
+      .innerJoin('synonym.channels', 'channel', 'channel.id = :channelId', { channelId })
+      .where('synonym.deletedAt IS NULL')
+      .getMany()
+
+    return synonyms.map((synonym) => synonym.synonyms)
   }
 
   private async getAllActiveSynonymLines(repo: Repository<SynonymEntity>): Promise<string[]> {

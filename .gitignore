@@ -43,3 +43,5 @@ vitest.config.*.timestamp*
 .github/instructions/nx.instructions.md
 
 *.code-workspace
+
+static/*-tmp/**
