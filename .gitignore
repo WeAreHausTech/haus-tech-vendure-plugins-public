@@ -45,3 +45,9 @@ vitest.config.*.timestamp*
 *.code-workspace
 
 static/*-tmp/**
+
+# Yarn 4 transient state
+.yarn/install-state.gz
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
