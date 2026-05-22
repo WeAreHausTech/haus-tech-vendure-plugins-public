@@ -2896,6 +2896,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@elastic/elasticsearch@npm:^9.0.0":
+  version: 9.4.0
+  resolution: "@elastic/elasticsearch@npm:9.4.0"
+  dependencies:
+    "@elastic/transport": "npm:^9.3.5"
+    tslib: "npm:^2.4.0"
+  peerDependencies:
+    apache-arrow: 18.x - 21.x
+  peerDependenciesMeta:
+    apache-arrow:
+      optional: true
+  checksum: 10c0/16fb3b4d611f743d038c1e014ceb1e36b7a6e62815db19336a2a26925b408166abe87dc24f80c0c1cfff2bb3a09d0fd19581a0ea065090f51aabd0f7011945fc
+  languageName: node
+  linkType: hard
+
 "@elastic/elasticsearch@npm:~7.9.1":
   version: 7.9.1
   resolution: "@elastic/elasticsearch@npm:7.9.1"
@@ -2906,6 +2921,22 @@ __metadata:
     pump: "npm:^3.0.0"
     secure-json-parse: "npm:^2.1.0"
   checksum: 10c0/62b2977bb4d657741a08004bc13d8b27eb8bb39fe83caef8068852cfe61623800b0fd24bed230b9505b4ee29bea80369783c189e21a512d078c84956739b5703
+  languageName: node
+  linkType: hard
+
+"@elastic/transport@npm:^9.3.5":
+  version: 9.3.5
+  resolution: "@elastic/transport@npm:9.3.5"
+  dependencies:
+    "@opentelemetry/api": "npm:1.x"
+    "@opentelemetry/core": "npm:2.x"
+    debug: "npm:^4.4.1"
+    hpagent: "npm:^1.2.0"
+    ms: "npm:^2.1.3"
+    secure-json-parse: "npm:^4.0.0"
+    tslib: "npm:^2.8.1"
+    undici: "npm:^7.19.1"
+  checksum: 10c0/809fb62bee43c2eff0772e1b93a81a1acc443632ca91385f6cf65e0c9bdd30d6a5117657e817d66ce61d58158770302ded81ff6f86e69c4b6e767bacd2fedac2
   languageName: node
   linkType: hard
 
@@ -3835,10 +3866,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@haus-tech/elastic-search-synonyms@workspace:packages/elastic-search-synonyms":
+  version: 0.0.0-use.local
+  resolution: "@haus-tech/elastic-search-synonyms@workspace:packages/elastic-search-synonyms"
+  peerDependencies:
+    "@elastic/elasticsearch": ^8.0.0 || ^9.0.0
+    "@vendure/core": ^3.6.0
+  languageName: unknown
+  linkType: soft
+
 "@haus-tech/haus-vendure-plugins-public@workspace:.":
   version: 0.0.0-use.local
   resolution: "@haus-tech/haus-vendure-plugins-public@workspace:."
   dependencies:
+    "@elastic/elasticsearch": "npm:^9.0.0"
     "@haus-tech/prettier-config": "npm:1.0.3"
     "@nestjs/graphql": "npm:13.4.0"
     "@nx/devkit": "npm:22.7.1"
@@ -3874,7 +3915,6 @@ __metadata:
     csv-writer: "npm:1.6.0"
     eslint: "npm:9.39.3"
     eslint-plugin-import: "npm:2.32.0"
-    graphql: "npm:16.14.0"
     graphql-tag: "npm:2.12.6"
     jiti: "npm:2.5.1"
     lodash-es: "npm:4.18.1"
@@ -6184,6 +6224,31 @@ __metadata:
   version: 0.1.1
   resolution: "@one-ini/wasm@npm:0.1.1"
   checksum: 10c0/54700e055037f1a63bfcc86d24822203b25759598c2c3e295d1435130a449108aebc119c9c2e467744767dbe0b6ab47a182c61aa1071ba7368f5e20ab197ba65
+  languageName: node
+  linkType: hard
+
+"@opentelemetry/api@npm:1.x":
+  version: 1.9.1
+  resolution: "@opentelemetry/api@npm:1.9.1"
+  checksum: 10c0/c608485fc8b5a91e1f7e05e843b45b509307456b31cd2ad365933d90813e40ebfedf179f1451c762037e82d7c76aa8500e95d2da3609f640a1206cde5322cd14
+  languageName: node
+  linkType: hard
+
+"@opentelemetry/core@npm:2.x":
+  version: 2.7.1
+  resolution: "@opentelemetry/core@npm:2.7.1"
+  dependencies:
+    "@opentelemetry/semantic-conventions": "npm:^1.29.0"
+  peerDependencies:
+    "@opentelemetry/api": ">=1.0.0 <1.10.0"
+  checksum: 10c0/a8ce7bb08f51cfce094b98febc63101ccbc00dddf845be600b059cd7877c48d88b111f46a4df94c9cfcc42f595200722caf230cdba080cdc8ab304cf664d00e5
+  languageName: node
+  linkType: hard
+
+"@opentelemetry/semantic-conventions@npm:^1.29.0":
+  version: 1.41.1
+  resolution: "@opentelemetry/semantic-conventions@npm:1.41.1"
+  checksum: 10c0/c54b1edf845766e93026d30fd95e15da9dba8d7a5b58f8c320c5d36ab542c77b37868f3e8e3d78ec162da8ee2afd24781f0a65934c9bdbc1aea86b47b12f074c
   languageName: node
   linkType: hard
 
@@ -15620,13 +15685,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql@npm:16.14.0":
-  version: 16.14.0
-  resolution: "graphql@npm:16.14.0"
-  checksum: 10c0/baaa368fcfeb7bf2cdf94b9f31bf916e97eaa9e7e82148a7046f31cbd49b760b38190f22393b024cbdd9ca0f4f46287515de0136b6a0cc164074b36ad7b50618
-  languageName: node
-  linkType: hard
-
 "graphql@npm:^15.5.0 || ^16.0.0 || ^17.0.0, graphql@npm:^16.11.0, graphql@npm:~16.11.0":
   version: 16.11.0
   resolution: "graphql@npm:16.11.0"
@@ -15761,6 +15819,13 @@ __metadata:
     readable-stream: "npm:^2.0.1"
     wbuf: "npm:^1.1.0"
   checksum: 10c0/55b9e824430bab82a19d079cb6e33042d7d0640325678c9917fcc020c61d8a08ca671b6c942c7f0aae9bb6e4b67ffb50734a72f9e21d66407c3138c1983b70f0
+  languageName: node
+  linkType: hard
+
+"hpagent@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "hpagent@npm:1.2.0"
+  checksum: 10c0/505ef42e5e067dba701ea21e7df9fa73f6f5080e59d53680829827d34cd7040f1ecf7c3c8391abe9df4eb4682ef4a4321608836b5b70a61b88c1b3a03d77510b
   languageName: node
   linkType: hard
 
@@ -21756,6 +21821,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"secure-json-parse@npm:^4.0.0":
+  version: 4.1.0
+  resolution: "secure-json-parse@npm:4.1.0"
+  checksum: 10c0/52b3f8125ea974db1333a5b63e6a1df550c36c0d5f9a263911d6732812bd02e938b30be324dcbbb9da3ef9bf5a84849e0dd911f56544003d3c09e8eee12504de
+  languageName: node
+  linkType: hard
+
 "select-hose@npm:^2.0.0":
   version: 2.0.0
   resolution: "select-hose@npm:2.0.0"
@@ -23449,6 +23521,13 @@ __metadata:
   version: 6.21.0
   resolution: "undici-types@npm:6.21.0"
   checksum: 10c0/c01ed51829b10aa72fc3ce64b747f8e74ae9b60eafa19a7b46ef624403508a54c526ffab06a14a26b3120d055e1104d7abe7c9017e83ced038ea5cf52f8d5e04
+  languageName: node
+  linkType: hard
+
+"undici@npm:^7.19.1":
+  version: 7.25.0
+  resolution: "undici@npm:7.25.0"
+  checksum: 10c0/02a0b45dc14eb91bc488948750232450fe52f27a6b08086d6ac6736bb47908d600fe3a96d346f12eab24729c782e5c2f693bc8e8eca6696d4e4c09b1ed4cb4ec
   languageName: node
   linkType: hard
 

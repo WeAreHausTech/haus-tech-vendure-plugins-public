@@ -74,8 +74,8 @@
   },
   "packageManager": "yarn@4.15.0",
   "dependencies": {
+    "@elastic/elasticsearch": "^9.0.0",
     "@nestjs/graphql": "13.4.0",
-    "bottleneck": "2.19.5",
-    "graphql": "16.14.0"
+    "bottleneck": "2.19.5"
   }
 }

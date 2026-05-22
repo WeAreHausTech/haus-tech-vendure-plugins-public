@@ -30,24 +30,6 @@ out-tsc
 speed-measure-plugin*.json
 tmp
 typings
-
-*/**/install-state.gz
+test
 .yarn/cache
 .yarn/unplugged
-
-.nx/cache
-.nx/workspace-data
-vite.config.*.timestamp*
-vitest.config.*.timestamp*
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-*.code-workspace
-
-static/*-tmp/**
-
-# Yarn 4 transient state
-.yarn/install-state.gz
-.yarn/cache/
-.yarn/unplugged/
-.yarn/build-state.yml

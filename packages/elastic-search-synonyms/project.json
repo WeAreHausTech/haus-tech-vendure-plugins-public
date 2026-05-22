@@ -1,0 +1,69 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "elastic-search-synonyms",
+  "root": "packages/elastic-search-synonyms",
+  "sourceRoot": "packages/elastic-search-synonyms/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/elastic-search-synonyms",
+        "main": "packages/elastic-search-synonyms/src/index.ts",
+        "tsConfig": "packages/elastic-search-synonyms/tsconfig.json",
+        "assets": [
+          "packages/elastic-search-synonyms/README.mdx",
+          "packages/elastic-search-synonyms/CHANGELOG.md",
+          {
+            "input": "packages/elastic-search-synonyms/src/ui",
+            "glob": "**/*",
+            "output": "./src/ui"
+          },
+          {
+            "input": "packages/elastic-search-synonyms/src/dashboard",
+            "glob": "**/*",
+            "output": "./src/dashboard"
+          }
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "config": "vitest.config.ts",
+        "passWithNoTests": true,
+        "coverage": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/elastic-search-synonyms/**/*.ts"]
+      }
+    },
+    "upgrade:vendure": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm update @vendure/* --save",
+        "cwd": "packages/elastic-search-synonyms"
+      }
+    },
+    "version": {
+      "executor": "@nx/workspace:version",
+      "dependsOn": ["update-readme"],
+      "options": {
+        "changelog": true,
+        "push": true
+      }
+    },
+    "update-readme": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx scripts/update-readmes.ts elastic-search-synonyms"
+      }
+    }
+  }
+}
