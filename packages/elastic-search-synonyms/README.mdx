@@ -142,7 +142,7 @@ For a quick start, use the exported helpers and **default index settings** below
 ### Quick setup example (global mode)
 
 ```typescript
-import { ElasticsearchPlugin } from '@vendure/elasticsearch-plugin'
+import { ElasticsearchPlugin } from '@vendure-community/elasticsearch-plugin'
 import {
   ElasticSearchSynonymsPlugin,
   defaultSynonymAnalyzer,
@@ -182,7 +182,7 @@ Vendure creates **one Elasticsearch index per channel**. When `channelSpecificSy
 If your `ElasticsearchPlugin` setup supports customizing index settings per channel, configure each channel index like this:
 
 ```typescript
-import { ElasticsearchPlugin } from '@vendure/elasticsearch-plugin'
+import { ElasticsearchPlugin } from '@vendure-community/elasticsearch-plugin'
 import {
   ElasticSearchSynonymsPlugin,
   createChannelSynonymAnalyzer,
@@ -229,7 +229,7 @@ If your Elasticsearch setup uses a **static** `indexSettings` object (same for a
 ### Manual config example
 
 ```typescript
-import { ElasticsearchPlugin } from '@vendure/elasticsearch-plugin'
+import { ElasticsearchPlugin } from '@vendure-community/elasticsearch-plugin'
 import { ElasticSearchSynonymsPlugin } from '@haus-tech/elastic-search-synonyms'
 
 export const config = {
@@ -277,4 +277,4 @@ export const config = {
 
 - [Vendure Plugin Documentation](https://docs.vendure.io/guides/developer-guide/plugins/)
 - [Elasticsearch Synonyms API](https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-synonyms)
-- [Vendure Elasticsearch Plugin](https://docs.vendure.io/reference/core/plugins/elasticsearch-plugin/)
+- [Vendure Elasticsearch Plugin](https://docs.vendure.io/current/community-plugins/elasticsearch-plugin/)
