@@ -4,41 +4,67 @@ import type { SynonymsSynonymRule } from '@elastic/elasticsearch/lib/api/types'
 import { Logger } from '@vendure/core'
 import { DEFAULT_SYNONYMS_SET_ID, ELASTIC_SEARCH_SYNONYMS_OPTIONS, loggerCtx } from '../constants'
 import { PluginInitOptions } from '../types'
+
 const PLACEHOLDER_RULE: SynonymsSynonymRule = {
   id: 'placeholder',
   synonyms: '__placeholder__',
 }
 
+export type SynonymsSetUpdate = {
+  synonymsSetId: string
+  synonyms: string[]
+}
+
 @Injectable()
 export class ElasticSynonymsService {
   private readonly client: ElasticsearchClient
-  private readonly synonymsSetId: string
+  private readonly defaultSynonymsSetId: string
+  private elasticsearchReady = false
 
   constructor(
     @Inject(ELASTIC_SEARCH_SYNONYMS_OPTIONS) private readonly options: PluginInitOptions,
   ) {
     const host = process.env.ELASTICSEARCH_HOST || 'http://localhost'
     const port = process.env.ELASTICSEARCH_PORT ? +process.env.ELASTICSEARCH_PORT : 9200
-    this.synonymsSetId =
+    this.defaultSynonymsSetId =
       options?.synonymsSetId || process.env.ELASTICSEARCH_SYNONYMS_SET || DEFAULT_SYNONYMS_SET_ID
     this.client = new ElasticsearchClient({ node: `${host}:${port}` })
   }
 
-  async updateElasticsearchSynonyms(synonyms: string[]): Promise<void> {
+  async updateElasticsearchSynonyms(synonyms: string[], synonymsSetId?: string): Promise<void> {
+    await this.updateSynonymsSets([
+      {
+        synonymsSetId: synonymsSetId ?? this.defaultSynonymsSetId,
+        synonyms,
+      },
+    ])
+  }
+
+  async updateSynonymsSets(updates: SynonymsSetUpdate[]): Promise<void> {
+    if (updates.length === 0) {
+      return
+    }
+
     try {
       await this.waitForElasticsearch()
 
-      const rules = this.buildRules(synonyms)
-
-      await this.client.synonyms.putSynonym({
-        id: this.synonymsSetId,
-        synonyms_set: rules,
-      })
+      for (const update of updates) {
+        await this.putSynonymSet(update.synonymsSetId, update.synonyms)
+      }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e)
       Logger.error(`[Synonyms] Failed to update synonyms set: ${message}`, loggerCtx)
       throw new Error(message || 'Failed to update Elasticsearch synonyms')
     }
+  }
+
+  private async putSynonymSet(synonymsSetId: string, synonyms: string[]): Promise<void> {
+    const rules = this.buildRules(synonyms)
+
+    await this.client.synonyms.putSynonym({
+      id: synonymsSetId,
+      synonyms_set: rules,
+    })
   }
 
   private buildRules(synonyms: string[]): SynonymsSynonymRule[] {
@@ -55,6 +81,10 @@ export class ElasticSynonymsService {
   }
 
   private async waitForElasticsearch(): Promise<void> {
+    if (this.elasticsearchReady) {
+      return
+    }
+
     const maxAttempts = 30
     const delayMs = 50
 
@@ -62,6 +92,7 @@ export class ElasticSynonymsService {
       try {
         const isAlive = await this.client.ping()
         if (isAlive) {
+          this.elasticsearchReady = true
           return
         }
       } catch {
