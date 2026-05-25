@@ -14,7 +14,8 @@
     "upgrade:vendure": "nx run-many --target=upgrade:vendure --all",
     "upgrade:vendure:all": "npm update @vendure/* --save",
     "remove-node-modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
-    "update-readmes": "tsx ./scripts/update-readmes.ts"
+    "update-readmes": "tsx ./scripts/update-readmes.ts",
+    "security:audit": "yarn npm audit -A -R --severity high --environment production"
   },
   "private": true,
   "workspaces": [
