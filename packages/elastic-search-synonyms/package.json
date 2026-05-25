@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/elastic-search-synonyms",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Vendure plugin for managing Elasticsearch synonyms via the admin UI",
   "author": "Haus Tech",
   "repository": {
