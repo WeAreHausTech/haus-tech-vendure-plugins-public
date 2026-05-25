@@ -38,6 +38,7 @@ interface ExportedFile {
 }
 
 const ITEMS_PER_PAGE = 8
+const POLL_INTERVAL_MS = 10_000
 
 export function ExportedList() {
   const activeChannelId = useActiveChannelKey()
@@ -77,6 +78,16 @@ export function ExportedList() {
     setSearch('')
     setCurrentPage(1)
     void getExportFiles()
+  }, [activeChannelId])
+
+  useEffect(() => {
+    if (!activeChannelId) return
+
+    const intervalId = setInterval(() => {
+      void getExportFiles()
+    }, POLL_INTERVAL_MS)
+
+    return () => clearInterval(intervalId)
   }, [activeChannelId])
 
   const filteredFiles = useMemo(() => {

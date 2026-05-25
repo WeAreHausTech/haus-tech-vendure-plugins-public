@@ -546,7 +546,9 @@ export function ProductImportBlock() {
           </div>
           <div className="space-y-1">
             <CardTitle className="mb-0">Import products</CardTitle>
-            <CardDescription className="text-xs">Upload a CSV file to create or update products.</CardDescription>
+            <CardDescription className="text-xs">
+              Upload a CSV file to create or update products.
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -565,10 +567,11 @@ export function ProductImportBlock() {
                 fileInputRef.current?.click()
               }
             }}
-            className={`border-2 border-dashed rounded-lg px-6 py-10 text-center cursor-pointer transition-colors ${isDragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/40 hover:bg-muted/40'
-              }`}
+            className={`border-2 border-dashed rounded-lg px-6 py-10 text-center cursor-pointer transition-colors ${
+              isDragActive
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/40 hover:bg-muted/40'
+            }`}
           >
             <input
               ref={fileInputRef}
@@ -616,7 +619,10 @@ export function ProductImportBlock() {
         </CardContent>
       </Card>
 
-      <Dialog open={optionsOpen} onOpenChange={(open) => (open ? setOptionsOpen(true) : clearFileHandler())}>
+      <Dialog
+        open={optionsOpen}
+        onOpenChange={(open) => (open ? setOptionsOpen(true) : clearFileHandler())}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Import options</DialogTitle>
@@ -695,7 +701,12 @@ export function ProductImportBlock() {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={clearFileHandler} disabled={isUploading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={clearFileHandler}
+              disabled={isUploading}
+            >
               Cancel
             </Button>
             <Button
