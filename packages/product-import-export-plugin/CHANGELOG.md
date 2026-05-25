@@ -1,3 +1,9 @@
+## 3.6.0-next.1
+
+### 🚀 Features
+
+- **product-import-export-plugin:** integrate active channel management into export and import components ([1d3eef1](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1d3eef1))
+
 ## 3.6.0-next.0
 
 ### 🚀 Features
