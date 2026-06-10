@@ -32,8 +32,7 @@ yarn test           # or yarn test:affected
 
 ## Generated artifacts
 
-- GraphQL types are generated (`src/gql/generated.ts`, `src/ui/gql/`). Regenerate rather than hand-editing.
-  > CONFIRM-WITH-TEAM: exact GraphQL codegen command (not present as a root script).
+- GraphQL types are generated (`src/gql/generated.ts`, `src/ui/gql/`). Regenerate rather than hand-editing. GraphQL codegen is run **manually** (there is no committed root codegen script).
 - Plugin README versions are generated from `package.json` by `scripts/update-readmes.ts` (`yarn update-readmes`), and also run automatically in CI.
 
 ## Tests

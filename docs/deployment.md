@@ -36,7 +36,7 @@ What `nx release` does (config in `nx.json` → `release`):
 - Derives version bump + changelog per project from Conventional Commits; current version resolved from git tags (fallback: disk).
 - Updates `package.json` versions in both `dist/packages/<name>` and `packages/<name>`, commits, tags, and (per README) pushes and publishes.
 
-> CONFIRM-WITH-TEAM: whether `nx release` is run locally vs. via a protected release pipeline, and where the npm publish token lives.
+Releases are run **manually** via `nx release` (no CI publish pipeline). The npm publish token lives in the npm (npmjs.com) account/dashboard — it is **not** stored in the repo.
 
 ## CI workflows
 
@@ -57,4 +57,4 @@ Both run `yarn npm audit --severity high --recursive` and use the `NODE_AUTH_TOK
 
 ## Rollback
 
-> CONFIRM-WITH-TEAM: rollback/deprecation procedure for a bad npm publish (e.g. `npm deprecate` + follow-up patch) is not defined in-repo.
+There is no formal rollback procedure. For an npm package, deprecate the bad version and publish a fixed patch (never rewrite published history).

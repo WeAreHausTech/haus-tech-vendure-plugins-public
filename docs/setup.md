@@ -37,7 +37,7 @@ Single project: `npx nx <target> <project>` (e.g. `npx nx test product-import-ex
 
 No `.env.example` exists in this repo and none is needed for library development. Runtime configuration (Elasticsearch connection, S3 credentials, email) belongs to the consuming Vendure app.
 
-> CONFIRM-WITH-TEAM: npm/GitHub Packages auth for `nx release` publishing is provided via CI secrets (`NODE_AUTH_TOKEN`) and local `.npmrc`/`.yarnrc.yml` — do not commit tokens.
+Releases are run **manually** via `nx release` (no CI publish pipeline); the npm publish token lives in the npm (npmjs.com) account/dashboard, not in the repo. Do not commit tokens.
 
 ## Verify
 

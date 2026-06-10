@@ -28,7 +28,7 @@ The public, importable surface of each package is re-exported from `src/index.ts
 | product-import-export-plugin  | Object storage  | Pluggable storage strategies — `LocalExportStorageStrategy`/`LocalImportJobStorageStrategy` (default, under `process.cwd()/static`) or S3 strategies; selected via `ProductImportExportPlugin.init({ importOptions, exportOptions })`. |
 | product-import-export-plugin  | Email (optional)| `@vendure/email-plugin` is an **optional** peer; export-complete email template under `src/email-templates/`. |
 
-> CONFIRM-WITH-TEAM: exact Elasticsearch connection/auth env vars are owned by the consuming Vendure app, not this repo.
+The exact Elasticsearch connection/auth env vars are owned by the consuming Vendure app, not this plugin library.
 
 ## Request / job flow (import/export plugin)
 

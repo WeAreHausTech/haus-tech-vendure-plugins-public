@@ -27,7 +27,7 @@ When changing UI behavior, decide whether the change belongs to the Angular admi
 
 | Artifact                                   | Regenerate with                         | Do not                |
 | ------------------------------------------ | --------------------------------------- | --------------------- |
-| GraphQL types (`src/gql/`, `src/ui/gql/`)  | GraphQL codegen (CONFIRM-WITH-TEAM cmd) | hand-edit             |
+| GraphQL types (`src/gql/`, `src/ui/gql/`)  | GraphQL codegen (run manually; no root script) | hand-edit             |
 | Plugin README version line                 | `yarn update-readmes`                   | hand-edit the version |
 
 ## Versioning & commits
