@@ -1,0 +1,803 @@
+{
+  "mode": "fast",
+  "recommended": [
+    {
+      "id": "haus.agentic-workflow-standard",
+      "type": "template",
+      "reason": "catalog default baseline",
+      "reasons": [
+        {
+          "code": "default-baseline",
+          "message": "catalog default baseline",
+          "signal": "policy:default"
+        }
+      ],
+      "selectionMode": "baseline",
+      "install": true,
+      "tags": [
+        "workflow",
+        "baseline",
+        "project-instructions"
+      ],
+      "tokenEstimate": 2200
+    },
+    {
+      "id": "haus.code-reviewer-agent",
+      "type": "agent",
+      "reason": "catalog default baseline",
+      "reasons": [
+        {
+          "code": "default-baseline",
+          "message": "catalog default baseline",
+          "signal": "policy:default"
+        }
+      ],
+      "selectionMode": "baseline",
+      "install": true,
+      "tags": [
+        "review",
+        "quality",
+        "security"
+      ],
+      "tokenEstimate": 1400
+    },
+    {
+      "id": "haus.database-patterns",
+      "type": "skill",
+      "reason": "stack/dependency match",
+      "reasons": [
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "tag:elasticsearch"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "postgresql",
+        "mariadb",
+        "mysql",
+        "mssql",
+        "elasticsearch",
+        "redis"
+      ],
+      "ecosystem": "database",
+      "tokenEstimate": 1700
+    },
+    {
+      "id": "haus.nestjs-graphql-patterns",
+      "type": "skill",
+      "reason": "stack/dependency match",
+      "reasons": [
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "deep:tag:nestjs"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "nestjs",
+        "graphql",
+        "typescript5"
+      ],
+      "ecosystem": "nestjs",
+      "tokenEstimate": 2600
+    },
+    {
+      "id": "haus.nx21-monorepo-patterns",
+      "type": "skill",
+      "reason": "repo role match, stack/dependency match, package manager match",
+      "reasons": [
+        {
+          "code": "repo-role-match",
+          "message": "repo role match",
+          "signal": "role:nx-monorepo"
+        },
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "tag:yarn4"
+        },
+        {
+          "code": "package-manager-match",
+          "message": "package manager match",
+          "signal": "packageManager:yarn"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "nx21",
+        "yarn4"
+      ],
+      "ecosystem": "nx",
+      "tokenEstimate": 2200
+    },
+    {
+      "id": "haus.package-manager-yarn4-pnpm89",
+      "type": "skill",
+      "reason": "stack/dependency match, package manager match",
+      "reasons": [
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "tag:yarn4"
+        },
+        {
+          "code": "package-manager-match",
+          "message": "package manager match",
+          "signal": "packageManager:yarn"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "yarn4",
+        "pnpm89"
+      ],
+      "ecosystem": "packagemanager",
+      "tokenEstimate": 1200
+    },
+    {
+      "id": "haus.production-readiness-review",
+      "type": "skill",
+      "reason": "catalog default baseline",
+      "reasons": [
+        {
+          "code": "default-baseline",
+          "message": "catalog default baseline",
+          "signal": "policy:default"
+        }
+      ],
+      "selectionMode": "baseline",
+      "install": true,
+      "tags": [
+        "quality",
+        "security",
+        "review"
+      ],
+      "ecosystem": "production",
+      "tokenEstimate": 1200
+    },
+    {
+      "id": "haus.security-review",
+      "type": "skill",
+      "reason": "catalog default baseline",
+      "reasons": [
+        {
+          "code": "default-baseline",
+          "message": "catalog default baseline",
+          "signal": "policy:default"
+        }
+      ],
+      "selectionMode": "baseline",
+      "install": true,
+      "tags": [
+        "security",
+        "review"
+      ],
+      "ecosystem": "security",
+      "tokenEstimate": 1200
+    },
+    {
+      "id": "haus.typescript5-patterns",
+      "type": "skill",
+      "reason": "repo role match, guided goal match, requires-any signal match",
+      "reasons": [
+        {
+          "code": "repo-role-match",
+          "message": "repo role match",
+          "signal": "role:vendure-app"
+        },
+        {
+          "code": "goal-match",
+          "message": "guided goal match",
+          "signal": "goal:typescript"
+        },
+        {
+          "code": "requires-any-match",
+          "message": "requires-any signal match",
+          "signal": "stack:typescript5"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "typescript",
+        "frontend",
+        "backend"
+      ],
+      "ecosystem": "typescript",
+      "tokenEstimate": 2200
+    },
+    {
+      "id": "haus.vendure-app-patterns",
+      "type": "skill",
+      "reason": "repo role match, stack/dependency match",
+      "reasons": [
+        {
+          "code": "repo-role-match",
+          "message": "repo role match",
+          "signal": "role:vendure-app"
+        },
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "tag:vendure3"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "vendure3",
+        "nestjs",
+        "graphql"
+      ],
+      "ecosystem": "vendure",
+      "tokenEstimate": 3200
+    },
+    {
+      "id": "haus.vendure-plugin-patterns",
+      "type": "skill",
+      "reason": "repo role match, stack/dependency match, guided goal match",
+      "reasons": [
+        {
+          "code": "repo-role-match",
+          "message": "repo role match",
+          "signal": "role:vendure-app"
+        },
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "deep:tag:nestjs"
+        },
+        {
+          "code": "goal-match",
+          "message": "guided goal match",
+          "signal": "goal:typescript"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "backend",
+        "vendure",
+        "nestjs",
+        "graphql",
+        "typescript"
+      ],
+      "ecosystem": "vendure",
+      "tokenEstimate": 3400
+    },
+    {
+      "id": "haus.vite8-patterns",
+      "type": "skill",
+      "reason": "repo role match, stack/dependency match, guided goal match",
+      "reasons": [
+        {
+          "code": "repo-role-match",
+          "message": "repo role match",
+          "signal": "role:vite-app"
+        },
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "tag:vite8"
+        },
+        {
+          "code": "goal-match",
+          "message": "guided goal match",
+          "signal": "goal:typescript"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "vite8",
+        "frontend",
+        "typescript"
+      ],
+      "ecosystem": "vite",
+      "tokenEstimate": 1800
+    },
+    {
+      "id": "haus.vitest-patterns",
+      "type": "skill",
+      "reason": "repo role match, stack/dependency match, guided goal match",
+      "reasons": [
+        {
+          "code": "repo-role-match",
+          "message": "repo role match",
+          "signal": "role:vite-app"
+        },
+        {
+          "code": "stack-match",
+          "message": "stack/dependency match",
+          "signal": "tag:vitest"
+        },
+        {
+          "code": "goal-match",
+          "message": "guided goal match",
+          "signal": "goal:vitest"
+        }
+      ],
+      "selectionMode": "matched",
+      "install": true,
+      "tags": [
+        "testing",
+        "vitest",
+        "typescript"
+      ],
+      "ecosystem": "testing",
+      "tokenEstimate": 1500
+    },
+    {
+      "id": "haus.writing-documentation",
+      "type": "skill",
+      "reason": "catalog default baseline",
+      "reasons": [
+        {
+          "code": "default-baseline",
+          "message": "catalog default baseline",
+          "signal": "policy:default"
+        }
+      ],
+      "selectionMode": "baseline",
+      "install": true,
+      "tags": [
+        "workflow",
+        "core-skill",
+        "project-instructions"
+      ],
+      "ecosystem": "workflow",
+      "tokenEstimate": 1800
+    }
+  ],
+  "skipped": [
+    {
+      "id": "haus.auth-oidc-azure-bankid-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=oidc | stack=azure-ad | stack=bankid | stack=saml2",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=oidc | stack=azure-ad | stack=bankid | stack=saml2",
+          "signal": "stack=oidc | stack=azure-ad | stack=bankid | stack=saml2"
+        }
+      ]
+    },
+    {
+      "id": "haus.bullmq-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=bullmq | dependency=bullmq",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=bullmq | dependency=bullmq",
+          "signal": "stack=bullmq | dependency=bullmq"
+        }
+      ]
+    },
+    {
+      "id": "haus.docs-researcher-agent",
+      "reason": "No role/stack match",
+      "skipReasons": [
+        {
+          "code": "no-role-stack-match",
+          "message": "No role/stack match"
+        }
+      ]
+    },
+    {
+      "id": "haus.dotnet-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=dotnet",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=dotnet",
+          "signal": "stack=dotnet"
+        }
+      ]
+    },
+    {
+      "id": "haus.dotnet-service-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=dotnet | role=dotnet-service",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=dotnet | role=dotnet-service",
+          "signal": "stack=dotnet | role=dotnet-service"
+        }
+      ]
+    },
+    {
+      "id": "haus.eslint-setup",
+      "reason": "requiresAny unsatisfied: needs stack=missing-eslint",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=missing-eslint",
+          "signal": "stack=missing-eslint"
+        }
+      ]
+    },
+    {
+      "id": "haus.expo-react-native-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=expo | stack=react-native | role=expo-app | dependency=expo | dependency=react-native",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=expo | stack=react-native | role=expo-app | dependency=expo | dependency=react-native",
+          "signal": "stack=expo | stack=react-native | role=expo-app | dependency=expo | dependency=react-native"
+        }
+      ]
+    },
+    {
+      "id": "haus.i18next-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=i18next | dependency=i18next | dependency=react-i18next",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=i18next | dependency=i18next | dependency=react-i18next",
+          "signal": "stack=i18next | dependency=i18next | dependency=react-i18next"
+        }
+      ]
+    },
+    {
+      "id": "haus.jest-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=jest | dependency=jest | dependency=jest-environment-jsdom",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=jest | dependency=jest | dependency=jest-environment-jsdom",
+          "signal": "stack=jest | dependency=jest | dependency=jest-environment-jsdom"
+        }
+      ]
+    },
+    {
+      "id": "haus.laravel-nova-patterns",
+      "reason": "requiresAny unsatisfied: needs dependency=laravel/nova",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs dependency=laravel/nova",
+          "signal": "dependency=laravel/nova"
+        }
+      ]
+    },
+    {
+      "id": "haus.laravel-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=laravel | dependency=laravel/framework",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=laravel | dependency=laravel/framework",
+          "signal": "stack=laravel | dependency=laravel/framework"
+        }
+      ]
+    },
+    {
+      "id": "haus.lefthook-security",
+      "reason": "No role/stack match",
+      "skipReasons": [
+        {
+          "code": "no-role-stack-match",
+          "message": "No role/stack match"
+        }
+      ]
+    },
+    {
+      "id": "haus.memory-conventions",
+      "reason": "No role/stack match",
+      "skipReasons": [
+        {
+          "code": "no-role-stack-match",
+          "message": "No role/stack match"
+        }
+      ]
+    },
+    {
+      "id": "haus.nextauth-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=next-auth | dependency=next-auth | dependency=@auth/core",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=next-auth | dependency=next-auth | dependency=@auth/core",
+          "signal": "stack=next-auth | dependency=next-auth | dependency=@auth/core"
+        }
+      ]
+    },
+    {
+      "id": "haus.nextjs-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=nextjs | dependency=next",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=nextjs | dependency=next",
+          "signal": "stack=nextjs | dependency=next"
+        }
+      ]
+    },
+    {
+      "id": "haus.phpunit-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=phpunit | dependency=phpunit/phpunit",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=phpunit | dependency=phpunit/phpunit",
+          "signal": "stack=phpunit | dependency=phpunit/phpunit"
+        }
+      ]
+    },
+    {
+      "id": "haus.planner-agent",
+      "reason": "No role/stack match",
+      "skipReasons": [
+        {
+          "code": "no-role-stack-match",
+          "message": "No role/stack match"
+        }
+      ]
+    },
+    {
+      "id": "haus.playwright-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=playwright | dependency=@playwright/test",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=playwright | dependency=@playwright/test",
+          "signal": "stack=playwright | dependency=@playwright/test"
+        }
+      ]
+    },
+    {
+      "id": "haus.prettier-setup",
+      "reason": "requiresAny unsatisfied: needs stack=missing-prettier",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=missing-prettier",
+          "signal": "stack=missing-prettier"
+        }
+      ]
+    },
+    {
+      "id": "haus.prisma-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=prisma | dependency=@prisma/client | dependency=prisma",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=prisma | dependency=@prisma/client | dependency=prisma",
+          "signal": "stack=prisma | dependency=@prisma/client | dependency=prisma"
+        }
+      ]
+    },
+    {
+      "id": "haus.qliro-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=qliro | dependency=@haus-tech/qliro-plugin",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=qliro | dependency=@haus-tech/qliro-plugin",
+          "signal": "stack=qliro | dependency=@haus-tech/qliro-plugin"
+        }
+      ]
+    },
+    {
+      "id": "haus.radix-shadcn-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=shadcn | dependency=@radix-ui/react-dialog | dependency=@radix-ui/themes | dependency=shadcn-ui | dependency=@shadcn/ui | packageNamePattern=@radix-ui/*",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=shadcn | dependency=@radix-ui/react-dialog | dependency=@radix-ui/themes | dependency=shadcn-ui | dependency=@shadcn/ui | packageNamePattern=@radix-ui/*",
+          "signal": "stack=shadcn | dependency=@radix-ui/react-dialog | dependency=@radix-ui/themes | dependency=shadcn-ui | dependency=@shadcn/ui | packageNamePattern=@radix-ui/*"
+        }
+      ]
+    },
+    {
+      "id": "haus.react-router-v7-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=react-router-v7 | role=react-router-app | dependency=@react-router/node",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=react-router-v7 | role=react-router-app | dependency=@react-router/node",
+          "signal": "stack=react-router-v7 | role=react-router-app | dependency=@react-router/node"
+        }
+      ]
+    },
+    {
+      "id": "haus.react19-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=react19 | dependency=react",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=react19 | dependency=react",
+          "signal": "stack=react19 | dependency=react"
+        }
+      ]
+    },
+    {
+      "id": "haus.sanity-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=sanity | role=sanity-studio | dependency=sanity | dependency=next-sanity",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=sanity | role=sanity-studio | dependency=sanity | dependency=next-sanity",
+          "signal": "stack=sanity | role=sanity-studio | dependency=sanity | dependency=next-sanity"
+        }
+      ]
+    },
+    {
+      "id": "haus.security-reviewer-agent",
+      "reason": "No role/stack match",
+      "skipReasons": [
+        {
+          "code": "no-role-stack-match",
+          "message": "No role/stack match"
+        }
+      ]
+    },
+    {
+      "id": "haus.sentry-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=sentry | dependency=@sentry/node | dependency=@sentry/nextjs | packageNamePattern=@sentry/*",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=sentry | dependency=@sentry/node | dependency=@sentry/nextjs | packageNamePattern=@sentry/*",
+          "signal": "stack=sentry | dependency=@sentry/node | dependency=@sentry/nextjs | packageNamePattern=@sentry/*"
+        }
+      ]
+    },
+    {
+      "id": "haus.storybook-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=storybook | dependency=storybook | dependency=@storybook/react | packageNamePattern=@storybook/*",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=storybook | dependency=storybook | dependency=@storybook/react | packageNamePattern=@storybook/*",
+          "signal": "stack=storybook | dependency=storybook | dependency=@storybook/react | packageNamePattern=@storybook/*"
+        }
+      ]
+    },
+    {
+      "id": "haus.strapi-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=strapi | role=strapi-app | dependency=@strapi/strapi",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=strapi | role=strapi-app | dependency=@strapi/strapi",
+          "signal": "stack=strapi | role=strapi-app | dependency=@strapi/strapi"
+        }
+      ]
+    },
+    {
+      "id": "haus.stripe-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=stripe | dependency=@stripe/stripe-js | dependency=@stripe/react-stripe-js",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=stripe | dependency=@stripe/stripe-js | dependency=@stripe/react-stripe-js",
+          "signal": "stack=stripe | dependency=@stripe/stripe-js | dependency=@stripe/react-stripe-js"
+        }
+      ]
+    },
+    {
+      "id": "haus.supabase-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=supabase | dependency=@supabase/supabase-js | packageNamePattern=@supabase/*",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=supabase | dependency=@supabase/supabase-js | packageNamePattern=@supabase/*",
+          "signal": "stack=supabase | dependency=@supabase/supabase-js | packageNamePattern=@supabase/*"
+        }
+      ]
+    },
+    {
+      "id": "haus.tailwind-scss-patterns",
+      "reason": "requiresAny unsatisfied: needs dependency=tailwindcss | dependency=sass | dependency=scss",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs dependency=tailwindcss | dependency=sass | dependency=scss",
+          "signal": "dependency=tailwindcss | dependency=sass | dependency=scss"
+        }
+      ]
+    },
+    {
+      "id": "haus.tanstack-query-router-patterns",
+      "reason": "requiresAny unsatisfied: needs dependency=@tanstack/react-query | dependency=@tanstack/react-router | dependency=@tanstack/query-core | packageNamePattern=@tanstack/*",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs dependency=@tanstack/react-query | dependency=@tanstack/react-router | dependency=@tanstack/query-core | packageNamePattern=@tanstack/*",
+          "signal": "dependency=@tanstack/react-query | dependency=@tanstack/react-router | dependency=@tanstack/query-core | packageNamePattern=@tanstack/*"
+        }
+      ]
+    },
+    {
+      "id": "haus.test-reviewer-agent",
+      "reason": "No role/stack match",
+      "skipReasons": [
+        {
+          "code": "no-role-stack-match",
+          "message": "No role/stack match"
+        }
+      ]
+    },
+    {
+      "id": "haus.testing-library-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=testing-library | dependency=@testing-library/react | dependency=@testing-library/dom | packageNamePattern=@testing-library/*",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=testing-library | dependency=@testing-library/react | dependency=@testing-library/dom | packageNamePattern=@testing-library/*",
+          "signal": "stack=testing-library | dependency=@testing-library/react | dependency=@testing-library/dom | packageNamePattern=@testing-library/*"
+        }
+      ]
+    },
+    {
+      "id": "haus.turbo-monorepo-patterns",
+      "reason": "Required role missing: turbo-monorepo",
+      "skipReasons": [
+        {
+          "code": "required-role-missing",
+          "message": "Required role missing: turbo-monorepo",
+          "signal": "role:turbo-monorepo"
+        }
+      ]
+    },
+    {
+      "id": "haus.vue-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=vue | dependency=vue",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=vue | dependency=vue",
+          "signal": "stack=vue | dependency=vue"
+        }
+      ]
+    },
+    {
+      "id": "haus.wordpress-acf-elementor-jetengine-patterns",
+      "reason": "requiresAny unsatisfied: needs role=wordpress-bedrock-site | role=wordpress-vanilla-site | stack=wordpress | stack=elementor | stack=acf-pro | stack=jetengine",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs role=wordpress-bedrock-site | role=wordpress-vanilla-site | stack=wordpress | stack=elementor | stack=acf-pro | stack=jetengine",
+          "signal": "role=wordpress-bedrock-site | role=wordpress-vanilla-site | stack=wordpress | stack=elementor | stack=acf-pro | stack=jetengine"
+        }
+      ]
+    },
+    {
+      "id": "haus.wordpress-bedrock-patterns",
+      "reason": "requiresAny unsatisfied: needs role=wordpress-bedrock-site | dependency=roots/bedrock",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs role=wordpress-bedrock-site | dependency=roots/bedrock",
+          "signal": "role=wordpress-bedrock-site | dependency=roots/bedrock"
+        }
+      ]
+    },
+    {
+      "id": "haus.wordpress-patterns",
+      "reason": "requiresAny unsatisfied: needs stack=wordpress | dependency=roots/bedrock",
+      "skipReasons": [
+        {
+          "code": "requires-any-unsatisfied",
+          "message": "requiresAny unsatisfied: needs stack=wordpress | dependency=roots/bedrock",
+          "signal": "stack=wordpress | dependency=roots/bedrock"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "No .env.example found",
+    "Scan reported security signals: Missing env template"
+  ],
+  "estimatedContextTokens": 4480,
+  "selectedRules": 14,
+  "skippedRules": 40,
+  "estimatedTokenReductionPct": 74
+}

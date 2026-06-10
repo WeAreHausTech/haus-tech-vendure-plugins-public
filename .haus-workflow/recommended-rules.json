@@ -1,0 +1,10 @@
+[
+  {
+    "id": "haus.rule.context-minimal",
+    "enabled": true
+  },
+  {
+    "id": "haus.rule.security",
+    "enabled": true
+  }
+]
