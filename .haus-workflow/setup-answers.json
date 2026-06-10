@@ -1,0 +1,22 @@
+{
+  "projectType": "library",
+  "repoKind": "nx-monorepo-libraries",
+  "primaryLanguage": "typescript",
+  "packageManager": "yarn",
+  "testRunner": "vitest",
+  "testCommand": "yarn test",
+  "buildCommand": "yarn build",
+  "lintCommand": "yarn lint",
+  "typecheckCommand": "yarn nx run-many --target=typecheck --all",
+  "releaseProcess": "nx-release",
+  "publishTarget": "npm",
+  "publishAccess": "public",
+  "isPublic": true,
+  "isMonorepo": true,
+  "installGuardrails": true,
+  "installHooks": true,
+  "installWritingDocumentationSkill": true,
+  "generateDocs": true,
+  "interactive": false,
+  "mode": "fast"
+}

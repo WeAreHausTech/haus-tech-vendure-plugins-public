@@ -1,0 +1,208 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus context --from-hook"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus guard file-access --from-hook"
+          }
+        ],
+        "matcher": "Read|Edit|Write"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus guard bash --from-hook"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  },
+  "_haus": {
+    "hooks": [
+      "haus.context-hook",
+      "haus.guard-file",
+      "haus.guard-bash"
+    ],
+    "hookCommands": [
+      "haus context --from-hook",
+      "haus guard file-access --from-hook",
+      "haus guard bash --from-hook"
+    ],
+    "denyRules": [
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)",
+      "Bash(chmod -R 777:*)",
+      "Bash(chown -R:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(docker system prune:*)",
+      "Bash(drop database:*)",
+      "Bash(truncate table:*)",
+      "Bash(php artisan migrate --force:*)",
+      "Bash(npm publish:*)",
+      "Bash(yarn npm publish:*)",
+      "Bash(pnpm publish:*)",
+      "Read(.env)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Read(.env.*)",
+      "Edit(.env.*)",
+      "Write(.env.*)",
+      "Read(*.pem)",
+      "Edit(*.pem)",
+      "Write(*.pem)",
+      "Read(*.key)",
+      "Edit(*.key)",
+      "Write(*.key)",
+      "Read(*.p12)",
+      "Edit(*.p12)",
+      "Write(*.p12)",
+      "Read(*.pfx)",
+      "Edit(*.pfx)",
+      "Write(*.pfx)",
+      "Read(id_rsa)",
+      "Edit(id_rsa)",
+      "Write(id_rsa)",
+      "Read(id_ed25519)",
+      "Edit(id_ed25519)",
+      "Write(id_ed25519)",
+      "Read(*.sql)",
+      "Edit(*.sql)",
+      "Write(*.sql)",
+      "Read(*.dump)",
+      "Edit(*.dump)",
+      "Write(*.dump)",
+      "Read(*.backup)",
+      "Edit(*.backup)",
+      "Write(*.backup)",
+      "Read(*.bak)",
+      "Edit(*.bak)",
+      "Write(*.bak)",
+      "Read(storage/logs/**)",
+      "Edit(storage/logs/**)",
+      "Write(storage/logs/**)",
+      "Read(wp-content/uploads/**)",
+      "Edit(wp-content/uploads/**)",
+      "Write(wp-content/uploads/**)",
+      "Read(uploads/**)",
+      "Edit(uploads/**)",
+      "Write(uploads/**)",
+      "Read(customer-data/**)",
+      "Edit(customer-data/**)",
+      "Write(customer-data/**)",
+      "Read(exports/**)",
+      "Edit(exports/**)",
+      "Write(exports/**)",
+      "Read(secrets/**)",
+      "Edit(secrets/**)",
+      "Write(secrets/**)",
+      "Read(certs/**)",
+      "Edit(certs/**)",
+      "Write(certs/**)"
+    ],
+    "allowRules": [
+      "Bash(haus setup-project:*)",
+      "Bash(haus apply:*)",
+      "Bash(haus doctor:*)",
+      "Bash(haus scan:*)",
+      "Bash(haus context:*)",
+      "Bash(haus recommend:*)"
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)",
+      "Bash(chmod -R 777:*)",
+      "Bash(chown -R:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(docker system prune:*)",
+      "Bash(drop database:*)",
+      "Bash(truncate table:*)",
+      "Bash(php artisan migrate --force:*)",
+      "Bash(npm publish:*)",
+      "Bash(yarn npm publish:*)",
+      "Bash(pnpm publish:*)",
+      "Read(.env)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Read(.env.*)",
+      "Edit(.env.*)",
+      "Write(.env.*)",
+      "Read(*.pem)",
+      "Edit(*.pem)",
+      "Write(*.pem)",
+      "Read(*.key)",
+      "Edit(*.key)",
+      "Write(*.key)",
+      "Read(*.p12)",
+      "Edit(*.p12)",
+      "Write(*.p12)",
+      "Read(*.pfx)",
+      "Edit(*.pfx)",
+      "Write(*.pfx)",
+      "Read(id_rsa)",
+      "Edit(id_rsa)",
+      "Write(id_rsa)",
+      "Read(id_ed25519)",
+      "Edit(id_ed25519)",
+      "Write(id_ed25519)",
+      "Read(*.sql)",
+      "Edit(*.sql)",
+      "Write(*.sql)",
+      "Read(*.dump)",
+      "Edit(*.dump)",
+      "Write(*.dump)",
+      "Read(*.backup)",
+      "Edit(*.backup)",
+      "Write(*.backup)",
+      "Read(*.bak)",
+      "Edit(*.bak)",
+      "Write(*.bak)",
+      "Read(storage/logs/**)",
+      "Edit(storage/logs/**)",
+      "Write(storage/logs/**)",
+      "Read(wp-content/uploads/**)",
+      "Edit(wp-content/uploads/**)",
+      "Write(wp-content/uploads/**)",
+      "Read(uploads/**)",
+      "Edit(uploads/**)",
+      "Write(uploads/**)",
+      "Read(customer-data/**)",
+      "Edit(customer-data/**)",
+      "Write(customer-data/**)",
+      "Read(exports/**)",
+      "Edit(exports/**)",
+      "Write(exports/**)",
+      "Read(secrets/**)",
+      "Edit(secrets/**)",
+      "Write(secrets/**)",
+      "Read(certs/**)",
+      "Edit(certs/**)",
+      "Write(certs/**)"
+    ],
+    "allow": [
+      "Bash(haus setup-project:*)",
+      "Bash(haus apply:*)",
+      "Bash(haus doctor:*)",
+      "Bash(haus scan:*)",
+      "Bash(haus context:*)",
+      "Bash(haus recommend:*)"
+    ]
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "mode": "fast",
+  "generatedAt": "2026-06-10T07:42:22.205Z",
+  "root": "/private/tmp/haus-wt/haus-tech-vendure-plugins-public",
+  "repoName": "@haus-tech/haus-vendure-plugins-public",
+  "packageManager": "yarn",
+  "repoRoles": [
+    "graphql-api",
+    "nx-monorepo",
+    "vendure-app",
+    "vite-app"
+  ],
+  "detectedStacks": {
+    "backend": [
+      "vendure3",
+      "graphql"
+    ],
+    "frontend": [
+      "vite8"
+    ],
+    "databases": [
+      "elasticsearch"
+    ],
+    "testing": [
+      "vitest"
+    ],
+    "auth": [],
+    "tooling": [
+      "typescript5"
+    ],
+    "packageManagers": [
+      "yarn4"
+    ]
+  },
+  "dependencies": [
+    "@elastic/elasticsearch",
+    "@haus-tech/prettier-config",
+    "@nestjs/graphql",
+    "@nx/devkit",
+    "@nx/eslint",
+    "@nx/eslint-plugin",
+    "@nx/js",
+    "@nx/vite",
+    "@nx/web",
+    "@nx/workspace",
+    "@swc-node/register",
+    "@swc/core",
+    "@swc/helpers",
+    "@types/express",
+    "@types/lodash-es",
+    "@types/multer",
+    "@types/node",
+    "@types/progress",
+    "@types/slug",
+    "@typescript-eslint/eslint-plugin",
+    "@typescript-eslint/parser",
+    "@vendure-community/elasticsearch-plugin",
+    "@vendure/admin-ui-plugin",
+    "@vendure/asset-server-plugin",
+    "@vendure/core",
+    "@vendure/dashboard",
+    "@vendure/testing",
+    "@vendure/ui-devkit",
+    "@vitest/coverage-v8",
+    "@vitest/ui",
+    "bottleneck",
+    "copyfiles",
+    "csv-writer",
+    "eslint",
+    "eslint-plugin-import",
+    "graphql-tag",
+    "jiti",
+    "lodash-es",
+    "multer",
+    "nx",
+    "prettier",
+    "rimraf",
+    "slug",
+    "ts-node",
+    "tsx",
+    "typescript",
+    "typescript-eslint",
+    "unplugin-swc",
+    "vite",
+    "vite-tsconfig-paths",
+    "vitest",
+    "vitest-canvas-mock"
+  ],
+  "securityRisks": [
+    "Missing env template"
+  ],
+  "crossRepoHints": [
+    "Monorepo orchestration detected"
+  ],
+  "warnings": [
+    "No .env.example found"
+  ],
+  "detectionStatus": "supported",
+  "unsupportedSignals": []
+}

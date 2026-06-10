@@ -1,0 +1,14 @@
+[
+  {
+    "id": "haus.context-hook",
+    "command": "haus context --from-hook"
+  },
+  {
+    "id": "haus.guard-file",
+    "command": "haus guard file-access --from-hook"
+  },
+  {
+    "id": "haus.guard-bash",
+    "command": "haus guard bash --from-hook"
+  }
+]
