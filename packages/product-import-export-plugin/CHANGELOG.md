@@ -1,3 +1,9 @@
+## 3.3.10-next.2
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** poll exports list and restore featured asset on import ([2c61b48](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/2c61b48))
+
 ## 3.3.2-next.2
 
 ### 🚀 Features
