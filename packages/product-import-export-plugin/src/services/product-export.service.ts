@@ -8,8 +8,10 @@ import {
   ProductService,
   RelationCustomFieldConfig,
   RequestContext,
+  StockLevel,
   StockLevelService,
   ChannelService,
+  TransactionalConnection,
 } from '@vendure/core'
 import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
 import { PluginInitOptions } from '../types'
@@ -17,7 +19,6 @@ import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
 import { forEach, sortBy, startsWith } from 'lodash'
-import Bottleneck from 'bottleneck'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
 
@@ -61,6 +62,7 @@ export class ProductExportService {
     private stockLevelService: StockLevelService,
     private channelService: ChannelService,
     private configService: ConfigService,
+    private connection: TransactionalConnection,
   ) {}
 
   async createExportFile(
@@ -71,7 +73,6 @@ export class ProductExportService {
     exportAssetsAs: 'url' | 'json',
     selectedExportFields: string,
     pageSize = 50,
-    concurrency = 5,
   ) {
     const channel = await this.channelService.findOne(ctx, ctx.channelId)
 
@@ -154,9 +155,7 @@ export class ProductExportService {
         append: false,
       })
 
-      const limiter = new Bottleneck({
-        maxConcurrent: concurrency,
-      })
+      const includeStockOnHand = selectedExportFieldsSet.has('stockOnHand')
 
       let currentPage = 1
       let hasMore = true
@@ -196,21 +195,34 @@ export class ProductExportService {
 
         hasMore = currentPage * pageSize < totalItems
 
-        const exportPromises = items.map((product) =>
-          limiter.schedule(async () =>
-            this.exportProduct(
+        // Fetch stock on hand for the whole page in a single query. Doing this up front (instead of
+        // per-product, in parallel) avoids firing many concurrent queries over the request's single
+        // shared DB connection, which node-postgres serializes anyway and which, for large exports,
+        // starves the event loop long enough for BullMQ to lose the job lock.
+        const stockOnHandByVariantId = includeStockOnHand
+          ? await this.getStockOnHandMap(
               ctx,
-              product,
-              languages,
-              filteredCustomFieldNames,
-              exportAssetsAs,
-              csvWriter,
-              selectedExportFieldsSet.has('stockOnHand'),
-            ),
-          ),
-        )
+              items.flatMap((product) =>
+                product.variants.filter((variant) => !variant.deletedAt).map((variant) => variant.id),
+              ),
+            )
+          : new Map<string, number>()
 
-        await Promise.all(exportPromises)
+        // Process products sequentially. The expensive relations are already eager-loaded by findAll
+        // above, so each product is pure in-memory work plus a single sequential CSV write — there is
+        // no benefit to running these concurrently on the shared connection.
+        for (const product of items) {
+          await this.exportProduct(
+            ctx,
+            product,
+            languages,
+            filteredCustomFieldNames,
+            exportAssetsAs,
+            csvWriter,
+            includeStockOnHand,
+            stockOnHandByVariantId,
+          )
+        }
 
         currentPage++
       }
@@ -253,6 +265,7 @@ export class ProductExportService {
     exportAssetsAs: 'url' | 'json',
     csvWriter: CsvWriter<any>,
     includeStockOnHand: boolean,
+    stockOnHandByVariantId: Map<string, number>,
   ) {
     const records: any[] = []
     const {
@@ -269,9 +282,6 @@ export class ProductExportService {
 
     // Filter out all variants that are soft deleted
     const activeVariants = variants.filter((v) => !v.deletedAt)
-    const stockOnHandByVariantId = includeStockOnHand
-      ? await this.getStockOnHandMap(ctx, activeVariants.map((variant) => variant.id))
-      : new Map<ID, number>()
 
     const productAssets =
       assets.length === 0
@@ -361,7 +371,9 @@ export class ProductExportService {
         {} as { [key: string]: string },
       )
 
-      const stockOnHand = includeStockOnHand ? (stockOnHandByVariantId.get(variant.id) ?? 0) : 0
+      const stockOnHand = includeStockOnHand
+        ? (stockOnHandByVariantId.get(String(variant.id)) ?? 0)
+        : 0
 
       const record: any = {}
 
@@ -525,23 +537,34 @@ export class ProductExportService {
     return customFields[fieldName]
   }
 
-  // Method to fetch stock on hand for a variant
-  private async getStockOnHand(ctx: RequestContext, variantId: ID): Promise<number> {
-    const stockLevel = await this.stockLevelService.getAvailableStock(ctx, variantId)
-    return stockLevel.stockOnHand
-  }
-
+  /**
+   * Fetches the total stock on hand for many variants in a single query, keyed by stringified
+   * variant id. Stock is summed across all stock locations, mirroring the aggregate value returned
+   * by {@link StockLevelService.getAvailableStock} for the common single-location setup.
+   */
   private async getStockOnHandMap(
     ctx: RequestContext,
     variantIds: ID[],
-  ): Promise<Map<ID, number>> {
-    const entries: Array<[ID, number]> = await Promise.all(
-      variantIds.map(async (variantId): Promise<[ID, number]> => [
-        variantId,
-        await this.getStockOnHand(ctx, variantId),
-      ]),
-    )
-    return new Map<ID, number>(entries)
+  ): Promise<Map<string, number>> {
+    const stockOnHandByVariantId = new Map<string, number>()
+    if (variantIds.length === 0) {
+      return stockOnHandByVariantId
+    }
+
+    const rows = await this.connection
+      .getRepository(ctx, StockLevel)
+      .createQueryBuilder('stockLevel')
+      .select('stockLevel.productVariantId', 'variantId')
+      .addSelect('SUM(stockLevel.stockOnHand)', 'stockOnHand')
+      .where('stockLevel.productVariantId IN (:...variantIds)', { variantIds })
+      .groupBy('stockLevel.productVariantId')
+      .getRawMany<{ variantId: ID; stockOnHand: string | number }>()
+
+    for (const row of rows) {
+      stockOnHandByVariantId.set(String(row.variantId), Number(row.stockOnHand) || 0)
+    }
+
+    return stockOnHandByVariantId
   }
 
   // Method to map translations for a specific field
