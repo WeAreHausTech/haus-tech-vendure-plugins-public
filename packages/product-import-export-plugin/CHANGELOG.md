@@ -1,3 +1,9 @@
+## 3.3.10-next.1
+
+### 🚀 Features
+
+- **product-import-export-plugin:** enhance e2e tests and database management ([aaf025c](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/aaf025c))
+
 ## 3.3.10-next.0
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
