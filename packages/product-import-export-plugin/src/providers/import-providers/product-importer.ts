@@ -1265,13 +1265,7 @@ export class ProductImporter {
       )
 
       const existingGroup = await this.connection.getRepository(ctx, ProductOptionGroup).findOne({
-        relations: ['channels'],
-        where: {
-          code,
-          channels: {
-            id: ctx.channelId,
-          },
-        },
+        where: { code },
       })
 
       const groupId = existingGroup
@@ -1385,7 +1379,7 @@ export class ProductImporter {
           .find({ where: { products: { id: product.id } }, relations: ['facet'] }),
         this.connection
           .getRepository(ctx, ProductOptionGroup)
-          .find({ where: { products: { id: product.id } }, relations: ['options'] }),
+          .find({ where: { product: { id: product.id } }, relations: ['options'] }),
         this.connection
           .getRepository(ctx, ProductVariant)
           .find({ where: { product: { id: product.id } }, relations: ['facetValues'] }),

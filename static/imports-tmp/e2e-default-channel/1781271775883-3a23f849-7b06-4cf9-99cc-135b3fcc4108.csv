@@ -1,0 +1,2 @@
+name,slug,description,sku,price,taxCategory,stockOnHand
+Queue payload test,queue-payload-test-1781271775882,Queue payload desc,QUEUE-PAYLOAD-1781271775882,100,Standard Tax,1

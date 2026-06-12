@@ -189,12 +189,7 @@ export class ExtendedFastImporterService {
       input: { ...omit(input, 'options') },
       entityType: ProductOptionGroup,
       translationType: ProductOptionGroupTranslation,
-      beforeSave: async (group) => {
-        await this.entityHydrator.hydrate(this.importCtx, group, { relations: ['channels'] })
-        group.channels = unique(
-          [...group.channels, this.defaultChannel, this.importCtx.channel],
-          'id',
-        )
+      beforeSave: (group) => {
         group.deletedAt = null
       },
     })
@@ -203,14 +198,10 @@ export class ExtendedFastImporterService {
 
   async createProductOptionGroup(input: CreateProductOptionGroupInput): Promise<ID> {
     this.ensureInitialized()
-    const channelId = this.importCtx.channelId
     const groupExists = await this.connection
       .getRepository(this.importCtx, ProductOptionGroup)
       .findOne({
-        where: channelId
-          ? { code: input.code, channels: { id: channelId } }
-          : { code: input.code },
-        relations: ['channels'],
+        where: { code: input.code },
       })
 
     if (groupExists) {
@@ -219,12 +210,7 @@ export class ExtendedFastImporterService {
         input: { ...omit(input, 'options'), id: groupExists.id },
         entityType: ProductOptionGroup,
         translationType: ProductOptionGroupTranslation,
-        beforeSave: async (group) => {
-          await this.entityHydrator.hydrate(this.importCtx, group, { relations: ['channels'] })
-          group.channels = unique(
-            [...group.channels, this.defaultChannel, this.importCtx.channel],
-            'id',
-          )
+        beforeSave: (group) => {
           group.deletedAt = null
         },
       })
@@ -236,9 +222,6 @@ export class ExtendedFastImporterService {
       input,
       entityType: ProductOptionGroup,
       translationType: ProductOptionGroupTranslation,
-      beforeSave: (group) => {
-        group.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
-      },
     })
     return group.id
   }
@@ -249,7 +232,6 @@ export class ExtendedFastImporterService {
       .getRepository(this.importCtx, ProductOption)
       .findOne({
         where: { code: input.code, groupId: input.productOptionGroupId },
-        relations: ['channels'],
       })
 
     if (optionsExist) {
@@ -258,9 +240,7 @@ export class ExtendedFastImporterService {
         input: { ...input, id: optionsExist.id },
         entityType: ProductOption,
         translationType: ProductOptionTranslation,
-        beforeSave: async (po) => {
-          await this.entityHydrator.hydrate(this.importCtx, po, { relations: ['channels'] })
-          po.channels = unique([...po.channels, this.defaultChannel, this.importCtx.channel], 'id')
+        beforeSave: (po) => {
           po.group = { id: input.productOptionGroupId } as any
           po.deletedAt = null
         },
@@ -275,7 +255,6 @@ export class ExtendedFastImporterService {
       entityType: ProductOption,
       translationType: ProductOptionTranslation,
       beforeSave: (po) => {
-        po.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
         po.group = { id: input.productOptionGroupId } as any
         po.deletedAt = null
       },
