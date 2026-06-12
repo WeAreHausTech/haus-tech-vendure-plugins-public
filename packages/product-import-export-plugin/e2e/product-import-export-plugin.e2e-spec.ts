@@ -1,5 +1,5 @@
 import path from 'path'
-import { access, rm } from 'node:fs/promises'
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { Readable } from 'node:stream'
 import {
@@ -28,6 +28,24 @@ import { ProductImportService } from '../src/services/product-import.service'
 import { initialData } from './fixtures/initial-data'
 
 const sqliteDataDir = path.join(__dirname, '__data__')
+/** Bump when Vendure upgrades change the sqljs schema (invalidates cached e2e DB). */
+const SQLITE_SCHEMA_VERSION = '3.5'
+
+async function ensureFreshE2eDatabase(): Promise<void> {
+  const versionFile = path.join(sqliteDataDir, '.schema-version')
+  let storedVersion: string | undefined
+  try {
+    storedVersion = (await readFile(versionFile, 'utf8')).trim()
+  } catch {
+    // no version file yet
+  }
+  if (storedVersion !== SQLITE_SCHEMA_VERSION) {
+    await rm(sqliteDataDir, { recursive: true, force: true })
+    await mkdir(sqliteDataDir, { recursive: true })
+    await writeFile(versionFile, SQLITE_SCHEMA_VERSION, 'utf8')
+  }
+}
+
 registerInitializer('sqljs', new SqljsInitializer(sqliteDataDir))
 const exportDir = path.join(process.cwd(), 'static', 'exports', E2E_DEFAULT_CHANNEL_TOKEN)
 const exportTmpDir = path.join(process.cwd(), 'static', 'exports-tmp', E2E_DEFAULT_CHANNEL_TOKEN)
@@ -108,6 +126,7 @@ describe('ProductImportExportPlugin e2e', () => {
   )
 
   beforeAll(async () => {
+    await ensureFreshE2eDatabase()
     await cleanupExportArtifacts()
 
     await server.init({

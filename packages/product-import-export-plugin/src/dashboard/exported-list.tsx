@@ -18,13 +18,15 @@ interface ExportedFile {
   created: string
 }
 
+const itemsPerPage = 10
+const POLL_INTERVAL_MS = 10_000
+
 export function ExportedList() {
   const [exportedFiles, setExportedFiles] = useState<ExportedFile[]>([])
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [fileToDelete, setFileToDelete] = useState<string | null>(null)
-  const itemsPerPage = 10
 
   const getExportFiles = async () => {
     const serverPath = getServerLocation()
@@ -51,7 +53,15 @@ export function ExportedList() {
   }
 
   useEffect(() => {
-    getExportFiles()
+    void getExportFiles()
+  }, [])
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      void getExportFiles()
+    }, POLL_INTERVAL_MS)
+
+    return () => clearInterval(intervalId)
   }, [])
 
   // Pagination calculations

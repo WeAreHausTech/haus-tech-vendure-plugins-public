@@ -468,17 +468,12 @@ export class ProductImporter {
         await this.fastImporter.removeAllAssetsFromProduct(existingProduct)
       }
 
-      const getFeaturedAssetId = (product?: Product) => {
-        if (product?.featuredAsset) {
-          const assetIsImage = product.featuredAsset.type === AssetType.IMAGE
-          return assetIsImage ? product.featuredAsset.id : undefined
-        }
-        const firstAsset = productAssets.find((a) => a.type === AssetType.IMAGE)
-        return firstAsset ? firstAsset.id : undefined
-      }
-
       const productData = {
-        featuredAssetId: getFeaturedAssetId(existingProduct),
+        featuredAssetId: this.resolveFeaturedAssetId(
+          productAssets,
+          existingProduct?.featuredAsset,
+          updatingStrategy,
+        ),
         assetIds: productAssets.map((a) => a.id),
         facetValueIds: updatingStrategy === 'replace' ? [] : undefined,
         translations: await Promise.all(
@@ -689,19 +684,14 @@ export class ProductImporter {
           await this.fastImporter.removeAllAssetsFromVariant(existingVariant)
         }
 
-        const getFeaturedAssetId = (variant?: ProductVariant | null) => {
-          if (variant?.featuredAsset) {
-            const assetIsImage = variant.featuredAsset.type === AssetType.IMAGE
-            return assetIsImage ? variant.featuredAsset.id : undefined
-          }
-          const firstAsset = variantAssets.find((a) => a.type === AssetType.IMAGE)
-          return firstAsset ? firstAsset.id : undefined
-        }
-
         const variantData = {
           productId: createdProductId,
           facetValueIds: updatingStrategy === 'replace' ? [] : undefined,
-          featuredAssetId: getFeaturedAssetId(existingVariant),
+          featuredAssetId: this.resolveFeaturedAssetId(
+            variantAssets,
+            existingVariant?.featuredAsset,
+            updatingStrategy,
+          ),
           assetIds: variantAssets.map((a) => a.id),
           sku: variant.sku,
           ...(variant.taxCategory !== undefined
@@ -1239,6 +1229,31 @@ export class ProductImporter {
 
     this.facetValueIdCache.set(facetValueCacheKey, facetValueId)
     return facetValueId
+  }
+
+  private resolveFeaturedAssetId(
+    importedAssets: Asset[],
+    existingFeaturedAsset: Asset | undefined | null,
+    updatingStrategy: UpdatingStrategy,
+  ): ID | undefined {
+    const firstFeaturedCandidate =
+      importedAssets.find((a) => a.type === AssetType.IMAGE) ?? importedAssets[0]
+
+    if (importedAssets.length > 0 && firstFeaturedCandidate) {
+      if (updatingStrategy === 'replace' || !existingFeaturedAsset) {
+        return firstFeaturedCandidate.id
+      }
+      if (existingFeaturedAsset.type === AssetType.IMAGE) {
+        return existingFeaturedAsset.id
+      }
+      return firstFeaturedCandidate.id
+    }
+
+    if (existingFeaturedAsset?.type === AssetType.IMAGE) {
+      return existingFeaturedAsset.id
+    }
+
+    return undefined
   }
 
   async getProductByIdWithRelations(
