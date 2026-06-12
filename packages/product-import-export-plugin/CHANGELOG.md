@@ -1,3 +1,9 @@
+## 3.3.2-next.5
+
+### 🚀 Features
+
+- **product-import-export-plugin:** enhance product export service with stock level handling ([2d99696](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/2d99696))
+
 ## 3.3.2-next.3
 
 ### 🚀 Features
