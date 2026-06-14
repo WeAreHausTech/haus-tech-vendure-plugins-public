@@ -1,3 +1,9 @@
+## 3.3.10-next.3
+
+### 🚀 Features
+
+- **product-import-export-plugin:** optimize product export process and stock level retrieval ([d281929](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/d281929))
+
 ## 3.3.10-next.2
 
 ### 🩹 Fixes
