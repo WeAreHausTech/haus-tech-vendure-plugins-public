@@ -1,3 +1,9 @@
+## 3.3.10-next.5
+
+### 🚀 Features
+
+- **product-import-export-plugin:** add progress reporting to product export process ([ed6220e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/ed6220e))
+
 ## 3.3.10-next.4
 
 ### 🚀 Features
