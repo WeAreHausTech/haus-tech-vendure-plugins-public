@@ -72,7 +72,10 @@ export class ProductExportService {
     selectedCustomFields: string,
     exportAssetsAs: 'url' | 'json',
     selectedExportFields: string,
-    pageSize = 50,
+    // Keep the page small: each page hydrates a deep relation graph (variants, facets, options,
+    // assets) synchronously. A smaller page keeps that synchronous chunk short so the event loop
+    // stays responsive and BullMQ can renew the job lock between pages on large catalogs.
+    pageSize = 25,
   ) {
     const channel = await this.channelService.findOne(ctx, ctx.channelId)
 
@@ -226,6 +229,12 @@ export class ProductExportService {
         }
 
         currentPage++
+
+        // Yield to the event loop between pages. On a large catalog the export runs for a long time;
+        // without an explicit macrotask break BullMQ's lock-renewal timer cannot fire and the worker
+        // loses the job lock ("could not renew lock"), which with autoscaling lets another replica
+        // re-pick the same export. setImmediate lets the renewal timer run between pages.
+        await new Promise<void>((resolve) => setImmediate(resolve))
       }
 
       // Rename .tmp file to final name when export is complete
