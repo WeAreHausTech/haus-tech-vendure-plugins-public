@@ -76,6 +76,9 @@ export class ProductExportService {
     // assets) synchronously. A smaller page keeps that synchronous chunk short so the event loop
     // stays responsive and BullMQ can renew the job lock between pages on large catalogs.
     pageSize = 25,
+    // Optional progress reporter (0-100), invoked once per processed page. Wire this to
+    // `job.setProgress` so the Admin UI reflects export progress instead of staying at 0%.
+    onProgress?: (percent: number) => void,
   ) {
     const channel = await this.channelService.findOne(ctx, ctx.channelId)
 
@@ -162,6 +165,7 @@ export class ProductExportService {
 
       let currentPage = 1
       let hasMore = true
+      let processedItems = 0
 
       const productRelationCustomFields = this.configService.customFields.Product.filter(
         (f) => f.type === 'relation',
@@ -226,6 +230,13 @@ export class ProductExportService {
             includeStockOnHand,
             stockOnHandByVariantId,
           )
+        }
+
+        // Report progress after each page. Cap at 99 during the loop so the Admin UI only shows 100%
+        // once the job actually completes (the job queue strategy sets it to 100 on success).
+        processedItems += items.length
+        if (onProgress && totalItems > 0) {
+          onProgress(Math.min(99, Math.round((processedItems / totalItems) * 100)))
         }
 
         currentPage++

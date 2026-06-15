@@ -55,6 +55,8 @@ export class ProductExportQueueService implements OnModuleInit {
             job.data.customFields,
             job.data.exportAssetsAs,
             job.data.selectedExportFields,
+            undefined,
+            (percent) => job.setProgress(percent),
           )
 
           const result = {
