@@ -22,6 +22,7 @@ export function ExportProductsBulkAction({
   return (
     <>
       <DataTableBulkActionItem
+        closeOnClick={false}
         onClick={() => setDialogOpen(true)}
         label="Export products to CSV"
         icon={DownloadIcon}

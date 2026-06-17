@@ -28,7 +28,6 @@ import {
   StockLocationService,
   TransactionalConnection,
   TranslatableSaver,
-  TranslatedInput,
 } from '@vendure/core'
 import {
   CreateFacetInput,
@@ -190,7 +189,12 @@ export class ExtendedFastImporterService {
       input: { ...omit(input, 'options') },
       entityType: ProductOptionGroup,
       translationType: ProductOptionGroupTranslation,
-      beforeSave: (group) => {
+      beforeSave: async (group) => {
+        await this.entityHydrator.hydrate(this.importCtx, group, { relations: ['channels'] })
+        group.channels = unique(
+          [...group.channels, this.defaultChannel, this.importCtx.channel],
+          'id',
+        )
         group.deletedAt = null
       },
     })
@@ -199,10 +203,14 @@ export class ExtendedFastImporterService {
 
   async createProductOptionGroup(input: CreateProductOptionGroupInput): Promise<ID> {
     this.ensureInitialized()
+    const channelId = this.importCtx.channelId
     const groupExists = await this.connection
       .getRepository(this.importCtx, ProductOptionGroup)
       .findOne({
-        where: { code: input.code },
+        where: channelId
+          ? { code: input.code, channels: { id: channelId } }
+          : { code: input.code },
+        relations: ['channels'],
       })
 
     if (groupExists) {
@@ -211,7 +219,12 @@ export class ExtendedFastImporterService {
         input: { ...omit(input, 'options'), id: groupExists.id },
         entityType: ProductOptionGroup,
         translationType: ProductOptionGroupTranslation,
-        beforeSave: (group) => {
+        beforeSave: async (group) => {
+          await this.entityHydrator.hydrate(this.importCtx, group, { relations: ['channels'] })
+          group.channels = unique(
+            [...group.channels, this.defaultChannel, this.importCtx.channel],
+            'id',
+          )
           group.deletedAt = null
         },
       })
@@ -223,6 +236,9 @@ export class ExtendedFastImporterService {
       input,
       entityType: ProductOptionGroup,
       translationType: ProductOptionGroupTranslation,
+      beforeSave: (group) => {
+        group.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+      },
     })
     return group.id
   }
@@ -233,6 +249,7 @@ export class ExtendedFastImporterService {
       .getRepository(this.importCtx, ProductOption)
       .findOne({
         where: { code: input.code, groupId: input.productOptionGroupId },
+        relations: ['channels'],
       })
 
     if (optionsExist) {
@@ -241,7 +258,9 @@ export class ExtendedFastImporterService {
         input: { ...input, id: optionsExist.id },
         entityType: ProductOption,
         translationType: ProductOptionTranslation,
-        beforeSave: (po) => {
+        beforeSave: async (po) => {
+          await this.entityHydrator.hydrate(this.importCtx, po, { relations: ['channels'] })
+          po.channels = unique([...po.channels, this.defaultChannel, this.importCtx.channel], 'id')
           po.group = { id: input.productOptionGroupId } as any
           po.deletedAt = null
         },
@@ -256,6 +275,7 @@ export class ExtendedFastImporterService {
       entityType: ProductOption,
       translationType: ProductOptionTranslation,
       beforeSave: (po) => {
+        po.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
         po.group = { id: input.productOptionGroupId } as any
         po.deletedAt = null
       },
@@ -267,7 +287,7 @@ export class ExtendedFastImporterService {
     this.ensureInitialized()
     const product = await this.connection.getRepository(this.importCtx, Product).findOne({
       where: { id: productId },
-      relations: ['optionGroups', 'optionGroups.options'],
+      relations: ['optionGroups'],
     })
 
     if (!product) {
@@ -277,17 +297,6 @@ export class ExtendedFastImporterService {
     if (!product.optionGroups.length) {
       return
     }
-
-    const promises = product.optionGroups.map((group) =>
-      this.connection
-        .getRepository(this.importCtx, ProductOptionGroup)
-        .createQueryBuilder()
-        .relation(ProductOptionGroup, 'options')
-        .of(group.id)
-        .delete(),
-    )
-
-    await Promise.all(promises)
 
     await this.connection
       .getRepository(this.importCtx, Product)
@@ -628,7 +637,9 @@ export class ExtendedFastImporterService {
     productVariantId: ID,
     targetStockOnHand: number,
   ): Promise<void> {
-    const defaultStockLocation = await this.stockLocationService.defaultStockLocation(this.importCtx)
+    const defaultStockLocation = await this.stockLocationService.defaultStockLocation(
+      this.importCtx,
+    )
     const stockLevel = await this.stockLevelService.getStockLevel(
       this.importCtx,
       productVariantId,

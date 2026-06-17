@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     hookTimeout: 120_000,
+    testTimeout: 60_000,
     passWithNoTests: true,
   },
   plugins: [

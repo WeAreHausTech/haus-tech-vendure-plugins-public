@@ -1,3 +1,29 @@
+## 3.6.0-next.2
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** poll exports list and restore featured asset on import ([644099a](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/644099a))
+
+## 3.6.0-next.1
+
+### 🚀 Features
+
+- **product-import-export-plugin:** integrate active channel management into export and import components ([1d3eef1](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1d3eef1))
+
+## 3.6.0-next.0
+
+### 🚀 Features
+
+- **product-import-export-plugin:** add installation ID and enhance e2e database management ([78eeffb](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/78eeffb))
+- **product-import-export-plugin:** add popover help for export asset options ([7aa8373](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/7aa8373))
+- **product-import-export-plugin:** implement export configuration panel and enhance export dialog ([d2e1f34](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/d2e1f34))
+- **product-import-export-plugin:** enhance product export functionality and update tests ([de56d44](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/de56d44))
+- **product-import-export-plugin:** update dependencies and enhance import/export functionality ([9c78665](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9c78665))
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** update dashboard and export settings screenshots ([2129b39](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/2129b39))
+
 ## 3.3.2-next.2
 
 ### 🚀 Features

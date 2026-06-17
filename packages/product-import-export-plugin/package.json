@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/product-import-export-plugin",
-  "version": "3.3.2-next.2",
+  "version": "3.6.0-next.2",
   "description": "A Vendure plugin for importing and exporting products using a CSV file",
   "author": "Haus Tech",
   "repository": {
@@ -54,13 +54,13 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@vendure/email-plugin": "3.6.3",
-    "csv-parse": "^5.6.0",
+    "csv-parse": "^6.0.0",
     "csv-stringify": "^6.6.0"
   },
   "peerDependencies": {
-    "@vendure/core": "^2.0.0 || ^3.0.0",
-    "@vendure/email-plugin": "^2.0.0 || ^3.0.0",
-    "csv-parse": "^5.5.6",
+    "@vendure/core": "^3.6.0",
+    "@vendure/email-plugin": "^3.6.0",
+    "csv-parse": "^6.0.0",
     "csv-stringify": "^6.5.1",
     "slug": "^9.1.0"
   },

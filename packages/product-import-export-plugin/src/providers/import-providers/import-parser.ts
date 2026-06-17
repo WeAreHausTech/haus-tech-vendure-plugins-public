@@ -49,6 +49,7 @@ const requiredColumns: string[] = [
  * @docsPage ImportParser
  */
 export interface ParsedOptionGroup {
+  code?: string
   translations: Array<{
     languageCode: LanguageCode
     name: string
@@ -460,13 +461,17 @@ export class ImportParser {
       const translatedOptionGroups = parseStringArray(rawTranslOptionGroups)
       if (optionGroups.length === 0) {
         for (const translatedOptionGroup of translatedOptionGroups) {
-          optionGroups.push({ translations: [] })
+          const colonIdx = translatedOptionGroup.indexOf(':')
+          const code =
+            colonIdx >= 0 ? translatedOptionGroup.substring(colonIdx + 1).trim() : undefined
+          optionGroups.push({ code, translations: [] })
         }
       }
       for (const i of optionGroups.map((optionGroup, index) => index)) {
+        const name = translatedOptionGroups[i].split(':')[0].trim()
         optionGroups[i].translations.push({
           languageCode,
-          name: translatedOptionGroups[i],
+          name,
           values: [],
         })
       }
@@ -501,7 +506,10 @@ export class ImportParser {
 
     const translations = translationCodes.map(async (languageCode) => {
       const translatedFields = getRawTranslatedFields(r, languageCode)
-      const parsedTranslatedCustomFields = this.parseCustomFieldsFromRow('product', translatedFields)
+      const parsedTranslatedCustomFields = this.parseCustomFieldsFromRow(
+        'product',
+        translatedFields,
+      )
       const parsedUntranslatedCustomFields = this.parseCustomFieldsFromRow(
         'product',
         getRawUntranslatedFields(r),
@@ -599,7 +607,10 @@ export class ImportParser {
         : r.optionValues
       const translatedOptionValues = parseStringArray(rawTranslOptionValues)
       const translatedFields = getRawTranslatedFields(r, languageCode)
-      const parsedTranslatedCustomFields = this.parseCustomFieldsFromRow('variant', translatedFields)
+      const parsedTranslatedCustomFields = this.parseCustomFieldsFromRow(
+        'variant',
+        translatedFields,
+      )
       const parsedUntranslatedCustomFields = this.parseCustomFieldsFromRow(
         'variant',
         getRawUntranslatedFields(r),
@@ -857,6 +868,20 @@ function parseBoolean(input?: string): boolean {
     default:
       return false
   }
+}
+
+/** First `:` separates display name from optional option-group code (`Size:size`). */
+function parseOptionGroupSegment(segment: string): { name: string; code: string | undefined } {
+  const trimmed = segment.trim()
+  const colonIdx = trimmed.indexOf(':')
+  if (colonIdx >= 0) {
+    const codePart = trimmed.substring(colonIdx + 1).trim()
+    return {
+      name: trimmed.substring(0, colonIdx).trim(),
+      code: codePart.length > 0 ? codePart : undefined,
+    }
+  }
+  return { name: trimmed, code: undefined }
 }
 
 function parseStringArray(input?: string, separator = '|'): string[] {
