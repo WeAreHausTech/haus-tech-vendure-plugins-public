@@ -1,17 +1,4 @@
----
-name: product-import-export-plugin
-title: Product Import & Export
-description: Vendure plugin for importing and exporting product data via CSV.
-version: 3.6.0-next.2
-tags:
-  - vendure
-  - plugin
-  - import
-  - export
-  - products
-  - csv
-  - bulk
----
+<!-- This file is generated from README.mdx by scripts/update-readmes.ts. Do not edit by hand. -->
 
 # Product Import Export Plugin
 
@@ -32,7 +19,7 @@ Vendure **^3.6.0**
 
 ## Getting started
 
-```bash npm2yarn
+```bash
 npm install @haus-tech/product-import-export-plugin
 ```
 
