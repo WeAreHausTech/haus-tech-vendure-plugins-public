@@ -1,0 +1,27 @@
+{
+  "node": [
+    "bottleneck",
+    "copyfiles",
+    "csv-writer",
+    "eslint",
+    "eslint-plugin-import",
+    "graphql-tag",
+    "jiti",
+    "lodash-es",
+    "multer",
+    "nx",
+    "prettier",
+    "rimraf",
+    "slug",
+    "ts-node",
+    "tsx",
+    "typescript",
+    "typescript-eslint",
+    "unplugin-swc",
+    "vite",
+    "vite-tsconfig-paths",
+    "vitest",
+    "vitest-canvas-mock"
+  ],
+  "composer": []
+}

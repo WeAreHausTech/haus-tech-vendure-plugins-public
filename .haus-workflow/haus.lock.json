@@ -1,0 +1,170 @@
+[
+  {
+    "id": "haus.agentic-workflow-standard",
+    "type": "template",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-b8c6a71b370a94cc688880c9412095d10532f5f097100973513391ab3014e311",
+    "installMode": "copied",
+    "paths": [
+      ".claude/templates/agentic-workflow-standard.md"
+    ]
+  },
+  {
+    "id": "haus.code-reviewer-agent",
+    "type": "agent",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-6c49a263960b222601ff479335b1c15026b0118def6e8454712c4a58214b13b1",
+    "installMode": "copied",
+    "paths": [
+      ".claude/agents/code-reviewer.md"
+    ]
+  },
+  {
+    "id": "haus.database-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-4229845ef0abcb84f660ee1fd54d7443ad2bbe6023a5cae2b196b809d01eaf94",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/database-patterns"
+    ]
+  },
+  {
+    "id": "haus.nestjs-graphql-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-5cfc4178e6d16ffe2f199b4269e8b2e1e8e4b6f5570578ac55b891922ae3c675",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/nestjs-graphql-patterns"
+    ]
+  },
+  {
+    "id": "haus.nx21-monorepo-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-5528f6d36260b8e32d798339c4c798887e11c42475af476a4ac02584fbb3853b",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/nx21-monorepo-patterns"
+    ]
+  },
+  {
+    "id": "haus.package-manager-yarn4-pnpm89",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-a516c28c304398fe3b444880a138a7b365790e08bf4d98a32f998c122d9361ce",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/package-manager-yarn4-pnpm89"
+    ]
+  },
+  {
+    "id": "haus.production-readiness-review",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-b35772ac404a016f27ff506fc03bd48e3e7378b2557c79219c247f867ef22b83",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/production-readiness-review"
+    ]
+  },
+  {
+    "id": "haus.security-review",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-67b8f68ceb829bd69af85825f7f98834292361d7e668a62468b383d0998f7a2f",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/security-review"
+    ]
+  },
+  {
+    "id": "haus.typescript5-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-96697b1007d464b81815fd95c68495ae217ac20fb7c5e52859031ee6bf3de244",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/typescript5-patterns"
+    ]
+  },
+  {
+    "id": "haus.vendure-app-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-bb37739a35905421fdc0fa89f470c57278ae82ab4ed347b81b329053c364323a",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/vendure-app-patterns"
+    ]
+  },
+  {
+    "id": "haus.vendure-plugin-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-db3ed00612d77d68fcbcfdeef96e8caee730458f429d51d6c528acf962870736",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/vendure-plugin-patterns"
+    ]
+  },
+  {
+    "id": "haus.vite8-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-6f3d33f6ff321270081e15acb0e52f6ae61a6386d51fcfa4802eccf209f18564",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/vite8-patterns"
+    ]
+  },
+  {
+    "id": "haus.vitest-patterns",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-144f33511e12a4fb916e9823232a144f5d7f22e1e49b6c96a6b4857e235db48f",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/vitest-patterns"
+    ]
+  },
+  {
+    "id": "haus.writing-documentation",
+    "type": "skill",
+    "source": "haus",
+    "version": "0.16.2",
+    "catalogRef": "main",
+    "hash": "sha256-71317e337dc9ee248e3fd63d6d190a97aa04e16dd1646094a4a69753c0cd7134",
+    "installMode": "copied",
+    "paths": [
+      ".claude/skills/writing-documentation"
+    ]
+  }
+]

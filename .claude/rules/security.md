@@ -1,0 +1,2 @@
+- Never read secrets.
+- Block dangerous shell commands.

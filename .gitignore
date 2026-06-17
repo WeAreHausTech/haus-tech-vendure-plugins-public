@@ -43,4 +43,8 @@ vitest.config.*.timestamp*
 .github/instructions/nx.instructions.md
 
 *.code-workspace
-static/imports-tmp/*
+static/*-tmp/**
+
+# Yarn 4 transient state
+.yarn/install-state.gz
+.yarn/build-state.yml

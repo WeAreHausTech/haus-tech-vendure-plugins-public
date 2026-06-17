@@ -1,0 +1,280 @@
+---
+name: elastic-search-synonyms
+title: Elastic Search Synonyms
+description: Vendure plugin for managing Elasticsearch synonyms via the Synonyms API and the admin UI.
+version: 3.6.0
+tags:
+  - vendure
+  - plugin
+  - elasticsearch
+  - synonyms
+  - search
+---
+
+# Elastic Search Synonyms Plugin
+
+A Vendure plugin for managing Elasticsearch synonym sets from the admin UI. Synonym groups are stored in the database, synced to Elasticsearch on startup and on every change, and applied at **search time** via the [Elasticsearch Synonyms API](https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-synonyms) (Elasticsearch 9.x).
+
+## Features
+
+- **Synonym sets** – Create, edit, and delete groups of equivalent search terms
+- **Elasticsearch Synonyms API** – Syncs rules to a named synonyms set; indices that reference the set reload search analyzers automatically (no index close/open)
+- **Index configuration helpers** – Optional defaults for `synonym_filter`, `synonym_analyzer`, and example field mappings
+
+## Compatibility
+
+- Vendure **^3.6.0**
+- Elasticsearch **9.x**
+
+## Getting started
+
+```bash npm2yarn
+npm install @haus-tech/elastic-search-synonyms @elastic/elasticsearch
+```
+
+## Configuration
+
+Add the plugin to your Vendure configuration and wire your Elasticsearch index to use the synonyms set (see [Elasticsearch index config](#elasticsearch-index-config)).
+
+```typescript
+import { ElasticSearchSynonymsPlugin } from '@haus-tech/elastic-search-synonyms'
+
+export const config = {
+  plugins: [
+    ElasticSearchSynonymsPlugin.init({
+      channelSpecificSynonyms: true,
+      synonymsSetIdPattern: 'vendure-synonyms-{channelToken}',
+      maxGroupBytes: 10000,
+      maxTokenLength: 100,
+      maxTokensPerGroup: 50,
+    }),
+  ],
+}
+```
+
+Open **Settings → Synonyms** in the dashboard to manage synonym sets.
+
+## Configuration options
+
+| Option                    | Type      | Default                          | Description                                                                                    |
+| ------------------------- | --------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `channelSpecificSynonyms` | `boolean` | `false`                          | When `true`, syncs each channel's synonym groups to a separate Elasticsearch synonyms set      |
+| `synonymsSetIdPattern`    | `string`  | `vendure-synonyms-{channelToken}` | Pattern for per-channel set ids. Placeholders: `{channelToken}`, `{channelId}`, `{channelCode}` |
+| `synonymsSetId`           | `string`  | `vendure-synonyms`               | Global Elasticsearch synonyms set id when `channelSpecificSynonyms` is `false`                 |
+| `maxGroupBytes`           | `number`  | `16000`                          | Max UTF-8 size of one synonym group line synced to Elasticsearch                                 |
+| `maxTokenLength`          | `number`  | `128`                            | Max characters per individual term                                                             |
+| `maxTokensPerGroup`       | `number`  | `128`                            | Max number of terms per group                                                                  |
+
+### Environment variables
+
+Used by the plugin when syncing synonym rules to Elasticsearch.
+
+| Variable                     | Default            | Description                                                                    |
+| ---------------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `ELASTICSEARCH_HOST`         | `http://localhost` | Elasticsearch host URL (scheme + host, no port), e.g. `https://es.example.com` |
+| `ELASTICSEARCH_PORT`         | `9200`             | Elasticsearch port (appended to `ELASTICSEARCH_HOST`)                          |
+| `ELASTICSEARCH_SYNONYMS_SET` | `vendure-synonyms` | Overrides default synonyms set id (same as `synonymsSetId` when unset)         |
+
+## Synonym equivalence
+
+A **synonym set** is a group of words or phrases that mean the same thing **for search purposes**. Elasticsearch treats every term in the set as interchangeable when a customer runs a query.
+
+**Example set:** `tv`, `television`, `flatscreen`
+
+| Customer searches for | Can match products indexed with |
+| --------------------- | ------------------------------- |
+| `tv`                  | `television`, `flatscreen`      |
+| `television`          | `tv`, `flatscreen`              |
+| `flatscreen`          | `tv`, `television`              |
+
+The relationship works **both ways** within a set: any term can match any other term in the same group.
+
+**What changes in the index**
+
+- Products are still indexed with the text you stored (e.g. product title `"LED television"`).
+- Synonyms are applied at **query time** only, via the `search_analyzer`, not when documents are indexed.
+- In your index mapping, set `search_analyzer` to `synonym_analyzer` on each field where queries should expand synonyms (the helpers include examples for `productName` and `productDescription`).
+
+## How it works
+
+1. **Startup** – Reads synonym groups from the database and syncs them to Elasticsearch (one global set, or one set per channel).
+2. **Admin changes** – Create, update, or delete operations persist to the database and re-sync the affected Elasticsearch synonym set(s).
+3. **Search** – On each query, Elasticsearch expands the customer’s search terms using the synonym rules. Indices that use a `synonym` filter with `synonyms_set` and `updateable: true` on the **search** analyzer pick up rule changes without reindexing.
+
+### Channel-specific synonyms (recommended for multi-channel)
+
+When `channelSpecificSynonyms: true`:
+
+- Each channel's synonym groups are synced to **their own** Elasticsearch synonyms set.
+- Default set id pattern: `vendure-synonyms-{channelToken}` (e.g. `vendure-synonyms-eu-store`).
+- Admin UI is already channel-scoped: admins only see and manage synonyms for the active channel.
+- Each channel's Vendure Elasticsearch index must reference **its** synonyms set in the search analyzer (see [Channel-specific index config](#channel-specific-index-config)).
+
+### Global synonyms set (legacy)
+
+When `channelSpecificSynonyms: false` (default):
+
+- All synonym groups from all channels are synced to **one** Elasticsearch synonyms set (`synonymsSetId`, default `vendure-synonyms`).
+- The `languageCode` on each group is for organization in the admin UI only.
+
+## Elasticsearch index config
+
+The plugin **manages synonym rules**, stores synonym sets in the database and syncs them to Elasticsearch. You still need to wire those rules into your index: configure filters, analyzers, and field mappings in your Elasticsearch config so search queries use the synonyms set.
+
+For a quick start, use the exported helpers and **default index settings** below with `ElasticsearchPlugin.init()`. If you prefer full control over analyzers, filters, and mappings, define your own configuration instead; see [Manual config example](#manual-config-without-helpers).
+
+### Exported helpers
+
+| Export                                 | Use in                            | What it provides                                                                                                                                                                      |
+| -------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultSynonymFilters`                | `indexSettings.analysis.filter`   | Defines `synonym_filter`: a synonym token filter pointing at the default set id (`vendure-synonyms`) with `updateable: true`, so Elasticsearch reloads synonyms when the set changes. |
+| `createSynonymFilter(id?)`             | `indexSettings.analysis.filter`   | Same as `defaultSynonymFilters`, but lets you pass a custom synonyms set id (global mode).                             |
+| `createChannelSynonymFilter(channel)`  | per-channel index settings        | Builds a filter for one channel using `synonymsSetIdPattern` (channel-specific mode).                                  |
+| `createChannelSynonymAnalyzer()`       | per-channel index settings        | Analyzer that applies a channel-specific synonym filter at query time.                                                  |
+| `resolveSynonymsSetId(pattern, channel)` | —                               | Resolves the Elasticsearch synonyms set id for a channel, e.g. `vendure-synonyms-eu-store`.                            |
+| `DEFAULT_SYNONYMS_SET_ID_PATTERN`      | —                                 | Default pattern `'vendure-synonyms-{channelToken}'`.                                                                     |
+| `defaultSynonymAnalyzer`               | `indexSettings.analysis.analyzer` | Defines `synonym_analyzer`: standard tokenizer, lowercase, then `synonym_filter`. Use only as **`search_analyzer`** on fields, not for indexing.                                      |
+| `defaultSynonymIndexMappingProperties` | `indexMappingProperties`          | Starter mappings for `productName` and `productDescription` with `search_analyzer: synonym_analyzer` (and a `keyword` subfield on `productName`).                                     |
+| `DEFAULT_SYNONYMS_SET_ID`              | —                                 | Constant `'vendure-synonyms'`—default id for the Elasticsearch synonyms set and for `createSynonymFilter()`.                                                                          |
+| `SYNONYM_FILTER_NAME`                  | —                                 | Constant `'synonym_filter'`—filter name used inside `defaultSynonymAnalyzer`.                                                                                                         |
+| `SYNONYM_ANALYZER_NAME`                | —                                 | Constant `'synonym_analyzer'`—reference this as `search_analyzer` on any field that should expand synonyms at query time.                                                             |
+
+### Quick setup example (global mode)
+
+```typescript
+import { ElasticsearchPlugin } from '@vendure-community/elasticsearch-plugin'
+import {
+  ElasticSearchSynonymsPlugin,
+  defaultSynonymAnalyzer,
+  defaultSynonymFilters,
+  defaultSynonymIndexMappingProperties,
+} from '@haus-tech/elastic-search-synonyms'
+
+export const config = {
+  plugins: [
+    ElasticSearchSynonymsPlugin.init({
+      channelSpecificSynonyms: false,
+      synonymsSetId: 'vendure-synonyms',
+    }),
+    ElasticsearchPlugin.init({
+      indexSettings: {
+        analysis: {
+          analyzer: {
+            ...defaultSynonymAnalyzer,
+          },
+          filter: {
+            ...defaultSynonymFilters,
+          },
+        },
+      },
+      indexMappingProperties: {
+        ...defaultSynonymIndexMappingProperties,
+      },
+    }),
+  ],
+}
+```
+
+### Channel-specific index config
+
+Vendure creates **one Elasticsearch index per channel**. When `channelSpecificSynonyms: true`, each index must point at the synonyms set for that channel. Use `resolveSynonymsSetId()` (or the `createChannelSynonymFilter()` helper) with the channel token when building index settings.
+
+If your `ElasticsearchPlugin` setup supports customizing index settings per channel, configure each channel index like this:
+
+```typescript
+import { ElasticsearchPlugin } from '@vendure-community/elasticsearch-plugin'
+import {
+  ElasticSearchSynonymsPlugin,
+  createChannelSynonymAnalyzer,
+  createChannelSynonymFilter,
+  defaultSynonymIndexMappingProperties,
+  resolveSynonymsSetId,
+} from '@haus-tech/elastic-search-synonyms'
+
+const synonymsPattern = 'vendure-synonyms-{channelToken}'
+
+export const config = {
+  plugins: [
+    ElasticSearchSynonymsPlugin.init({
+      channelSpecificSynonyms: true,
+      synonymsSetIdPattern: synonymsPattern,
+    }),
+    ElasticsearchPlugin.init({
+      // Example: customize index settings when each channel index is created.
+      // The exact hook depends on your Vendure / ElasticsearchPlugin version.
+      indexSettings: ({ channel }) => ({
+        analysis: {
+          analyzer: {
+            ...createChannelSynonymAnalyzer(),
+          },
+          filter: {
+            ...createChannelSynonymFilter(channel, synonymsPattern),
+          },
+        },
+      }),
+      indexMappingProperties: {
+        ...defaultSynonymIndexMappingProperties,
+      },
+    }),
+  ],
+}
+
+// resolveSynonymsSetId is also exported if you need the id elsewhere:
+// resolveSynonymsSetId(synonymsPattern, { id: channel.id, token: channel.token, code: channel.code })
+// => 'vendure-synonyms-<channel-token>'
+```
+
+If your Elasticsearch setup uses a **static** `indexSettings` object (same for all channels), use channel-specific synonyms only when each channel has its own Vendure server/database, or extend index creation so each channel index gets the matching `synonyms_set` id.
+
+### Manual config example
+
+```typescript
+import { ElasticsearchPlugin } from '@vendure-community/elasticsearch-plugin'
+import { ElasticSearchSynonymsPlugin } from '@haus-tech/elastic-search-synonyms'
+
+export const config = {
+  plugins: [
+    ElasticSearchSynonymsPlugin.init({
+      synonymsSetId: 'vendure-synonyms',
+    }),
+    ElasticsearchPlugin.init({
+      indexSettings: {
+        analysis: {
+          analyzer: {
+            synonym_analyzer: {
+              tokenizer: 'standard',
+              filter: ['lowercase', 'synonym_filter'],
+            },
+          },
+          filter: {
+            synonym_filter: {
+              type: 'synonym',
+              synonyms_set: 'vendure-synonyms', // must match plugin synonymsSetId
+              updateable: true, // required for runtime reload
+            },
+          },
+        },
+      },
+      // Apply synonym_analyzer at query time on search fields (e.g. productName below).
+      indexMappingProperties: {
+        productName: {
+          type: 'text',
+          search_analyzer: 'synonym_analyzer', // must match analyzer name above
+          fields: {
+            keyword: {
+              type: 'keyword',
+              ignore_above: 256,
+            },
+          },
+        },
+      },
+    }),
+  ],
+}
+```
+
+## Resources
+
+- [Vendure Plugin Documentation](https://docs.vendure.io/guides/developer-guide/plugins/)
+- [Elasticsearch Synonyms API](https://www.elastic.co/docs/api/doc/elasticsearch/group/endpoint-synonyms)
+- [Vendure Elasticsearch Plugin](https://docs.vendure.io/current/community-plugins/elasticsearch-plugin/)

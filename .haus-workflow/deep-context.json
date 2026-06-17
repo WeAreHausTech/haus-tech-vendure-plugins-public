@@ -1,0 +1,25 @@
+{
+  "source": "writing-documentation",
+  "roles": ["nx-monorepo", "vendure-plugin-library", "graphql-api", "npm-published-library"],
+  "stacks": {
+    "backend": ["vendure3", "graphql", "nestjs"],
+    "frontend": ["vite8", "angular-admin-ui", "vendure-dashboard-react"],
+    "databases": ["elasticsearch"],
+    "storage": ["s3", "local-filesystem"],
+    "testing": ["vitest"],
+    "tooling": ["typescript5", "nx22", "swc", "eslint9", "prettier"],
+    "packageManagers": ["yarn4"]
+  },
+  "patterns": [
+    "vendure-plugin",
+    "nx-monorepo-independent-release",
+    "nx-release-npm-publish",
+    "vendure-admin-ui-extension",
+    "vendure-dashboard-extension",
+    "csv-import-export",
+    "pluggable-storage-strategy",
+    "elasticsearch-synonyms-api",
+    "conventional-commits"
+  ],
+  "notes": "Public open-source set of Vendure plugins. 2 packages: @haus-tech/elastic-search-synonyms and @haus-tech/product-import-export-plugin. Libraries only (no server). Published to npm with `nx release`; CI syncs READMEs and docs to wearehaustech.github.io but does not publish to npm."
+}

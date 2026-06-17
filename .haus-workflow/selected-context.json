@@ -1,0 +1,86 @@
+[
+  {
+    "id": "haus.agentic-workflow-standard",
+    "type": "template",
+    "reason": "catalog default baseline",
+    "selectionMode": "baseline"
+  },
+  {
+    "id": "haus.code-reviewer-agent",
+    "type": "agent",
+    "reason": "catalog default baseline",
+    "selectionMode": "baseline"
+  },
+  {
+    "id": "haus.database-patterns",
+    "type": "skill",
+    "reason": "stack/dependency match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.nestjs-graphql-patterns",
+    "type": "skill",
+    "reason": "stack/dependency match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.nx21-monorepo-patterns",
+    "type": "skill",
+    "reason": "repo role match, stack/dependency match, package manager match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.package-manager-yarn4-pnpm89",
+    "type": "skill",
+    "reason": "stack/dependency match, package manager match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.production-readiness-review",
+    "type": "skill",
+    "reason": "catalog default baseline",
+    "selectionMode": "baseline"
+  },
+  {
+    "id": "haus.security-review",
+    "type": "skill",
+    "reason": "catalog default baseline",
+    "selectionMode": "baseline"
+  },
+  {
+    "id": "haus.typescript5-patterns",
+    "type": "skill",
+    "reason": "repo role match, guided goal match, requires-any signal match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.vendure-app-patterns",
+    "type": "skill",
+    "reason": "repo role match, stack/dependency match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.vendure-plugin-patterns",
+    "type": "skill",
+    "reason": "repo role match, stack/dependency match, guided goal match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.vite8-patterns",
+    "type": "skill",
+    "reason": "repo role match, stack/dependency match, guided goal match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.vitest-patterns",
+    "type": "skill",
+    "reason": "repo role match, stack/dependency match, guided goal match",
+    "selectionMode": "matched"
+  },
+  {
+    "id": "haus.writing-documentation",
+    "type": "skill",
+    "reason": "catalog default baseline",
+    "selectionMode": "baseline"
+  }
+]

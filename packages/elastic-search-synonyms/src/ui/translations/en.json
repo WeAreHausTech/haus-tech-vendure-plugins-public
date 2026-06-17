@@ -1,0 +1,46 @@
+{
+  "synonyms": {
+    "nav": "Synonyms",
+    "title": "Synonyms",
+    "listTitle": "Synonyms",
+    "detailTitle": "Synonym set",
+    "table": {
+      "create": "Create new synonym set",
+      "synonyms": "Synonyms",
+      "updated": "Updated",
+      "edit": "Edit",
+      "empty": "No synonym sets found.",
+      "loading": "Loading..."
+    },
+    "detail": {
+      "language": "Language",
+      "created": "Created",
+      "updated": "Updated",
+      "chipsHint": "Click a chip to remove it",
+      "addLabel": "Add new synonym",
+      "comma-not-allowed": "Synonyms cannot contain commas. Add one term at a time.",
+      "synonyms": "Synonyms",
+      "add": "Add",
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete set",
+      "cancel": "Cancel",
+      "delete-confirm-title": "Delete Synonym Set",
+      "delete-confirm-body": "Are you sure you want to delete this synonym set? This cannot be undone.",
+      "delete-confirm-cancel": "Cancel",
+      "delete-confirm-delete": "Delete",
+      "delete-tag-title": "Remove synonym",
+      "delete-tag-body": "Remove the synonym {value} from this set?",
+      "delete-tag-cancel": "Cancel",
+      "delete-tag-delete": "Remove"
+    },
+    "bulk-action": {
+      "delete": "Delete",
+      "delete-confirm-title": "Delete {count} synonym sets?",
+      "delete-confirm-body": "Are you sure you want to delete these synonym sets? This cannot be undone.",
+      "delete-confirm-cancel": "Cancel",
+      "delete-confirm-delete": "Delete",
+      "delete-success": "Deleted {count} synonym sets"
+    }
+  }
+}
