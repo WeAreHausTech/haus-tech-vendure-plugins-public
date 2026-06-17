@@ -42,6 +42,13 @@ type ImportOptions = {
    */
   importJobStorage?: 'local' | 's3'
 }
+/**
+ * @description
+ * Options passed to {@link ProductImportExportPlugin}.init to configure import and
+ * export behaviour, including which storage strategy backs each operation.
+ *
+ * @category Options
+ */
 export interface PluginInitOptions {
   importOptions: {
     visibleOptions?: Array<keyof ImportOptions>

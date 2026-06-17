@@ -8,6 +8,14 @@ export type ExportedFileMetadata = {
   modified: Date
 }
 
+/**
+ * @description
+ * Strategy that determines where exported CSV files are stored and how they are
+ * retrieved, listed and deleted. Implement this to back exports with custom storage
+ * (the plugin ships local-disk and S3 implementations).
+ *
+ * @category Strategies
+ */
 export interface ExportStorageStrategy {
   /**
    * @description

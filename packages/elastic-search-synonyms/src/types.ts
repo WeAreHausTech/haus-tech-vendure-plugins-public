@@ -1,9 +1,12 @@
-/**
- * @description
- * The plugin can be configured using the following options:
- */
 import { ID, LanguageCode } from '@vendure/core'
 
+/**
+ * @description
+ * Options passed to {@link ElasticSearchSynonymsPlugin}.init to configure how synonym
+ * groups are validated and synced to Elasticsearch.
+ *
+ * @category Options
+ */
 export interface PluginInitOptions {
   /** Maximum total bytes (UTF-8) allowed for a single synonym group line when synced to Elasticsearch */
   maxGroupBytes?: number

@@ -5,6 +5,15 @@ export type ImportJobInputFile = {
   buffer: Buffer
 }
 
+/**
+ * @description
+ * Strategy that determines where uploaded import files are persisted while their
+ * import job is queued, and how that content is later resolved and cleaned up.
+ * Implement this to back import jobs with custom storage (the plugin ships local-disk
+ * and S3 implementations).
+ *
+ * @category Strategies
+ */
 export interface ImportJobStorageStrategy {
   /**
    * @description
