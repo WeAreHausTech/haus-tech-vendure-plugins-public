@@ -101,11 +101,39 @@ import { LocalImportJobStorageStrategy } from './services/import-storage/local-i
     return config
   },
   dashboard: './dashboard/index.tsx',
-  compatibility: '^2.0.0 || ^3.0.0',
+  compatibility: '^3.6.0',
 })
+/**
+ * @description
+ * Bulk import and export of products via CSV from the Vendure admin UI / Dashboard,
+ * with pluggable local/S3 storage strategies for both exported files and queued
+ * import jobs.
+ *
+ * @example
+ * ```ts
+ * import { ProductImportExportPlugin } from '@haus-tech/product-import-export-plugin';
+ *
+ * export const config: VendureConfig = {
+ *   plugins: [
+ *     ProductImportExportPlugin.init({
+ *       importOptions: {},
+ *       exportOptions: {},
+ *     }),
+ *   ],
+ * };
+ * ```
+ *
+ * @category Plugin
+ */
 export class ProductImportExportPlugin {
   static options: PluginInitOptions
 
+  /**
+   * @description
+   * Initialise the plugin with the given import/export options, applying sensible
+   * defaults for any option not provided. Pass the returned class to the `plugins`
+   * array of your `VendureConfig`.
+   */
   static init(options: PluginInitOptions): Type<ProductImportExportPlugin> {
     // Setup import options
     if (!options.importOptions.defaultOptions) {

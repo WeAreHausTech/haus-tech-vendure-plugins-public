@@ -1,15 +1,4 @@
----
-name: elastic-search-synonyms
-title: Elastic Search Synonyms
-description: Vendure plugin for managing Elasticsearch synonyms via the Synonyms API and the admin UI.
-version: 1.0.1
-tags:
-  - vendure
-  - plugin
-  - elasticsearch
-  - synonyms
-  - search
----
+<!-- This file is generated from README.mdx by scripts/update-readmes.ts. Do not edit by hand. -->
 
 # Elastic Search Synonyms Plugin
 
@@ -28,7 +17,7 @@ A Vendure plugin for managing Elasticsearch synonym sets from the admin UI. Syno
 
 ## Getting started
 
-```bash npm2yarn
+```bash
 npm install @haus-tech/elastic-search-synonyms @elastic/elasticsearch
 ```
 

@@ -8,8 +8,16 @@ import {
 } from '@vendure/core'
 import { Column, Entity, Index, ManyToMany, JoinTable } from 'typeorm'
 
+/**
+ * @description
+ * A group of synonyms for a given {@link LanguageCode}, associated with one or more
+ * channels. Persisted to the database and synced to the Elasticsearch synonym set.
+ *
+ * @category Entities
+ */
 @Entity()
 export class SynonymGroup extends VendureEntity implements ChannelAware, SoftDeletable {
+  /** @internal */
   constructor(input?: DeepPartial<SynonymGroup>) {
     super(input)
   }

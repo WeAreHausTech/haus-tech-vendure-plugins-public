@@ -27,8 +27,16 @@ type PersistResult = {
   channelIds: ID[]
 }
 
+/**
+ * @description
+ * Manages synonym groups in the database (CRUD, channel association, soft-delete) and
+ * keeps the configured Elasticsearch synonym set(s) in sync via {@link ElasticSynonymsService}.
+ *
+ * @category Services
+ */
 @Injectable()
 export class SynonymService {
+  /** @internal */
   constructor(
     private connection: TransactionalConnection,
     private elasticSynonymsService: ElasticSynonymsService,
