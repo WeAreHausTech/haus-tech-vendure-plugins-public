@@ -1,3 +1,9 @@
+## 3.3.10-next.6
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** ensure tax category is always assigned to product variants ([276bed5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/276bed5))
+
 ## 3.3.10-next.5
 
 ### 🚀 Features
