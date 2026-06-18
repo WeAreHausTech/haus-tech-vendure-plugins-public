@@ -1,3 +1,9 @@
+## 1.0.2
+
+### 🩹 Fixes
+
+- **plugins:** correct Vendure compatibility and add hub-required JSDoc ([ae089bd](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/ae089bd))
+
 ## 1.0.1
 
 ### 🚀 Features
