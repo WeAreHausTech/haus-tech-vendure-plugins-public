@@ -694,7 +694,10 @@ export class ProductImporter {
           ),
           assetIds: variantAssets.map((a) => a.id),
           sku: variant.sku,
-          ...(variant.taxCategory !== undefined
+          // A ProductVariant must always have a tax category. When updating, only overwrite it if a
+          // `taxCategory` column was provided; when creating a new variant, always assign one
+          // (falling back to the default/first tax category) so it is never left null.
+          ...(variant.taxCategory !== undefined || !existingVariant
             ? { taxCategoryId: this.getMatchingTaxCategoryId(variant.taxCategory, taxCategories.items) }
             : {}),
           ...(variant.stockOnHand !== undefined ? { stockOnHand: variant.stockOnHand } : {}),
@@ -1168,7 +1171,17 @@ export class ProductImporter {
    * Attempts to match a TaxCategory entity against the name supplied in the import table. If no matches
    * are found, the first TaxCategory id is returned.
    */
-  private getMatchingTaxCategoryId(name: string, taxCategories: TaxCategory[]): ID {
+  private getMatchingTaxCategoryId(name: string | undefined, taxCategories: TaxCategory[]): ID {
+    // When no name is provided (e.g. a new variant imported without a `taxCategory` column),
+    // fall back to the default tax category, or the first one available.
+    if (name == null || name.trim() === '') {
+      const fallback = taxCategories.find((tc) => tc.isDefault) ?? taxCategories[0]
+      if (!fallback) {
+        throw new InternalServerError('No TaxCategory found')
+      }
+      return fallback.id
+    }
+
     if (this.taxCategoryMatches[name]) {
       return this.taxCategoryMatches[name]
     }
