@@ -12,8 +12,7 @@ function getPluginDirs(): string[] {
 
 function updateReadmeVersion(pluginName: string) {
   const pluginDir = path.join(PACKAGES_DIR, pluginName)
-  const mdxPath = path.join(pluginDir, 'README.mdx')
-  const readmePath = fs.existsSync(mdxPath) ? mdxPath : path.join(pluginDir, 'README.md')
+  const readmePath = path.join(pluginDir, 'README.md')
   const packageJsonPath = path.join(pluginDir, 'package.json')
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -22,7 +21,7 @@ function updateReadmeVersion(pluginName: string) {
   }
 
   if (!fs.existsSync(readmePath)) {
-    console.warn(`⚠️ Skipping ${pluginName}: no README.md or README.mdx found.`)
+    console.warn(`⚠️ Skipping ${pluginName}: no README.md found.`)
     return
   }
 

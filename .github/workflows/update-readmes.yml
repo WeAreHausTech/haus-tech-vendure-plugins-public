@@ -42,7 +42,7 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
-          if [ -n "$(git status --porcelain -- ':(glob)packages/**/README.md' ':(glob)packages/**/README.mdx')" ]; then
+          if [ -n "$(git status --porcelain -- ':(glob)packages/**/README.md')" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -54,7 +54,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          changed_files="$(git status --porcelain -- ':(glob)packages/**/README.md' ':(glob)packages/**/README.mdx' | awk '{print $2}')"
+          changed_files="$(git status --porcelain -- ':(glob)packages/**/README.md' | awk '{print $2}')"
 
           if [ -z "$changed_files" ]; then
             echo "No README files to stage; skipping commit"

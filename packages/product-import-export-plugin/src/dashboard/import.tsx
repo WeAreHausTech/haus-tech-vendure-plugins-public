@@ -38,9 +38,9 @@ import {
 } from './utils'
 
 const TEMPLATE_URL =
-  'https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/blob/main/packages/product-import-export-plugin/README.mdx#csv-format-for-import'
+  'https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/blob/main/packages/product-import-export-plugin/README.md#csv-format-for-import'
 const GUIDE_URL =
-  'https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/blob/main/packages/product-import-export-plugin/README.mdx'
+  'https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/blob/main/packages/product-import-export-plugin/README.md'
 
 const MAX_SIZE_BYTES = 20 * 1024 * 1024
 

@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'packages/**/*.md'
-      - 'packages/**/*.mdx'
       - 'packages/**/assets/**'
   workflow_dispatch:
     inputs:
@@ -60,9 +59,9 @@ jobs:
 
           if [ "${{ github.event.inputs.forceFullSync }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Full sync requested (forceFullSync or manual workflow_dispatch) — syncing all markdown files."
-            CHANGED_FILES=$(find packages -type f \( -name "*.md" -o -name "*.mdx" \))
+            CHANGED_FILES=$(find packages -type f -name "*.md")
           else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^packages/.*\.(md|mdx)$' || true)
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^packages/.*\.md$' || true)
           fi
 
           if [ -z "$CHANGED_FILES" ]; then
