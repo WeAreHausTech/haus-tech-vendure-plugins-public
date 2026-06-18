@@ -21,7 +21,7 @@
     "releaseTagPattern": "{projectName}@{version}",
     "changelog": {
       "projectChangelogs": {
-        "renderer": "./scripts/no-next-changelog-renderer.cjs",
+        "renderer": "{workspaceRoot}/scripts/no-next-changelog-renderer.cjs",
         "renderOptions": {
           "authors": false,
           "commitReferences": true,
