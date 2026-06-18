@@ -219,6 +219,7 @@ This repository uses the Nx Release workflow to automate plugin releases, change
 
 - Each plugin maintains its own changelog and version tag.
 - Only `feat`, `fix`, and `perf` commit types are included in the changelog.
+- Prerelease `next` versions are allowed (for example with `prerelease --preid next`), but they are intentionally filtered out from `CHANGELOG.md`. Only stable releases are written to changelog files.
 - The process is mostly automated, but you control the version bump for each release.
 - Always use `--dry-run` first to preview changes before releasing!
 
