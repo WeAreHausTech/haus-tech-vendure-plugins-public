@@ -36,7 +36,6 @@
     "src",
     "assets",
     "README.md",
-    "README.mdx",
     "CHANGELOG.md"
   ],
   "scripts": {

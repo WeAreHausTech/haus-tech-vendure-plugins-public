@@ -23,7 +23,6 @@
   "files": [
     "src",
     "README.md",
-    "README.mdx",
     "CHANGELOG.md"
   ],
   "peerDependencies": {

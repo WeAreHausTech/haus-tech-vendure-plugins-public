@@ -1,4 +1,17 @@
-<!-- This file is generated from README.mdx by scripts/update-readmes.ts. Do not edit by hand. -->
+---
+name: product-import-export-plugin
+title: Product Import & Export
+description: Vendure plugin for importing and exporting product data via CSV.
+version: 3.6.0-next.2
+tags:
+  - vendure
+  - plugin
+  - import
+  - export
+  - products
+  - csv
+  - bulk
+---
 
 # Product Import Export Plugin
 

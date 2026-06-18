@@ -1,4 +1,15 @@
-<!-- This file is generated from README.mdx by scripts/update-readmes.ts. Do not edit by hand. -->
+---
+name: elastic-search-synonyms
+title: Elastic Search Synonyms
+description: Vendure plugin for managing Elasticsearch synonyms via the Synonyms API and the admin UI.
+version: 1.0.1
+tags:
+  - vendure
+  - plugin
+  - elasticsearch
+  - synonyms
+  - search
+---
 
 # Elastic Search Synonyms Plugin
 
@@ -45,14 +56,14 @@ Open **Settings → Synonyms** in the dashboard to manage synonym sets.
 
 ## Configuration options
 
-| Option                    | Type      | Default                          | Description                                                                                    |
-| ------------------------- | --------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `channelSpecificSynonyms` | `boolean` | `false`                          | When `true`, syncs each channel's synonym groups to a separate Elasticsearch synonyms set      |
+| Option                    | Type      | Default                           | Description                                                                                     |
+| ------------------------- | --------- | --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `channelSpecificSynonyms` | `boolean` | `false`                           | When `true`, syncs each channel's synonym groups to a separate Elasticsearch synonyms set       |
 | `synonymsSetIdPattern`    | `string`  | `vendure-synonyms-{channelToken}` | Pattern for per-channel set ids. Placeholders: `{channelToken}`, `{channelId}`, `{channelCode}` |
-| `synonymsSetId`           | `string`  | `vendure-synonyms`               | Global Elasticsearch synonyms set id when `channelSpecificSynonyms` is `false`                 |
-| `maxGroupBytes`           | `number`  | `16000`                          | Max UTF-8 size of one synonym group line synced to Elasticsearch                                 |
-| `maxTokenLength`          | `number`  | `128`                            | Max characters per individual term                                                             |
-| `maxTokensPerGroup`       | `number`  | `128`                            | Max number of terms per group                                                                  |
+| `synonymsSetId`           | `string`  | `vendure-synonyms`                | Global Elasticsearch synonyms set id when `channelSpecificSynonyms` is `false`                  |
+| `maxGroupBytes`           | `number`  | `16000`                           | Max UTF-8 size of one synonym group line synced to Elasticsearch                                |
+| `maxTokenLength`          | `number`  | `128`                             | Max characters per individual term                                                              |
+| `maxTokensPerGroup`       | `number`  | `128`                             | Max number of terms per group                                                                   |
 
 ### Environment variables
 
@@ -110,23 +121,23 @@ When `channelSpecificSynonyms: false` (default):
 
 The plugin **manages synonym rules**, stores synonym sets in the database and syncs them to Elasticsearch. You still need to wire those rules into your index: configure filters, analyzers, and field mappings in your Elasticsearch config so search queries use the synonyms set.
 
-For a quick start, use the exported helpers and **default index settings** below with `ElasticsearchPlugin.init()`. If you prefer full control over analyzers, filters, and mappings, define your own configuration instead; see [Manual config example](#manual-config-without-helpers).
+For a quick start, use the exported helpers and **default index settings** below with `ElasticsearchPlugin.init()`. If you prefer full control over analyzers, filters, and mappings, define your own configuration instead; see [Manual config example](#manual-config-example).
 
 ### Exported helpers
 
-| Export                                 | Use in                            | What it provides                                                                                                                                                                      |
-| -------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defaultSynonymFilters`                | `indexSettings.analysis.filter`   | Defines `synonym_filter`: a synonym token filter pointing at the default set id (`vendure-synonyms`) with `updateable: true`, so Elasticsearch reloads synonyms when the set changes. |
-| `createSynonymFilter(id?)`             | `indexSettings.analysis.filter`   | Same as `defaultSynonymFilters`, but lets you pass a custom synonyms set id (global mode).                             |
-| `createChannelSynonymFilter(channel)`  | per-channel index settings        | Builds a filter for one channel using `synonymsSetIdPattern` (channel-specific mode).                                  |
-| `createChannelSynonymAnalyzer()`       | per-channel index settings        | Analyzer that applies a channel-specific synonym filter at query time.                                                  |
-| `resolveSynonymsSetId(pattern, channel)` | —                               | Resolves the Elasticsearch synonyms set id for a channel, e.g. `vendure-synonyms-eu-store`.                            |
-| `DEFAULT_SYNONYMS_SET_ID_PATTERN`      | —                                 | Default pattern `'vendure-synonyms-{channelToken}'`.                                                                     |
-| `defaultSynonymAnalyzer`               | `indexSettings.analysis.analyzer` | Defines `synonym_analyzer`: standard tokenizer, lowercase, then `synonym_filter`. Use only as **`search_analyzer`** on fields, not for indexing.                                      |
-| `defaultSynonymIndexMappingProperties` | `indexMappingProperties`          | Starter mappings for `productName` and `productDescription` with `search_analyzer: synonym_analyzer` (and a `keyword` subfield on `productName`).                                     |
-| `DEFAULT_SYNONYMS_SET_ID`              | —                                 | Constant `'vendure-synonyms'`—default id for the Elasticsearch synonyms set and for `createSynonymFilter()`.                                                                          |
-| `SYNONYM_FILTER_NAME`                  | —                                 | Constant `'synonym_filter'`—filter name used inside `defaultSynonymAnalyzer`.                                                                                                         |
-| `SYNONYM_ANALYZER_NAME`                | —                                 | Constant `'synonym_analyzer'`—reference this as `search_analyzer` on any field that should expand synonyms at query time.                                                             |
+| Export                                   | Use in                            | What it provides                                                                                                                                                                      |
+| ---------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultSynonymFilters`                  | `indexSettings.analysis.filter`   | Defines `synonym_filter`: a synonym token filter pointing at the default set id (`vendure-synonyms`) with `updateable: true`, so Elasticsearch reloads synonyms when the set changes. |
+| `createSynonymFilter(id?)`               | `indexSettings.analysis.filter`   | Same as `defaultSynonymFilters`, but lets you pass a custom synonyms set id (global mode).                                                                                            |
+| `createChannelSynonymFilter(channel)`    | per-channel index settings        | Builds a filter for one channel using `synonymsSetIdPattern` (channel-specific mode).                                                                                                 |
+| `createChannelSynonymAnalyzer()`         | per-channel index settings        | Analyzer that applies a channel-specific synonym filter at query time.                                                                                                                |
+| `resolveSynonymsSetId(pattern, channel)` | —                                 | Resolves the Elasticsearch synonyms set id for a channel, e.g. `vendure-synonyms-eu-store`.                                                                                           |
+| `DEFAULT_SYNONYMS_SET_ID_PATTERN`        | —                                 | Default pattern `'vendure-synonyms-{channelToken}'`.                                                                                                                                  |
+| `defaultSynonymAnalyzer`                 | `indexSettings.analysis.analyzer` | Defines `synonym_analyzer`: standard tokenizer, lowercase, then `synonym_filter`. Use only as **`search_analyzer`** on fields, not for indexing.                                      |
+| `defaultSynonymIndexMappingProperties`   | `indexMappingProperties`          | Starter mappings for `productName` and `productDescription` with `search_analyzer: synonym_analyzer` (and a `keyword` subfield on `productName`).                                     |
+| `DEFAULT_SYNONYMS_SET_ID`                | —                                 | Constant `'vendure-synonyms'`—default id for the Elasticsearch synonyms set and for `createSynonymFilter()`.                                                                          |
+| `SYNONYM_FILTER_NAME`                    | —                                 | Constant `'synonym_filter'`—filter name used inside `defaultSynonymAnalyzer`.                                                                                                         |
+| `SYNONYM_ANALYZER_NAME`                  | —                                 | Constant `'synonym_analyzer'`—reference this as `search_analyzer` on any field that should expand synonyms at query time.                                                             |
 
 ### Quick setup example (global mode)
 

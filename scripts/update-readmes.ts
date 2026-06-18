@@ -10,25 +10,6 @@ function getPluginDirs(): string[] {
   })
 }
 
-/**
- * Derive a plain Markdown README (for npm, which only renders README.md) from the
- * authoritative MDX source (used by the Vendure docs site). The MDX is the single
- * source of truth; README.md is generated and should not be edited by hand.
- */
-function generateMarkdownFromMdx(mdxContent: string): string {
-  const banner =
-    '<!-- This file is generated from README.mdx by scripts/update-readmes.ts. Do not edit by hand. -->\n\n'
-
-  const body = mdxContent
-    // Strip the leading docs-site frontmatter block.
-    .replace(/^---\n[\s\S]*?\n---\n/, '')
-    // Docusaurus `npm2yarn` code-fence meta is not understood by npm/GitHub.
-    .replace(/```bash npm2yarn/g, '```bash')
-    .replace(/^\s+/, '')
-
-  return banner + body
-}
-
 function updateReadmeVersion(pluginName: string) {
   const pluginDir = path.join(PACKAGES_DIR, pluginName)
   const mdxPath = path.join(pluginDir, 'README.mdx')
@@ -66,13 +47,6 @@ function updateReadmeVersion(pluginName: string) {
 
   fs.writeFileSync(readmePath, readmeContent, 'utf-8')
   console.log(`✅ Updated README for ${pluginName}`)
-
-  // When the source is MDX, also (re)generate the plain Markdown README that npm renders.
-  if (readmePath === mdxPath) {
-    const markdownPath = path.join(pluginDir, 'README.md')
-    fs.writeFileSync(markdownPath, generateMarkdownFromMdx(readmeContent), 'utf-8')
-    console.log(`✅ Generated README.md for ${pluginName}`)
-  }
 }
 
 function main() {

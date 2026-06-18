@@ -14,7 +14,6 @@
         "tsConfig": "packages/elastic-search-synonyms/tsconfig.json",
         "assets": [
           "packages/elastic-search-synonyms/README.md",
-          "packages/elastic-search-synonyms/README.mdx",
           "packages/elastic-search-synonyms/CHANGELOG.md",
           {
             "input": "packages/elastic-search-synonyms/src/ui",
