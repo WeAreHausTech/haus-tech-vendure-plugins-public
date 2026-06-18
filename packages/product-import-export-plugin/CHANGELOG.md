@@ -1,9 +1,3 @@
-## 3.7.0
-
-### 🚀 Features
-
-- add custom changelog renderer to filter out prerelease versions ([4412746](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/4412746))
-
 ## 3.6.0
 
 ### 🚀 Features
