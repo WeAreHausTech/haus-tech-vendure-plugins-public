@@ -14,6 +14,7 @@ The `Badge Plugin` is a Vendure plugin that allows you to manage and display bad
 
 - Assign badges to collections (badges can be indirectly associated with products via collections).
 - Customize badge positions (e.g., top-left, top-right, etc.).
+- Add an optional text label to a badge (e.g., "New Arrival", "Best Seller").
 - Manage badges through the Vendure Admin UI.
 - Display badges on the storefront using the shop API.
 
@@ -55,7 +56,30 @@ To install the `Badge Plugin`, follow these steps:
    };
    ```
 
-3. Restart your Vendure server.
+3. Generate and run a database migration. The plugin adds a `badge` table, so your
+   project needs a migration before the server will start:
+
+   ```bash
+   npx vendure migrate
+   ```
+
+   (Or generate one with your project's existing migration workflow.)
+
+4. Restart your Vendure server.
+
+## Permissions
+
+Badge management is exposed on the Admin API and guarded by the standard Vendure
+catalog permissions:
+
+| Operation                                      | Required permission |
+| ---------------------------------------------- | ------------------- |
+| Query badges / plugin config                   | `ReadCatalog`       |
+| Create a badge                                 | `CreateCatalog`     |
+| Update a badge                                 | `UpdateCatalog`     |
+| Delete a badge                                 | `DeleteCatalog`     |
+
+The shop API badge queries are public, matching the rest of the Vendure shop API.
 
 ## Usage
 
@@ -77,6 +101,7 @@ query GetBadges {
     items {
       id
       position
+      text
       asset {
         preview
       }

@@ -8,46 +8,7 @@ import {
 } from '@vendure/dashboard'
 import { PencilIcon, PlusIcon } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { graphql } from './gql'
-
-const getBadgeListDocument = graphql(`
-  query GetBadges($options: BadgeListOptions) {
-    badges(options: $options) {
-      items {
-        id
-        createdAt
-        updatedAt
-        collection {
-          id
-          name
-        }
-        collectionId
-        position
-        asset {
-          id
-          name
-          type
-          mimeType
-          width
-          height
-          fileSize
-          source
-          preview
-        }
-      }
-      totalItems
-    }
-  }
-`)
-
-const deleteBadgeDocument = graphql(`
-  mutation DeleteBadge($id: ID!) {
-    deleteBadge(ids: [$id]) {
-      result
-      message
-    }
-  }
-`)
+import { getBadgeListDocument, deleteBadgeDocument } from './gql'
 
 export const badgeListRoute: DashboardRouteDefinition = {
   navMenuItem: {

@@ -10,6 +10,7 @@ import {
   PageBlock,
   FormFieldWrapper,
   Button,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -23,89 +24,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { api } from '@vendure/dashboard'
-import { graphql } from './gql'
+import {
+  getBadgeDetailDocument,
+  createBadgeDocument,
+  updateBadgeDocument,
+  getBadgePluginConfigDocument,
+  getCollectionsDocument,
+  createAssetsDocument,
+} from './gql'
 import { UploadIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
-
-const getBadgeDetailDocument = graphql(`
-  query GetBadgeDetail($id: ID!) {
-    badge(id: $id) {
-      id
-      createdAt
-      updatedAt
-      collection {
-        id
-        name
-      }
-      collectionId
-      position
-      assetId
-      asset {
-        id
-        name
-        type
-        mimeType
-        width
-        height
-        fileSize
-        source
-        preview
-      }
-    }
-  }
-`)
-
-const createBadgeDocument = graphql(`
-  mutation CreateBadge($input: CreateBadgeInput!) {
-    createBadge(input: $input) {
-      id
-    }
-  }
-`)
-
-const updateBadgeDocument = graphql(`
-  mutation UpdateBadge($input: UpdateBadgeInput!) {
-    updateBadge(input: $input) {
-      id
-    }
-  }
-`)
-
-const getBadgePluginConfigDocument = graphql(`
-  query GetBadgePluginConfig {
-    getBadgePluginConfig {
-      availablePositions
-    }
-  }
-`)
-
-const getCollectionsDocument = graphql(`
-  query GetCollections {
-    collections {
-      items {
-        id
-        name
-        slug
-      }
-    }
-  }
-`)
-
-const createAssetsDocument = graphql(`
-  mutation CreateAssets($input: [CreateAssetInput!]!) {
-    createAssets(input: $input) {
-      ... on Asset {
-        id
-        name
-        source
-        preview
-      }
-      ... on MimeTypeError {
-        message
-      }
-    }
-  }
-`)
 
 export const badgeDetailRoute: DashboardRouteDefinition = {
   path: '/badges/$id',
@@ -155,6 +83,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
         | {
           id: string
           position: string
+          text?: string | null
           collectionId: string | null
           assetId: string
           asset: {
@@ -176,6 +105,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       return {
         id: badge?.id ?? '',
         position: position || 'top-left',
+        text: badge?.text ?? '',
         collectionId: badge?.collectionId ?? null,
         assetId: badge?.assetId ?? '',
       }
@@ -280,6 +210,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       // Always sync collection - set it immediately
       form.setValue('collectionId', entityCollectionId ?? null, { shouldDirty: false })
       form.setValue('assetId', badge.assetId ?? '', { shouldDirty: false })
+      form.setValue('text', badge.text ?? '', { shouldDirty: false })
     }
 
     // Initialize default values for new badges
@@ -319,6 +250,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
           input: {
             assetId: uploadedAsset.id,
             position: formValues.position || availablePositions[0] || 'top-left',
+            text: formValues.text || null,
             collectionId: formValues.collectionId || null,
           },
         })
@@ -439,6 +371,18 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
                     </Select>
                   )
                 }}
+              />
+              <FormFieldWrapper
+                control={form.control}
+                name="text"
+                label="Name"
+                render={({ field }) => (
+                  <Input
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    placeholder="Optional badge name, e.g. New Arrival"
+                  />
+                )}
               />
               <FormFieldWrapper
                 control={form.control}

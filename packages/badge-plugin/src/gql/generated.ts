@@ -818,6 +818,7 @@ export type CreateAssetResult = Asset | MimeTypeError
 export type CreateBadgeInput = {
   assetId: Scalars['ID']['input']
   position?: InputMaybe<Scalars['String']['input']>
+  text?: InputMaybe<Scalars['String']['input']>
   collectionId?: InputMaybe<Scalars['ID']['input']>
 }
 
@@ -6276,6 +6277,7 @@ export type UpdateBadgeInput = {
   collectionId?: InputMaybe<Scalars['ID']['input']>
   id: Scalars['ID']['input']
   position?: InputMaybe<Scalars['String']['input']>
+  text?: InputMaybe<Scalars['String']['input']>
 }
 
 export type UpdateChannelCustomFieldsInput = {

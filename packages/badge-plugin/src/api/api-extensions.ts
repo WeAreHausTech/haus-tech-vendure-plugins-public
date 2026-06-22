@@ -8,6 +8,7 @@ export const adminApiExtensions = gql`
     collection: Collection
     collectionId: ID
     position: String!
+    text: String
     asset: Asset!
     assetId: ID!
   }
@@ -28,6 +29,7 @@ export const adminApiExtensions = gql`
   input CreateBadgeInput {
     assetId: ID!
     position: String
+    text: String
     collectionId: ID
   }
 
@@ -43,6 +45,7 @@ export const adminApiExtensions = gql`
     id: ID!
     collectionId: ID
     position: String
+    text: String
     assetId: ID
   }
 
@@ -67,6 +70,7 @@ export const shopApiExtensions = gql`
     collection: Collection
     collectionId: ID
     position: String!
+    text: String
     asset: Asset!
     assetId: ID!
   }

@@ -35,6 +35,7 @@ const getBadgeListDocument = graphql(`
         }
         collectionId
         position
+        text
         asset {
           id
           name
