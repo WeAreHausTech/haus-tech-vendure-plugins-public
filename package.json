@@ -79,6 +79,7 @@
     "bottleneck": "2.19.5"
   },
   "resolutions": {
+    "eslint/minimatch": "10.2.4",
     "@angular/common@npm:^19.2.4": "19.2.22",
     "@angular/compiler@npm:^19.2.4": "19.2.22",
     "@angular/core@npm:^19.2.4": "19.2.22",

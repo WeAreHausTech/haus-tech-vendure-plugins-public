@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "jsx": "react-jsx"
+  },
+  "include": ["src/dashboard/**/*.ts", "src/dashboard/**/*.tsx"]
+}

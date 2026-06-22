@@ -1,0 +1,31 @@
+{
+  "name": "@haus-tech/badge-plugin",
+  "version": "4.0.7",
+  "description": "Vendure plugin for managing and displaying product badges via the admin UI and shop API",
+  "author": "Haus Tech",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "vendure",
+    "plugin",
+    "badge",
+    "product",
+    "label"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "@vendure/core": "^3.6.0"
+  }
+}

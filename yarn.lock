@@ -4269,6 +4269,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@haus-tech/badge-plugin@workspace:packages/badge-plugin":
+  version: 0.0.0-use.local
+  resolution: "@haus-tech/badge-plugin@workspace:packages/badge-plugin"
+  peerDependencies:
+    "@vendure/core": ^3.6.0
+  languageName: unknown
+  linkType: soft
+
 "@haus-tech/elastic-search-synonyms@workspace:packages/elastic-search-synonyms":
   version: 0.0.0-use.local
   resolution: "@haus-tech/elastic-search-synonyms@workspace:packages/elastic-search-synonyms"

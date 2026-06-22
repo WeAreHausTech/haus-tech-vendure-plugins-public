@@ -1,0 +1,52 @@
+<form class="form" [formGroup]="form" id="export-form">
+  <vdr-labeled-data [label]="'badge-plugin.position' | translate" class="select-wrapper">
+    <ng-select
+      [multiple]="false"
+      [clearable]="false"
+      [searchable]="false"
+      (change)="positionChanged($event)"
+      formControlName="position"
+      class="custom"
+    >
+      <ng-template ng-label-tmp let-position="item" let-clear="clear">
+        {{ position }}
+      </ng-template>
+      <ng-option *ngFor="let position of availablePositions" [value]="position">
+        {{ position }}
+      </ng-option>
+    </ng-select>
+  </vdr-labeled-data>
+
+  <vdr-labeled-data [label]="'badge-plugin.collections' | translate" class="select-wrapper">
+    <ng-select
+      [multiple]="false"
+      [clearable]="true"
+      [searchable]="true"
+      [items]="allCollections$ | async"
+      bindLabel="name"
+      bindValue="id"
+      (change)="collectionValueChanged($event)"
+      formControlName="collectionId"
+      style="width: 100%"
+    >
+      <ng-template ng-label-tmp let-tag="item" let-clear="clear">
+        <vdr-chip [colorFrom]="tag.name"
+          ><clr-icon shape="folder-open" class="mr2"></clr-icon> {{ tag.name }}</vdr-chip
+        >
+      </ng-template>
+      <ng-option *ngFor="let tag of allCollections$ | async" [value]="tag">
+        <vdr-chip [colorFrom]="tag.name"
+          ><clr-icon shape="folder-open" class="mr2"></clr-icon> {{ tag.name }}</vdr-chip
+        >
+      </ng-option>
+    </ng-select>
+  </vdr-labeled-data>
+  <button
+    type="button"
+    (click)="updateBadge()"
+    *ngIf="form.dirty"
+    class="btn btn-primary mt-2 mb-4"
+  >
+    Update
+  </button>
+</form>
