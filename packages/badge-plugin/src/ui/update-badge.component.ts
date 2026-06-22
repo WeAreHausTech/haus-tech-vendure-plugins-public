@@ -50,6 +50,7 @@ export class UpdateBadgeComponent implements OnChanges {
     this.form = this.formBuilder.group({
       collectionId: [''],
       position: [''],
+      text: [''],
     })
     this.allCollections$ = this.dataService.collection
       .getCollections()
@@ -61,6 +62,7 @@ export class UpdateBadgeComponent implements OnChanges {
       this.form.patchValue({
         collectionId: this.badge?.collectionId,
         position: this.badge?.position,
+        text: this.badge?.text ?? '',
       })
     }
   }
@@ -80,10 +82,11 @@ export class UpdateBadgeComponent implements OnChanges {
           id: this.badge.id,
           collectionId: this.form.value.collectionId,
           position: this.form.value.position,
+          text: this.form.value.text,
         },
       })
       .subscribe({
-        next: (result) => {
+        next: () => {
           this.form.markAsPristine()
           this.changeDetector.detectChanges()
           this.badgeUpdated.emit({ ...this.badge, ...this.form.value })

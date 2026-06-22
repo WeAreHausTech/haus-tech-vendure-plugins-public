@@ -1,9 +1,6 @@
-import gql from 'graphql-tag'
-import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
+import { graphql } from '@/gql'
 
-type AnyDoc = TypedDocumentNode<any, any>
-
-const getBadgesDocument = gql(`
+export const getBadgeListDocument = graphql(`
   query GetBadges($options: BadgeListOptions) {
     badges(options: $options) {
       items {
@@ -31,18 +28,9 @@ const getBadgesDocument = gql(`
       totalItems
     }
   }
-`) as AnyDoc
+`)
 
-const deleteBadgeDocument = gql(`
-  mutation DeleteBadge($id: ID!) {
-    deleteBadge(ids: [$id]) {
-      result
-      message
-    }
-  }
-`) as AnyDoc
-
-const getBadgeDetailDocument = gql(`
+export const getBadgeDetailDocument = graphql(`
   query GetBadgeDetail($id: ID!) {
     badge(id: $id) {
       id
@@ -54,6 +42,7 @@ const getBadgeDetailDocument = gql(`
       }
       collectionId
       position
+      text
       assetId
       asset {
         id
@@ -68,33 +57,42 @@ const getBadgeDetailDocument = gql(`
       }
     }
   }
-`) as AnyDoc
+`)
 
-const createBadgeDocument = gql(`
+export const createBadgeDocument = graphql(`
   mutation CreateBadge($input: CreateBadgeInput!) {
     createBadge(input: $input) {
       id
     }
   }
-`) as AnyDoc
+`)
 
-const updateBadgeDocument = gql(`
+export const updateBadgeDocument = graphql(`
   mutation UpdateBadge($input: UpdateBadgeInput!) {
     updateBadge(input: $input) {
       id
     }
   }
-`) as AnyDoc
+`)
 
-const getBadgePluginConfigDocument = gql(`
+export const deleteBadgeDocument = graphql(`
+  mutation DeleteBadge($id: ID!) {
+    deleteBadge(ids: [$id]) {
+      result
+      message
+    }
+  }
+`)
+
+export const getBadgePluginConfigDocument = graphql(`
   query GetBadgePluginConfig {
     getBadgePluginConfig {
       availablePositions
     }
   }
-`) as AnyDoc
+`)
 
-const getCollectionsDocument = gql(`
+export const getCollectionsDocument = graphql(`
   query GetCollections {
     collections {
       items {
@@ -104,9 +102,9 @@ const getCollectionsDocument = gql(`
       }
     }
   }
-`) as AnyDoc
+`)
 
-const createAssetsDocument = gql(`
+export const createAssetsDocument = graphql(`
   mutation CreateAssets($input: [CreateAssetInput!]!) {
     createAssets(input: $input) {
       ... on Asset {
@@ -120,27 +118,4 @@ const createAssetsDocument = gql(`
       }
     }
   }
-`) as AnyDoc
-
-function normalize(source: string): string {
-  return source.replace(/\s+/g, ' ').trim()
-}
-
-const documents = new Map<string, AnyDoc>([
-  [normalize(getBadgesDocument.loc?.source.body ?? ''), getBadgesDocument],
-  [normalize(deleteBadgeDocument.loc?.source.body ?? ''), deleteBadgeDocument],
-  [normalize(getBadgeDetailDocument.loc?.source.body ?? ''), getBadgeDetailDocument],
-  [normalize(createBadgeDocument.loc?.source.body ?? ''), createBadgeDocument],
-  [normalize(updateBadgeDocument.loc?.source.body ?? ''), updateBadgeDocument],
-  [normalize(getBadgePluginConfigDocument.loc?.source.body ?? ''), getBadgePluginConfigDocument],
-  [normalize(getCollectionsDocument.loc?.source.body ?? ''), getCollectionsDocument],
-  [normalize(createAssetsDocument.loc?.source.body ?? ''), createAssetsDocument],
-])
-
-export function graphql(source: string): AnyDoc {
-  const document = documents.get(normalize(source))
-  if (!document) {
-    throw new Error('Unknown dashboard GraphQL operation in badge-plugin')
-  }
-  return document
-}
+`)

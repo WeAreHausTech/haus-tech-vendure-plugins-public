@@ -3,6 +3,7 @@
     "notify-create-badges-success": "Created {count} badges",
     "confirm-delete-badges": "Are you sure you want to delete {count} badges?",
     "collections": "Collections",
-    "position": "Position"
+    "position": "Position",
+    "name": "Name"
   }
 }

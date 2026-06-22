@@ -17,6 +17,10 @@
     </ng-select>
   </vdr-labeled-data>
 
+  <vdr-labeled-data [label]="'badge-plugin.name' | translate" class="select-wrapper">
+    <input type="text" formControlName="text" class="form-control" />
+  </vdr-labeled-data>
+
   <vdr-labeled-data [label]="'badge-plugin.collections' | translate" class="select-wrapper">
     <ng-select
       [multiple]="false"

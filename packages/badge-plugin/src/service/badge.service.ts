@@ -1,31 +1,31 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { In } from 'typeorm'
 import {
   AssetService,
   ChannelService,
   CollectionService,
   EntityHydrator,
-  ErrorResult,
+  EntityNotFoundError,
+  ID,
   ListQueryBuilder,
   ListQueryOptions,
   PaginatedList,
   Product,
   RequestContext,
   TransactionalConnection,
+  UserInputError,
 } from '@vendure/core'
 import { Badge } from '../entity/badge.entity'
-import {
-  CreateBadgeInput,
-  DeletionResponse,
-  DeletionResult,
-  UpdateBadgeInput,
-} from '../gql/generated'
+import { CreateBadgeInput, DeletionResponse, DeletionResult, UpdateBadgeInput } from '../gql/generated'
 import { SearchResult } from '@vendure/common/lib/generated-shop-types'
 import { AssignBadgesToChannelInput } from '../types'
+import { PLUGIN_INIT_OPTIONS } from '../constants'
+import { BadgePluginOptions } from '../badge.plugin'
 
 @Injectable()
-export class BadgeService implements OnApplicationBootstrap {
+export class BadgeService {
   constructor(
+    @Inject(PLUGIN_INIT_OPTIONS) private options: BadgePluginOptions,
     private listQueryBuilder: ListQueryBuilder,
     private connection: TransactionalConnection,
     private assetService: AssetService,
@@ -34,23 +34,7 @@ export class BadgeService implements OnApplicationBootstrap {
     private channelService: ChannelService,
   ) {}
 
-  async onApplicationBootstrap() {
-    // Assign all badges which are not assigned to any channel to the default channel
-    const defaultChannel = await this.channelService.getDefaultChannel()
-    const badgesWithoutChannels = await this.connection.rawConnection
-      .getRepository(Badge)
-      .createQueryBuilder('badge')
-      .leftJoinAndSelect('badge.channels', 'channel')
-      .where('channel.id IS NULL')
-      .getMany()
-
-    for (const badge of badgesWithoutChannels) {
-      badge.channels = [defaultChannel]
-      await this.connection.rawConnection.getRepository(Badge).save(badge)
-    }
-  }
-
-  async findOne(ctx: RequestContext, id: number): Promise<Badge | null> {
+  async findOne(ctx: RequestContext, id: ID): Promise<Badge | null> {
     return this.connection
       .getRepository(ctx, Badge)
       .findOne({ where: { id }, relations: ['collection', 'asset', 'channels'] })
@@ -69,8 +53,11 @@ export class BadgeService implements OnApplicationBootstrap {
   }
 
   async create(ctx: RequestContext, input: CreateBadgeInput): Promise<Badge> {
+    const position = input.position ?? this.options.availablePositions?.[0] ?? 'top-left'
+    this.validatePosition(position)
     const badge = new Badge({
-      position: input.position || 'top-left',
+      position,
+      text: input.text ?? undefined,
       assetId: input.assetId,
       collectionId: input.collectionId || null,
       channels: [ctx.channel],
@@ -87,36 +74,37 @@ export class BadgeService implements OnApplicationBootstrap {
         await this.assetService.delete(ctx, [badgeAsset.id])
       }
       return { result: DeletionResult.DELETED }
-    } catch (e: any) {
-      return { result: DeletionResult.NOT_DELETED, message: e.message }
-    }
-  }
-
-  async update(ctx: RequestContext, input: UpdateBadgeInput): Promise<Badge | ErrorResult> {
-    let badge = await this.connection
-      .getRepository(ctx, Badge)
-      .findOne({ where: { id: parseInt(input.id) } })
-    if (!badge) {
-      throw new Error(`Badge with id ${input.id} not found`)
-    }
-
-    try {
-      await this.connection.getRepository(ctx, Badge).update(input.id, {
-        position: input.position!,
-        collectionId: input.collectionId,
-        assetId: input.assetId ?? badge.assetId,
-      })
-
-      badge = await this.connection
-        .getRepository(ctx, Badge)
-        .findOne({ where: { id: parseInt(input.id) } })
     } catch (e) {
-      return new ErrorResult()
+      return {
+        result: DeletionResult.NOT_DELETED,
+        message: e instanceof Error ? e.message : String(e),
+      }
     }
-    return badge || new ErrorResult()
   }
 
-  async findOneByCollectionId(ctx: RequestContext, collectionId: string): Promise<Badge | null> {
+  async update(ctx: RequestContext, input: UpdateBadgeInput): Promise<Badge> {
+    this.validatePosition(input.position)
+    const repository = this.connection.getRepository(ctx, Badge)
+    const badge = await repository.findOne({ where: { id: input.id } })
+    if (!badge) {
+      throw new EntityNotFoundError('Badge', input.id)
+    }
+
+    await repository.update(input.id, {
+      position: input.position ?? badge.position,
+      text: input.text ?? badge.text,
+      collectionId: input.collectionId,
+      assetId: input.assetId ?? badge.assetId,
+    })
+
+    const updated = await this.findOne(ctx, input.id)
+    if (!updated) {
+      throw new EntityNotFoundError('Badge', input.id)
+    }
+    return updated
+  }
+
+  async findOneByCollectionId(ctx: RequestContext, collectionId: ID): Promise<Badge | null> {
     const badge = await this.connection
       .getRepository(ctx, Badge)
       .findOne({ where: { collectionId }, relations: ['channels'] })
@@ -128,7 +116,10 @@ export class BadgeService implements OnApplicationBootstrap {
     return null
   }
 
-  async findByCollectionIds(ctx: RequestContext, collectionIds: string[]): Promise<Badge[]> {
+  async findByCollectionIds(ctx: RequestContext, collectionIds: ID[]): Promise<Badge[]> {
+    if (collectionIds.length === 0) {
+      return []
+    }
     const badges = await this.connection
       .getRepository(ctx, Badge)
       .find({ where: { collectionId: In(collectionIds) }, relations: ['channels'] })
@@ -142,7 +133,7 @@ export class BadgeService implements OnApplicationBootstrap {
       product.id,
       true,
     )
-    const collectionIds = collections.map((c) => c.id) as string[]
+    const collectionIds = collections.map((c) => c.id)
     return this.findByCollectionIds(ctx, collectionIds)
   }
 
@@ -155,7 +146,7 @@ export class BadgeService implements OnApplicationBootstrap {
       searchResult.productId,
       true,
     )
-    const collectionIds = collections.map((c) => c.id) as string[]
+    const collectionIds = collections.map((c) => c.id)
     return this.findByCollectionIds(ctx, collectionIds)
   }
 
@@ -180,5 +171,22 @@ export class BadgeService implements OnApplicationBootstrap {
       ctx.channelId,
       {},
     )
+  }
+
+  /**
+   * Guards against persisting a position that is not in the configured
+   * `availablePositions` list, so the stored value always matches what the
+   * storefront/admin knows how to render.
+   */
+  private validatePosition(position?: string | null): void {
+    if (position == null) {
+      return
+    }
+    const allowed = this.options.availablePositions
+    if (allowed && allowed.length > 0 && !allowed.includes(position)) {
+      throw new UserInputError(
+        `Invalid badge position "${position}". Allowed positions: ${allowed.join(', ')}`,
+      )
+    }
   }
 }

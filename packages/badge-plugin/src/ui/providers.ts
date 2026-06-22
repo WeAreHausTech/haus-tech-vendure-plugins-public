@@ -1,4 +1,4 @@
-import { addNavMenuItem, SharedModule } from '@vendure/admin-ui/core'
+import { addNavMenuItem } from '@vendure/admin-ui/core'
 
 export default [
   addNavMenuItem(

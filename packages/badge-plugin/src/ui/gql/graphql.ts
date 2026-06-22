@@ -327,6 +327,7 @@ export type Badge = Node & {
   createdAt: Scalars['DateTime']['output']
   id: Scalars['ID']['output']
   position: Scalars['String']['output']
+  text?: Maybe<Scalars['String']['output']>
   updatedAt: Scalars['DateTime']['output']
 }
 
@@ -824,6 +825,7 @@ export type CreateAssetResult = Asset | MimeTypeError
 export type CreateBadgeInput = {
   assetId: Scalars['ID']['input']
   position?: InputMaybe<Scalars['String']['input']>
+  text?: InputMaybe<Scalars['String']['input']>
 }
 
 export type CreateChannelCustomFieldsInput = {
@@ -6281,6 +6283,7 @@ export type UpdateBadgeInput = {
   collectionId?: InputMaybe<Scalars['ID']['input']>
   id: Scalars['ID']['input']
   position?: InputMaybe<Scalars['String']['input']>
+  text?: InputMaybe<Scalars['String']['input']>
 }
 
 export type UpdateChannelCustomFieldsInput = {
@@ -6672,6 +6675,7 @@ export type GetBadgesQuery = {
       updatedAt: any
       collectionId?: string | null
       position: string
+      text?: string | null
       collection?: { __typename?: 'Collection'; id: string } | null
       asset: {
         __typename?: 'Asset'
