@@ -8,29 +8,26 @@ import {
   ChannelAware,
   Channel,
 } from '@vendure/core'
-import {
-  Column,
-  Entity,
-  OneToOne,
-  JoinColumn,
-  PrimaryGeneratedColumn,
-  ManyToOne,
-  ManyToMany,
-  JoinTable,
-} from 'typeorm'
+import { Column, Entity, OneToOne, JoinColumn, ManyToMany, JoinTable } from 'typeorm'
 
+/**
+ * @description
+ * A product badge: an image {@link Asset} rendered at a fixed `position`, optionally
+ * attached to a {@link Collection} so every product in that collection inherits it.
+ * Channel-aware, so each channel sees only its own badges.
+ *
+ * @category Entities
+ */
 @Entity()
 export class Badge extends VendureEntity implements ChannelAware {
   constructor(input?: DeepPartial<Badge>) {
     super(input)
-
-    //TODO - this is a workaround for the issue with the assetId decorator
     if (input) {
       Object.assign(this, input)
     }
   }
 
-  @ManyToMany((type) => Channel)
+  @ManyToMany(() => Channel)
   @JoinTable()
   channels: Channel[]
 
@@ -43,7 +40,7 @@ export class Badge extends VendureEntity implements ChannelAware {
   @Column({ nullable: true })
   text: string
 
-  @OneToOne((type) => Asset, {
+  @OneToOne(() => Asset, {
     cascade: true,
     eager: true,
   })
@@ -56,7 +53,7 @@ export class Badge extends VendureEntity implements ChannelAware {
   @EntityId({ nullable: true })
   assetId: ID
 
-  @OneToOne((type) => Collection, { nullable: true, eager: true })
+  @OneToOne(() => Collection, { nullable: true, eager: true })
   @JoinColumn({
     name: 'collectionId',
     referencedColumnName: 'id',

@@ -23,6 +23,15 @@ import { AssignBadgesToChannelInput } from '../types'
 import { PLUGIN_INIT_OPTIONS } from '../constants'
 import { BadgePluginOptions } from '../badge.plugin'
 
+/**
+ * @description
+ * CRUD and lookup operations for {@link Badge} entities: creates/updates badges with
+ * their asset and collection relations, resolves the badges that apply to a given
+ * product or search result, and manages channel assignment. All reads are scoped to
+ * the active channel.
+ *
+ * @category Services
+ */
 @Injectable()
 export class BadgeService {
   constructor(
@@ -103,8 +112,6 @@ export class BadgeService {
   }
 
   async update(ctx: RequestContext, input: UpdateBadgeInput): Promise<Badge> {
-
-    console.log('input', input)
     this.validatePosition(input.position)
     const repository = this.connection.getRepository(ctx, Badge)
     const badge = await repository.findOne({ where: { id: input.id } })

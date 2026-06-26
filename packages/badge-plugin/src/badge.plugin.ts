@@ -14,7 +14,17 @@ import {
   SearchResultEntityResolver,
 } from './api/shop.resolver'
 
+/**
+ * @description
+ * Options passed to {@link BadgePlugin}.init to configure badge behaviour.
+ *
+ * @category Options
+ */
 export interface BadgePluginOptions {
+  /**
+   * The set of positions a badge may be placed at. A badge whose position is not in
+   * this list is rejected on create/update. Defaults to the four image corners.
+   */
   availablePositions?: string[]
 }
 
@@ -43,8 +53,29 @@ export interface BadgePluginOptions {
   entities: [Badge],
   dashboard: './dashboard/index.tsx',
 
-  compatibility: '^3.0.0',
+  compatibility: '^3.6.0',
 })
+/**
+ * @description
+ * Manages image badges (e.g. "New", "Sale") that are attached to collections and
+ * inherited by every product in those collections. Badges are channel-aware and
+ * exposed on `Product`, `ProductVariant`, and `SearchResult` via the Shop API.
+ *
+ * @example
+ * ```ts
+ * import { BadgePlugin } from '@haus-tech/badge-plugin'
+ *
+ * export const config = {
+ *   plugins: [
+ *     BadgePlugin.init({
+ *       availablePositions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+ *     }),
+ *   ],
+ * }
+ * ```
+ *
+ * @category Plugin
+ */
 export class BadgePlugin {
   static options: BadgePluginOptions = {
     availablePositions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
@@ -65,18 +96,5 @@ export class BadgePlugin {
     },
     routes: [{ route: 'badges', filePath: 'routes.ts' }],
     providers: ['providers.ts'],
-    //   ngModules: [
-    //     {
-    //       type: 'lazy',
-    //       route: 'badges',
-    //       ngModuleFileName: 'badge.module.ts',
-    //       ngModuleName: 'BadgeModule',
-    //     },
-    //     {
-    //       type: 'shared',
-    //       ngModuleFileName: 'badge-nav.module.ts',
-    //       ngModuleName: 'BadgesNavModule',
-    //     },
-    //   ],
   }
 }

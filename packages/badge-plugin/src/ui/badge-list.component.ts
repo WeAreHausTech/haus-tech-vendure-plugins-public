@@ -138,7 +138,6 @@ export class BadgeListComponent
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    console.log('changes:', changes)
     if (this.items$) {
       for (const badge of this.selectionManager.selection) {
         // Update any selected assets with any changes
