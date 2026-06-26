@@ -1,104 +1,142 @@
 ---
 name: badge-plugin
 title: Badge Plugin
-description: Vendure plugin that allows you to manage and display badges for products in your e-commerce store.
+description: Vendure plugin for managing and displaying product badges via the admin UI and shop API.
 version: 4.0.7
-tags: [vendure, plugin, badge]
+tags:
+  - vendure
+  - plugin
+  - badge
+  - product
+  - label
 ---
 
 # Badge Plugin
 
-The `Badge Plugin` is a Vendure plugin that allows you to manage and display badges for products in your e-commerce store. Badges can be used to highlight specific attributes of products, such as "New Arrival," "Best Seller," or "Limited Edition." This plugin provides both admin and shop APIs to create, update, delete, and query badges.
+A Vendure plugin for creating image badges and showing them on products in your storefront. A badge is an image asset (e.g. "New", "Sale", "Best Seller") placed at a fixed position on a product image. Badges are attached to **collections**, and every product in a badged collection automatically inherits that collection's badge, so you label many products at once instead of one at a time.
 
-## Functionality
+Badges are managed from the Admin UI and read from the Shop API, are **channel-aware** (each channel sees only its own badges), and expose a ready-to-use `badges` field on `Product`, `ProductVariant`, and `SearchResult`.
 
-- Assign badges to collections (badges can be indirectly associated with products via collections).
-- Customize badge positions (e.g., top-left, top-right, etc.).
-- Add an optional text label to a badge (e.g., "New Arrival", "Best Seller").
-- Manage badges through the Vendure Admin UI.
-- Display badges on the storefront using the shop API.
+## Features
 
-## Use Cases
+- **Image badges** – Each badge is an uploaded asset rendered at a chosen position on the product
+- **Collection-based** – Assign a badge to a collection; all products in that collection (and its sub-collections) inherit it
+- **Configurable positions** – Restrict badges to a fixed set of positions (e.g. `top-left`, `top-right`); invalid positions are rejected
+- **Channel-aware** – Badges are scoped per channel; admins and storefronts only see badges for the active channel
+- **Admin UI** – Manage badges from a dedicated section in the Vendure Admin UI / Dashboard
+- **Shop API** – Read badges directly off `Product`, `ProductVariant`, and `SearchResult`, or query a collection's badge
 
-The Badge Plugin is ideal for:
+## Compatibility
 
-- Highlighting specific product attributes to attract customer attention.
-- Managing promotional badges for collections or individual products.
-- Enhancing the visual appeal of your storefront with customizable badge positions.
+Vendure **^3.6.0**
 
-## Installation
+## Getting started
 
-To install the `Badge Plugin`, follow these steps:
+```bash
+npm install @haus-tech/badge-plugin
+```
 
-1. Install the plugin package:
+Or with Yarn:
 
-   ```bash
-   yarn add @haus-tech/badge-plugin
-   ```
+```bash
+yarn add @haus-tech/badge-plugin
+```
 
-   Or, if using npm:
+## Configuration
 
-   ```bash
-   npm install @haus-tech/badge-plugin
-   ```
+Add the plugin to your Vendure configuration in `vendure-config.ts`:
 
-2. Add the plugin to your Vendure configuration in `vendure-config.ts`:
+```typescript
+import { BadgePlugin } from '@haus-tech/badge-plugin'
 
-   ```ts
-   import { BadgePlugin } from '@haus-tech/badge-plugin';
+export const config = {
+  plugins: [
+    BadgePlugin.init({
+      availablePositions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+    }),
+  ],
+}
+```
 
-   export const config = {
-     plugins: [
-       BadgePlugin.init({
-         availablePositions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-       }),
-     ],
-   };
-   ```
+The plugin adds a `badge` table (plus its channel join table) to the database, so generate
+and run a migration before starting the server:
 
-3. Generate and run a database migration. The plugin adds a `badge` table, so your
-   project needs a migration before the server will start:
+```bash
+npx vendure migrate
+```
 
-   ```bash
-   npx vendure migrate
-   ```
+(Or generate one with your project's existing migration workflow.) Then restart the server.
+Badges appear under their own section in the Admin UI.
 
-   (Or generate one with your project's existing migration workflow.)
+## Configuration options
 
-4. Restart your Vendure server.
+| Option               | Type       | Default                                                  | Description                                                                                                |
+| -------------------- | ---------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `availablePositions` | `string[]` | `['top-left', 'top-right', 'bottom-left', 'bottom-right']` | Available positions selecteble in the ui   |
+
+The configured positions are also exposed on the Admin API via the `getBadgePluginConfig`
+query, so the Admin UI can offer them as choices.
+
+## How it works
+
+A **badge** holds an image asset, a position and a link to
+one collection. Products are never badged directly, they inherit badges from the collections
+they belong to:
+
+1. **Create a badge** in the Admin UI: upload an image, pick a position, and assign it to a collection.
+2. **Products inherit it** – every product in that collection, including products in its
+   sub-collections, gets the badge automatically through the Shop API.
+3. **The storefront reads it** – fetch the `badges` field on a product (or search result) and
+   render each badge's image at its `position`.
+
+Because badges are channel-aware, a badge is only visible in the channel it was created in.
 
 ## Permissions
 
-Badge management is exposed on the Admin API and guarded by the standard Vendure
-catalog permissions:
+Badge management is exposed on the Admin API and guarded by the standard Vendure catalog
+permissions:
 
-| Operation                                      | Required permission |
-| ---------------------------------------------- | ------------------- |
-| Query badges / plugin config                   | `ReadCatalog`       |
-| Create a badge                                 | `CreateCatalog`     |
-| Update a badge                                 | `UpdateCatalog`     |
-| Delete a badge                                 | `DeleteCatalog`     |
+| Operation                            | Required permission |
+| ------------------------------------ | ------------------- |
+| Query badges / plugin config         | `ReadCatalog`       |
+| Create a badge                       | `CreateCatalog`     |
+| Update a badge                       | `UpdateCatalog`     |
+| Delete a badge                       | `DeleteCatalog`     |
 
-The shop API badge queries are public, matching the rest of the Vendure shop API.
+The Shop API badge queries are public, matching the rest of the Vendure shop API.
 
 ## Usage
 
 ### Admin UI
 
-Once the plugin is installed, you can manage badges directly from the Vendure Admin UI. A new "Badges" section will appear under the "Catalog" menu. From there, you can:
+Once installed, manage badges from the dedicated **Badges** section in the Admin UI. From there you can:
 
-- Create new badges by uploading an asset and specifying its position.
-- Assign badges to specific collections.
-- Update or delete existing badges.
+- Create a badge by uploading an image asset and choosing a position.
+- Assign the badge to a collection.
+- Update or delete existing badges. Deleting a badge also deletes its image asset.
 
 ### Shop API
 
-The plugin extends the shop API to expose badge data. You can query badges for collections using GraphQL. For example:
+The plugin extends the Shop API with badge queries and adds a `badges` resolver field to
+`Product`, `ProductVariant`, and `SearchResult`.
+
+| Field / Query                            | Returns         | Description                                                              |
+| ---------------------------------------- | --------------- | ------------------------------------------------------------------------ |
+| `Product.badges`                         | `[Badge!]!`     | Badges inherited from all collections the product belongs to             |
+| `ProductVariant.badges`                  | `[Badge!]!`     | Badges from the variant's collections                                    |
+| `SearchResult.badges`                    | `[Badge!]!`     | Badges for a search result (resolved via its product's collections)      |
+| `badges(options)`                        | `BadgeList!`    | Paginated list of all badges in the active channel                       |
+| `getBadgeFromCollection(collectionId)`   | `Badge`         | The badge assigned to a single collection, if any                        |
+| `getBadgesFromCollections(collectionIds)`| `[Badge!]!`     | Badges assigned to any of the given collections                          |
+
+The most common pattern is to read badges straight off a product:
 
 ```graphql
-query GetBadges {
-  badges {
-    items {
+query ProductBadges($slug: String!) {
+  product(slug: $slug) {
+    id
+    name
+    badges {
       id
       position
       text
@@ -106,42 +144,59 @@ query GetBadges {
         preview
       }
     }
-    totalItems
   }
 }
 ```
 
-### Example Integration
+Or off search results, to render badges in a product listing:
 
-To display badges on your storefront, use the shop API to fetch badge data and render it in your frontend. For example:
+```graphql
+query Search($input: SearchInput!) {
+  search(input: $input) {
+    items {
+      productName
+      badges {
+        position
+        asset {
+          preview
+        }
+      }
+    }
+  }
+}
+```
+
+### Example integration
+
+Fetch a product's badges from the Shop API and render each one at its `position`:
 
 ```ts
-fetch('/shop-api', {
+const res = await fetch('/shop-api', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     query: `
-      query {
-        badges {
-          items {
-            id
+      query ($slug: String!) {
+        product(slug: $slug) {
+          badges {
             position
-            asset {
-              preview
-            }
+            text
+            asset { preview }
           }
         }
       }
     `,
+    variables: { slug: 'my-product' },
   }),
 })
-  .then((res) => res.json())
-  .then((data) => {
-    console.log(data);
-  });
+
+const { data } = await res.json()
+// data.product.badges -> [{ position: 'top-left', asset: { preview } }, ...]
+// Render each badge image absolutely positioned over the product image using `position`.
 ```
 
 ## Resources
 
 - [Vendure Plugin Documentation](https://docs.vendure.io/guides/developer-guide/plugins/)
+- [Vendure Collections](https://docs.vendure.io/guides/core-concepts/collections/)
 - [GraphQL Code Generator](https://the-guild.dev/graphql/codegen) for generating TypeScript types for custom GraphQL types.
