@@ -10,7 +10,6 @@ import {
   PageBlock,
   FormFieldWrapper,
   Button,
-  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -83,7 +82,6 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
         | {
           id: string
           position: string
-          text?: string | null
           collectionId: string | null
           assetId: string
           asset: {
@@ -105,7 +103,6 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       return {
         id: badge?.id ?? '',
         position: position || 'top-left',
-        text: badge?.text ?? '',
         collectionId: badge?.collectionId ?? null,
         assetId: badge?.assetId ?? '',
       }
@@ -210,7 +207,6 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       // Always sync collection - set it immediately
       form.setValue('collectionId', entityCollectionId ?? null, { shouldDirty: false })
       form.setValue('assetId', badge.assetId ?? '', { shouldDirty: false })
-      form.setValue('text', badge.text ?? '', { shouldDirty: false })
     }
 
     // Initialize default values for new badges
@@ -250,7 +246,6 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
           input: {
             assetId: uploadedAsset.id,
             position: formValues.position || availablePositions[0] || 'top-left',
-            text: formValues.text || null,
             collectionId: formValues.collectionId || null,
           },
         })
@@ -371,18 +366,6 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
                     </Select>
                   )
                 }}
-              />
-              <FormFieldWrapper
-                control={form.control}
-                name="text"
-                label="Name"
-                render={({ field }) => (
-                  <Input
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    placeholder="Optional badge name, e.g. New Arrival"
-                  />
-                )}
               />
               <FormFieldWrapper
                 control={form.control}
