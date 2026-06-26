@@ -3,6 +3,7 @@ import { In } from 'typeorm'
 import {
   AssetService,
   ChannelService,
+  Collection,
   CollectionService,
   EntityHydrator,
   EntityNotFoundError,
@@ -53,16 +54,35 @@ export class BadgeService {
   }
 
   async create(ctx: RequestContext, input: CreateBadgeInput): Promise<Badge> {
-    const position = input.position ?? this.options.availablePositions?.[0] ?? 'top-left'
+    const position = input.position || 'top-left'
     this.validatePosition(position)
-    const badge = new Badge({
-      position,
-      text: input.text ?? undefined,
-      assetId: input.assetId,
-      collectionId: input.collectionId || null,
-      channels: [ctx.channel],
-    })
-    return this.connection.getRepository(ctx, Badge).save(badge)
+    // A badge must have an image. Reject early so we never persist an asset-less badge.
+    const asset = await this.assetService.findOne(ctx, input.assetId)
+    if (!asset) {
+      throw new UserInputError(`No asset with the id "${input.assetId}" could be found`)
+    }
+    const badge = new Badge({ position, text: input.text ?? undefined })
+    // `asset` and `collection` each share their FK column with the relation. On save()
+    // TypeORM takes the FK from the relation *object*, so a scalar-only id is discarded
+    // (written NULL on Postgres). Assign the loaded relation so the FK actually persists.
+    badge.asset = asset
+    badge.assetId = asset.id
+    if (input.collectionId) {
+      const collection = await this.collectionService.findOne(ctx, input.collectionId)
+      if (!collection) {
+        throw new UserInputError(`No collection with the id "${input.collectionId}" could be found`)
+      }
+      badge.collection = collection as Collection
+      badge.collectionId = collection.id
+    } else {
+      badge.collection = null
+      badge.collectionId = null
+    }
+    const created = await this.connection.getRepository(ctx, Badge).save(badge)
+    // ManyToMany channel membership isn't written from a constructor array — use the
+    // channel service to persist the junction row reliably.
+    await this.channelService.assignToChannels(ctx, Badge, created.id, [ctx.channelId])
+    return created
   }
 
   async delete(ctx: RequestContext, badge: Badge): Promise<DeletionResponse> {
@@ -83,6 +103,8 @@ export class BadgeService {
   }
 
   async update(ctx: RequestContext, input: UpdateBadgeInput): Promise<Badge> {
+
+    console.log('input', input)
     this.validatePosition(input.position)
     const repository = this.connection.getRepository(ctx, Badge)
     const badge = await repository.findOne({ where: { id: input.id } })
@@ -94,7 +116,7 @@ export class BadgeService {
       position: input.position ?? badge.position,
       text: input.text ?? badge.text,
       collectionId: input.collectionId,
-      assetId: input.assetId ?? badge.assetId,
+      assetId: input.assetId || badge.assetId,
     })
 
     const updated = await this.findOne(ctx, input.id)

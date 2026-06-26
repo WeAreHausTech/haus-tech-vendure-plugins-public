@@ -15,6 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  RelationSelector,
   Label,
   VendureImage,
 } from '@vendure/dashboard'
@@ -67,14 +68,14 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
     queryFn: () => api.query(getBadgePluginConfigDocument),
   })
 
-  const { data: collectionsData } = useQuery({
-    queryKey: ['collections'],
-    queryFn: () => api.query(getCollectionsDocument),
-  })
-
   const availablePositions = configData?.getBadgePluginConfig?.availablePositions || []
 
-  const collections = collectionsData?.collections?.items || []
+  const collectionSelectorConfig = {
+    listQuery: getCollectionsDocument,
+    idKey: 'id' as const,
+    labelKey: 'name' as const,
+    placeholder: 'Search collections...',
+  }
 
   const setValuesForUpdate = useCallback(
     (
@@ -372,22 +373,12 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
                 name="collectionId"
                 label="Collection"
                 render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(val) => field.onChange(val === 'none' ? null : val)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No collection" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No collection</SelectItem>
-                      {collections.map((collection) => (
-                        <SelectItem key={collection.id} value={collection.id}>
-                          {collection.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <RelationSelector
+                    config={collectionSelectorConfig}
+                    value={field.value ?? undefined}
+                    onChange={(val) => field.onChange(val ?? null)}
+                    selectorLabel="No collection"
+                  />
                 )}
               />
             </div>

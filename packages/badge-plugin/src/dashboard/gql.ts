@@ -93,13 +93,14 @@ export const getBadgePluginConfigDocument = graphql(`
 `)
 
 export const getCollectionsDocument = graphql(`
-  query GetCollections {
-    collections {
+  query GetCollections($options: CollectionListOptions) {
+    collections(options: $options) {
       items {
         id
         name
         slug
       }
+      totalItems
     }
   }
 `)

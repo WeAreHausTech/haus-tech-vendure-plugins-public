@@ -16,7 +16,7 @@ import { initialData } from './fixtures/initial-data'
 
 const sqliteDataDir = path.join(__dirname, '__data__')
 /** Bump when Vendure upgrades change the sqljs schema (invalidates cached e2e DB). */
-const SQLITE_SCHEMA_VERSION = '3.6.0-badge-text'
+const SQLITE_SCHEMA_VERSION = '3.6.0-badge-asset-validated'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')
@@ -51,6 +51,7 @@ const CREATE_BADGE = gql`
       position
       text
       collectionId
+      assetId
     }
   }
 `
@@ -73,6 +74,19 @@ const DELETE_BADGE = gql`
   }
 `
 
+const GET_BADGES = gql`
+  query GetBadges {
+    badges {
+      totalItems
+      items {
+        id
+        collectionId
+        assetId
+      }
+    }
+  }
+`
+
 const GET_BADGE_FROM_COLLECTION = gql`
   query GetBadgeFromCollection($collectionId: ID!) {
     getBadgeFromCollection(collectionId: $collectionId) {
@@ -80,6 +94,10 @@ const GET_BADGE_FROM_COLLECTION = gql`
       position
       text
       collectionId
+      assetId
+      asset {
+        id
+      }
     }
   }
 `
@@ -151,7 +169,24 @@ describe('BadgePlugin e2e', () => {
     expect(createBadge.position).toBe('top-right')
     expect(createBadge.text).toBe('New Arrival')
     expect(createBadge.collectionId).toBe(collectionId)
+    expect(createBadge.assetId).toBeTruthy()
     badgeId = createBadge.id
+  })
+
+  it('rejects createBadge when the asset does not exist', async () => {
+    await expect(
+      adminClient.query(CREATE_BADGE, {
+        input: { assetId: '999999', position: 'top-left', collectionId },
+      }),
+    ).rejects.toThrow(/No asset with the id/i)
+  })
+
+  it('returns the created badge in the channel-filtered admin list', async () => {
+    const { badges } = await adminClient.query(GET_BADGES)
+    const found = badges.items.find((b: { id: string }) => b.id === badgeId)
+    expect(found).toBeDefined()
+    expect(found.assetId).toBeTruthy()
+    expect(found.collectionId).toBe(collectionId)
   })
 
   it('exposes the badge to the shop API via its collection', async () => {
@@ -161,6 +196,10 @@ describe('BadgePlugin e2e', () => {
     expect(getBadgeFromCollection?.id).toBe(badgeId)
     expect(getBadgeFromCollection?.position).toBe('top-right')
     expect(getBadgeFromCollection?.text).toBe('New Arrival')
+    // Regression: the assetId FK must survive a fresh read from the DB
+    // (it was being nulled on create), and the eager asset relation must resolve.
+    expect(getBadgeFromCollection?.assetId).toBeTruthy()
+    expect(getBadgeFromCollection?.asset?.id).toBe(getBadgeFromCollection?.assetId)
   })
 
   it('updates the position and text of an existing badge', async () => {
