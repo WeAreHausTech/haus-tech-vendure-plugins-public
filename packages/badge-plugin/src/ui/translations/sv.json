@@ -1,0 +1,8 @@
+{
+  "badge-plugin": {
+    "notify-create-badges-success": "Skapade {count} badges",
+    "confirm-delete-badges": "Är du säker på att du vill ta bort {count} badges?",
+    "collections": "Samling",
+    "position": "Position"
+  }
+}

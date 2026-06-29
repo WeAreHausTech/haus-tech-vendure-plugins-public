@@ -1,0 +1,23 @@
+.select-wrapper {
+  width: 100%;
+  flex: 1 0 auto;
+
+  > div {
+    width: 100%;
+  }
+}
+
+.content {
+  width: 100%;
+}
+
+.label-title {
+  font-size: 32px;
+}
+
+:host ::ng-deep .select-wrapper {
+  > div {
+    display: block;
+    width: 100%;
+  }
+}

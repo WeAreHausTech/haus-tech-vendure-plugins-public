@@ -1,0 +1,78 @@
+<vdr-page-block style="width: 100%">
+  <div class="my-2" style="width: 100%">
+    <vdr-page-block>
+      <vdr-action-bar>
+        <vdr-ab-left></vdr-ab-left>
+        <vdr-ab-right>
+          <vdr-asset-file-input
+            (selectFiles)="filesSelected($event)"
+            [uploading]="uploading"
+            dropZoneTarget=".content-area"
+          ></vdr-asset-file-input>
+        </vdr-ab-right>
+      </vdr-action-bar>
+    </vdr-page-block>
+  </div>
+  <div class="gallery-wrapper">
+    <div class="gallery">
+      <div
+        class="card"
+        *ngFor="let item of items$ | async"
+        (click)="toggleSelection(item, $event)"
+        [class.selected]="isSelected(item)"
+      >
+        <div class="card-img">
+          <vdr-select-toggle
+            [selected]="isSelected(item)"
+            [disabled]="true"
+            [hiddenWhenOff]="true"
+          ></vdr-select-toggle>
+          <img class="asset-thumb" [src]="item.asset | assetPreview: 'medium'" />
+        </div>
+        <div class="detail">
+          <span [title]="item.position">{{ item.position }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-bar">
+      <div class="card">
+        <div class="card-img">
+          <div class="placeholder" *ngIf="selectionManager.selection.length === 0">
+            <clr-icon shape="image" size="128"></clr-icon>
+            <div>{{ 'catalog.no-selection' | translate }}</div>
+          </div>
+          <img
+            class="preview"
+            *ngIf="selectionManager.selection.length >= 1"
+            [src]="lastSelected().asset.preview + '?preset=medium'"
+          />
+        </div>
+        <div class="card-block details" *ngIf="selectionManager.selection.length >= 1">
+          <div *ngIf="selectionManager.selection.length === 1">
+            <update-badge
+              [badge]="lastSelected()"
+              [availablePositions]="config.availablePositions"
+              (badgeUpdated)="onBadgeUpdated($event)"
+            ></update-badge>
+          </div>
+          <div *ngIf="canDelete">
+            <button (click)="deleteBadges(selectionManager.selection)" class="button-small mt-1">
+              <clr-icon shape="trash" class="is-danger"></clr-icon>
+              {{ 'common.delete' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card stack" [class.visible]="selectionManager.selection.length > 1"></div>
+      <div class="selection-count" [class.visible]="selectionManager.selection.length > 1">
+        {{
+          'asset.assets-selected-count' | translate: { count: selectionManager.selection.length }
+        }}
+        <ul>
+          <li *ngFor="let asset of selectionManager.selection">{{ asset.name }}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</vdr-page-block>

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "jsx": "react-jsx",
+    "paths": {
+      "@/gql": ["../../node_modules/@vendure/dashboard/src/lib/graphql/graphql.ts"],
+      "@/vdb/*": ["../../node_modules/@vendure/dashboard/src/lib/*"]
+    }
+  },
+  "include": ["src/dashboard/**/*.ts", "src/dashboard/**/*.tsx"]
+}
