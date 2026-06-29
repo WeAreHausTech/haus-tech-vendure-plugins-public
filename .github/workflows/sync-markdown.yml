@@ -70,6 +70,7 @@ jobs:
           fi
 
           for file in $CHANGED_FILES; do
+            [ -f "$file" ] || continue   # skip deleted files (cp would fail the job under bash -eo pipefail)
             echo "Processing $file"
             plugin_name=$(echo "$file" | cut -d'/' -f2)
             mkdir -p "$DEST_DIR/$plugin_name"
