@@ -1,3 +1,12 @@
+## 4.0.8
+
+### 🚀 Features
+
+- enhance BadgePlugin with new options and improved documentation ([a087abf](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/a087abf))
+- update README for badge plugin with enhanced descriptions and features ([03b64b6](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/03b64b6))
+- enhance badge functionality with asset integration and collection selector ([8be2434](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/8be2434))
+- add badge plugin with UI components, translations, and routing ([9b19c00](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9b19c00))
+
 ## 4.0.7
 
 ### 🩹 Fixes
