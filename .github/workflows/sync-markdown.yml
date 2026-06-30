@@ -54,31 +54,68 @@ jobs:
 
       - name: Copy changed Markdown files
         run: |
+          set -euo pipefail
           DEST_DIR="../wearehaustech.github.io/docs/vendure-plugins"
           mkdir -p "$DEST_DIR"
 
+          FULL_SYNC=false
           if [ "${{ github.event.inputs.forceFullSync }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Full sync requested (forceFullSync or manual workflow_dispatch) — syncing all markdown files."
+            FULL_SYNC=true
+          fi
+
+          if [ "$FULL_SYNC" = true ]; then
+            echo "Full sync requested — syncing all markdown files."
             CHANGED_FILES=$(find packages -type f -name "*.md")
           else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^packages/.*\.md$' || true)
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.sha }}"
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" | grep -E '^packages/.*\.md$' || true)
           fi
 
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "No changed markdown files to process."
-            exit 0
+          DELETED_FILES=""
+          if [ "$FULL_SYNC" = false ]; then
+            DELETED_FILES=$(git diff --name-only --diff-filter=D "$BEFORE" "$AFTER" | grep -E '^packages/.*\.md$' || true)
           fi
 
-          for file in $CHANGED_FILES; do
-            [ -f "$file" ] || continue   # skip deleted files (cp would fail the job under bash -eo pipefail)
-            echo "Processing $file"
-            plugin_name=$(echo "$file" | cut -d'/' -f2)
-            mkdir -p "$DEST_DIR/$plugin_name"
-            cp "$file" "$DEST_DIR/$plugin_name/"
-            if [ -d "packages/$plugin_name/assets" ]; then
-              cp -r "packages/$plugin_name/assets" "$DEST_DIR/$plugin_name/"
+          if [ -z "$CHANGED_FILES" ] && [ -z "$DELETED_FILES" ] && [ "$FULL_SYNC" = false ]; then
+            echo "No changed or deleted markdown files to process."
+          else
+            for file in $CHANGED_FILES; do
+              [ -f "$file" ] || continue
+              echo "Processing $file"
+              plugin_name=$(echo "$file" | cut -d'/' -f2)
+              mkdir -p "$DEST_DIR/$plugin_name"
+              cp "$file" "$DEST_DIR/$plugin_name/"
+              if [ -d "packages/$plugin_name/assets" ]; then
+                mkdir -p "$DEST_DIR/$plugin_name/assets"
+                rsync -a --delete "packages/$plugin_name/assets/" "$DEST_DIR/$plugin_name/assets/"
+              elif [ -d "$DEST_DIR/$plugin_name/assets" ]; then
+                echo "Removing orphaned assets for $plugin_name"
+                rm -rf "$DEST_DIR/$plugin_name/assets"
+              fi
+            done
+
+            for file in $DELETED_FILES; do
+              plugin_name=$(echo "$file" | cut -d'/' -f2)
+              readme_name=$(basename "$file")
+              dest_file="$DEST_DIR/$plugin_name/$readme_name"
+              if [ -f "$dest_file" ]; then
+                echo "Deleting removed markdown file $dest_file"
+                rm -f "$dest_file"
+              fi
+            done
+
+            if [ "$FULL_SYNC" = true ]; then
+              for plugin_dir in "$DEST_DIR"/*/; do
+                [ -d "$plugin_dir" ] || continue
+                plugin="$(basename "$plugin_dir")"
+                if [ ! -f "packages/$plugin/README.md" ]; then
+                  echo "Removing orphaned plugin docs directory $plugin_dir"
+                  rm -rf "$plugin_dir"
+                fi
+              done
             fi
-          done
+          fi
 
       - name: Commit and Push to wearehaustech.github.io
         run: |
