@@ -14,6 +14,13 @@ on:
         required: false
         default: 'false'
 
+concurrency:
+  group: sync-docusaurus-docs-vendure-plugins-public
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   sync-md:
     runs-on: ubuntu-latest
@@ -118,16 +125,14 @@ jobs:
               fi
             done
 
-            if [ "$FULL_SYNC" = true ]; then
-              for plugin_dir in "$DEST_DIR"/*/; do
-                [ -d "$plugin_dir" ] || continue
-                plugin="$(basename "$plugin_dir")"
-                if [ ! -d "packages/$plugin" ]; then
-                  echo "Removing orphaned plugin docs directory $plugin_dir"
-                  rm -rf "$plugin_dir"
-                fi
-              done
-            fi
+            for plugin_dir in "$DEST_DIR"/*/; do
+              [ -d "$plugin_dir" ] || continue
+              plugin="$(basename "$plugin_dir")"
+              if [ ! -d "packages/$plugin" ]; then
+                echo "Removing orphaned plugin docs directory $plugin_dir"
+                rm -rf "$plugin_dir"
+              fi
+            done
           fi
 
       - name: Commit and Push to wearehaustech.github.io
@@ -135,6 +140,6 @@ jobs:
           cd ../wearehaustech.github.io
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add .
+          git add docs/vendure-plugins/
           git commit -m "docs(vendure-plugins): sync markdown files" || echo "No changes to commit"
           git push
