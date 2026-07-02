@@ -122,7 +122,7 @@ jobs:
               for plugin_dir in "$DEST_DIR"/*/; do
                 [ -d "$plugin_dir" ] || continue
                 plugin="$(basename "$plugin_dir")"
-                if [ ! -f "packages/$plugin/README.md" ]; then
+                if [ ! -d "packages/$plugin" ]; then
                   echo "Removing orphaned plugin docs directory $plugin_dir"
                   rm -rf "$plugin_dir"
                 fi
