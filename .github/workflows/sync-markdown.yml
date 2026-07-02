@@ -110,8 +110,8 @@ jobs:
 
             for file in $DELETED_FILES; do
               plugin_name=$(echo "$file" | cut -d'/' -f2)
-              readme_name=$(basename "$file")
-              dest_file="$DEST_DIR/$plugin_name/$readme_name"
+              md_filename=$(basename "$file")
+              dest_file="$DEST_DIR/$plugin_name/$md_filename"
               if [ -f "$dest_file" ]; then
                 echo "Deleting removed markdown file $dest_file"
                 rm -f "$dest_file"
