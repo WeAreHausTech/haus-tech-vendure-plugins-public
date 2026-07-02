@@ -78,7 +78,20 @@ jobs:
           fi
 
           if [ -z "$CHANGED_FILES" ] && [ -z "$DELETED_FILES" ] && [ "$FULL_SYNC" = false ]; then
-            echo "No changed or deleted markdown files to process."
+            ASSET_CHANGED_PLUGINS=$(git diff --name-only "$BEFORE" "$AFTER" | grep -E '^packages/[^/]+/assets/' | cut -d'/' -f2 | sort -u || true)
+            if [ -z "$ASSET_CHANGED_PLUGINS" ]; then
+              echo "No changed markdown files or assets to process."
+            else
+              for plugin_name in $ASSET_CHANGED_PLUGINS; do
+                if [ -d "packages/$plugin_name/assets" ]; then
+                  mkdir -p "$DEST_DIR/$plugin_name/assets"
+                  rsync -a --delete "packages/$plugin_name/assets/" "$DEST_DIR/$plugin_name/assets/"
+                elif [ -d "$DEST_DIR/$plugin_name/assets" ]; then
+                  echo "Removing orphaned assets for $plugin_name"
+                  rm -rf "$DEST_DIR/$plugin_name/assets"
+                fi
+              done
+            fi
           else
             for file in $CHANGED_FILES; do
               [ -f "$file" ] || continue
