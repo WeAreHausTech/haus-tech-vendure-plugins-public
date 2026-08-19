@@ -1,3 +1,10 @@
+## 3.7.0-next.0
+
+### 🚀 Features
+
+- **product-import-export-plugin:** add selectable `id` export field (product id on every variant row, never CSV column 0)
+- **product-import-export-plugin:** add `exportOptions.customExportColumns` — inject computed CSV columns (e.g. storefront permalinks) via `resolve(ctx, injector, product, variant)`; names validated at init; failing resolves log a warning and leave the cell empty
+
 ## 3.6.2
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
