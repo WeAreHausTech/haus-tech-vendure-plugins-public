@@ -31,6 +31,7 @@ const MANDATORY_OPTION_FIELDS: Array<ProductFields | VariantFields> = [
 ]
 
 const AVAILABLE_EXPORT_FIELDS: ExportFields = [
+  'id',
   'name',
   'slug',
   'description',

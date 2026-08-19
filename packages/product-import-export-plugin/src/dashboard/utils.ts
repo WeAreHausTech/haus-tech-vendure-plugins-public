@@ -13,6 +13,7 @@ export type ValidateReturnType = {
 }
 
 export type ProductFields =
+  | 'id'
   | 'name'
   | 'slug'
   | 'description'

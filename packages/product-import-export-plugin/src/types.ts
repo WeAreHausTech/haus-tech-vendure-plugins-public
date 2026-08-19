@@ -95,6 +95,7 @@ export type JsonAsset = {
 
 type ExportFields = Array<ProductFields | VariantFields>
 type ProductFields =
+  | 'id'
   | 'name'
   | 'slug'
   | 'description'

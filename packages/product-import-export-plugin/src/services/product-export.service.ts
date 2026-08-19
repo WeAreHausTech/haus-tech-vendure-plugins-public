@@ -113,6 +113,10 @@ export class ProductExportService {
       headers.push({ id: `description:${lang}`, title: `description:${lang}` })
     }
 
+    // 'id' must NOT be the first CSV column: ProductImporter.extractProductIdsFromCSV
+    // treats column 0 as a Vendure product id and uses it for by-id matching on import.
+    headers.push({ id: 'id', title: 'id' })
+
     headers.push(
       { id: 'assets', title: 'assets' },
       ...languages.map((lang) => ({ id: `facets:${lang}`, title: `facets:${lang}` })),
@@ -382,6 +386,7 @@ export class ProductExportService {
         (price) => price.channelId === ctx.channelId,
       )
       record.assets = variantIndex === 0 ? productAssets : ''
+      record.id = String(product.id)
       record.sku = variant.sku
       record.price = productVariantPrices[0]?.price / 100 // Assuming the price is stored in cents
       record.taxCategory = 'standard' // Replace with actual tax category if available

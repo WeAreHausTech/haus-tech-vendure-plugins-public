@@ -925,4 +925,63 @@ describe('ProductImportExportPlugin e2e', () => {
     await productImportService.processFile(ctx, file, true, LanguageCode.en, 'replace')
     await waitFor(async () => (await productExportService.getAllProductIds(ctx)).length >= baselineCount + 300)
   })
+
+  it('exports product id on every variant row when id is selected', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const productIds = await productExportService.getAllProductIds(ctx)
+
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'id-export.csv',
+      '',
+      'url',
+      'id,name,sku,optionGroups,optionValues',
+    )
+    const stream = await exportStorageStrategy.getExportFileStream(ctx, fileName)
+    const exportedCsv = await streamToString(stream)
+    const lines = exportedCsv.trim().split(/\r?\n/)
+    const header = lines[0].split(',')
+
+    // Import treats CSV column 0 as a Vendure product id — 'id' must never be first.
+    expect(header[0]).not.toBe('id')
+    expect(header).toContain('id')
+
+    const idIdx = header.indexOf('id')
+    const rows = lines.slice(1).map((line) => line.split(','))
+    expect(rows.length).toBeGreaterThan(productIds.length) // fixture has multi-variant products
+    for (const row of rows) {
+      expect(row[idIdx]).toMatch(/^\d+$/) // id present on continuation rows too
+    }
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+  })
+
+  it('omits id column when id is not selected', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'no-id-export.csv',
+      '',
+      'url',
+      'name,sku,optionGroups,optionValues',
+    )
+    const stream = await exportStorageStrategy.getExportFileStream(ctx, fileName)
+    const header = (await streamToString(stream)).trim().split(/\r?\n/)[0].split(',')
+    expect(header).not.toContain('id')
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+  })
 })
