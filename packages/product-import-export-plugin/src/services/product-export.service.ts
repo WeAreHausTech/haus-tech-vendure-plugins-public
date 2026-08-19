@@ -1,9 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common'
+import { ModuleRef } from '@nestjs/core'
 import {
   Asset,
   ConfigService,
   ID,
+  Injector,
   LanguageCode,
+  Logger,
   Product,
   ProductService,
   RelationCustomFieldConfig,
@@ -13,8 +16,8 @@ import {
   ChannelService,
   TransactionalConnection,
 } from '@vendure/core'
-import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
-import { PluginInitOptions } from '../types'
+import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS, loggerCtx } from '../constants'
+import { CustomExportColumn, PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
@@ -63,6 +66,7 @@ export class ProductExportService {
     private channelService: ChannelService,
     private configService: ConfigService,
     private connection: TransactionalConnection,
+    private moduleRef: ModuleRef,
   ) {}
 
   async createExportFile(
@@ -120,6 +124,10 @@ export class ProductExportService {
       headers.push({ id: `description:${lang}`, title: `description:${lang}` })
     }
 
+    // 'id' must NOT be the first CSV column: ProductImporter.extractProductIdsFromCSV
+    // treats column 0 as a Vendure product id and uses it for by-id matching on import.
+    headers.push({ id: 'id', title: 'id' })
+
     headers.push(
       { id: 'assets', title: 'assets' },
       ...languages.map((lang) => ({ id: `facets:${lang}`, title: `facets:${lang}` })),
@@ -139,8 +147,19 @@ export class ProductExportService {
       { id: 'enabled', title: 'enabled' },
     )
 
+    const configuredCustomColumns = this.options.exportOptions.customExportColumns ?? []
+    headers.push(...configuredCustomColumns.map((col) => ({ id: col.name, title: col.name })))
+
     const selectedExportFieldsArray = selectedExportFields.split(',')
     const selectedExportFieldsSet = new Set(selectedExportFieldsArray)
+
+    const selectedCustomColumns = configuredCustomColumns.filter((col) =>
+      selectedExportFieldsSet.has(col.name),
+    )
+    for (const col of selectedCustomColumns) {
+      await col.onExportStart?.()
+    }
+    const injector = new Injector(this.moduleRef)
 
     const filteredHeaders = headers.filter((header) => {
       // Ensure custom fields are not filtered out
@@ -229,6 +248,8 @@ export class ProductExportService {
             csvWriter,
             includeStockOnHand,
             stockOnHandByVariantId,
+            selectedCustomColumns,
+            injector,
           )
         }
 
@@ -287,6 +308,8 @@ export class ProductExportService {
     csvWriter: CsvWriter<any>,
     includeStockOnHand: boolean,
     stockOnHandByVariantId: Map<string, number>,
+    customColumns: CustomExportColumn[],
+    injector: Injector,
   ) {
     const records: any[] = []
     const {
@@ -415,6 +438,7 @@ export class ProductExportService {
         (price) => price.channelId === ctx.channelId,
       )
       record.assets = variantIndex === 0 ? productAssets : ''
+      record.id = String(product.id)
       record.sku = variant.sku
       record.price = productVariantPrices[0]?.price / 100 // Assuming the price is stored in cents
       record.taxCategory = 'standard' // Replace with actual tax category if available
@@ -432,6 +456,19 @@ export class ProductExportService {
           record[field] =
             this.handleCustomFields(variant.customFields, fieldName, exportAssetsAs, 'variant') ??
             ''
+        }
+      }
+
+      for (const col of customColumns) {
+        try {
+          const value = await col.resolve(ctx, injector, product, variant)
+          record[col.name] = value == null ? '' : String(value)
+        } catch (e: any) {
+          Logger.warn(
+            `customExportColumns "${col.name}" failed for sku ${variant.sku}: ${e?.message ?? e}`,
+            loggerCtx,
+          )
+          record[col.name] = ''
         }
       }
 

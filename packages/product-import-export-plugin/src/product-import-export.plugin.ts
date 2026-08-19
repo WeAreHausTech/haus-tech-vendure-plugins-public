@@ -10,7 +10,7 @@ import {
   PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
 } from './constants'
 
-import { PluginInitOptions } from './types'
+import { CustomExportColumn, PluginInitOptions } from './types'
 /* Controllers */
 import { ProductImportController } from './api/product-import.controller'
 import { ProductExportController } from './api/product-export.controller'
@@ -26,6 +26,33 @@ import { ProductExportService } from './services/product-export.service'
 import { ProductExportQueueService } from './services/product-export-queue.service'
 import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
 import { LocalImportJobStorageStrategy } from './services/import-storage/local-import-job-storage-strategy'
+
+const RESERVED_EXPORT_COLUMN_NAMES = new Set([
+  'id', 'name', 'slug', 'description', 'assets', 'facets', 'optionGroups', 'optionValues',
+  'sku', 'price', 'taxCategory', 'stockOnHand', 'trackInventory', 'variantAssets',
+  'variantFacets', 'enabled',
+])
+
+function validateCustomExportColumns(columns: CustomExportColumn[] | undefined): void {
+  if (!columns) {
+    return
+  }
+  const seen = new Set<string>()
+  for (const col of columns) {
+    if (!col.name || col.name.includes(':')) {
+      throw new Error(
+        `customExportColumns: name "${col.name}" is invalid — names must be non-empty and must not contain ':' (colon headers are reserved by the import format)`,
+      )
+    }
+    if (RESERVED_EXPORT_COLUMN_NAMES.has(col.name)) {
+      throw new Error(`customExportColumns: name "${col.name}" collides with a built-in export field`)
+    }
+    if (seen.has(col.name)) {
+      throw new Error(`customExportColumns: duplicate name "${col.name}"`)
+    }
+    seen.add(col.name)
+  }
+}
 
 @VendurePlugin({
   imports: [PluginCommonModule],
@@ -122,6 +149,8 @@ export class ProductImportExportPlugin {
     if (!options.exportOptions) {
       options.exportOptions = {}
     }
+
+    validateCustomExportColumns(options.exportOptions.customExportColumns)
 
     // Setup export options
     if (!options.exportOptions.defaultFileName) {
