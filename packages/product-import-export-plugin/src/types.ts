@@ -3,7 +3,7 @@ import {
   ParsedProduct,
   ParsedProductWithVariants,
 } from './providers/import-providers/import-parser'
-import type { Injector } from '@vendure/core'
+import type { Injector, Product, ProductVariant, RequestContext } from '@vendure/core'
 import { ExportStorageStrategy } from './services/export-storage/export-storage-strategy'
 import { ImportJobStorageStrategy } from './services/import-storage/import-job-storage-strategy'
 
@@ -80,7 +80,36 @@ export interface PluginInitOptions {
      * @description
      * Optional. If omitted, the default local-disk strategy is used.
      */
+    /**
+     * @description
+     * Optional. Additional CSV columns appended after the built-in export fields.
+     * Each column's `name` must not contain `:` and must not collide with a
+     * built-in export field name; names must also be unique. Validated at
+     * plugin init time.
+     */
+    customExportColumns?: CustomExportColumn[]
   }
+}
+
+/**
+ * @description
+ * A custom column added to the product export CSV. Only included in the output
+ * when its `name` is present in the caller-selected export fields.
+ *
+ * @category Options
+ */
+export interface CustomExportColumn {
+  /** CSV column name. No ':' and no collision with built-in export fields. */
+  name: string
+  /** Awaited once per export job before the first resolve. Use to reset caches. */
+  onExportStart?: () => void | Promise<void>
+  /** Called per variant row; return value is written to the cell ('' for null/undefined). */
+  resolve: (
+    ctx: RequestContext,
+    injector: Injector,
+    product: Product,
+    variant: ProductVariant,
+  ) => Promise<unknown> | unknown
 }
 
 export type ParsedProductWithId = ParsedProductWithVariants & {
