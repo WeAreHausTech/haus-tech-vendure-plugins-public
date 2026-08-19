@@ -42,7 +42,10 @@ export function ExportDialog({
   const [selectedFields, setSelectedFields] = useState<string[]>([])
   const [exportAssetsAs, setExportAssetsAs] = useState<'url' | 'json'>('url')
   const [selectedExportFields, setSelectedExportFields] = useState<ExportFields>([])
+  const [customColumnNames, setCustomColumnNames] = useState<string[]>([])
+  const [selectedCustomColumns, setSelectedCustomColumns] = useState<string[]>([])
   const [availableExportFields] = useState<ExportFields>([
+    'id',
     'name',
     'slug',
     'description',
@@ -92,6 +95,12 @@ export function ExportDialog({
         setConfig(configData.exportOptions)
         setCustomFields(customFieldsData.map((field: { name: string }) => field.name))
         setSelectedFields([...customFieldsData.map((field: { name: string }) => field.name)])
+
+        const columnNames =
+          configData.exportOptions?.customExportColumns?.map((c: { name: string }) => c.name) ?? []
+        setCustomColumnNames(columnNames)
+        setSelectedCustomColumns(columnNames)
+
         setExportAssetsAs(
           configData.exportOptions?.defaultExportAssetsAs ||
             configData.exportOptions?.exportAssetsAsOptions?.[0] ||
@@ -127,6 +136,12 @@ export function ExportDialog({
     )
   }
 
+  const toggleCustomColumnSelection = (name: string) => {
+    setSelectedCustomColumns((prev) =>
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name],
+    )
+  }
+
   const toggleExportFieldSelection = (fieldName: ProductFields | VariantFields) => {
     if (mandatoryOptionFields.includes(fieldName)) {
       return
@@ -141,12 +156,14 @@ export function ExportDialog({
     if (checked) {
       setSelectedExportFields([...availableExportFields])
       setSelectedFields([...customFields])
+      setSelectedCustomColumns([...customColumnNames])
     } else {
       setSelectedExportFields([
         ...(config?.requiredExportFields || []),
         ...mandatoryOptionFields,
       ])
       setSelectedFields([])
+      setSelectedCustomColumns([])
     }
   }
 
@@ -160,7 +177,7 @@ export function ExportDialog({
       const body = isExportAll ? undefined : JSON.stringify(productIds)
 
       const res = await fetch(
-        `${serverPath}/product-export/${endpoint}?fileName=${encodeURIComponent(finalFileName)}&customFields=${encodeURIComponent(selectedFields.join(','))}&exportAssetsAs=${exportAssetsAs}&selectedExportFields=${encodeURIComponent(selectedExportFields.join(','))}`,
+        `${serverPath}/product-export/${endpoint}?fileName=${encodeURIComponent(finalFileName)}&customFields=${encodeURIComponent(selectedFields.join(','))}&exportAssetsAs=${exportAssetsAs}&selectedExportFields=${encodeURIComponent([...selectedExportFields, ...selectedCustomColumns].join(','))}`,
         {
           method: 'POST',
           headers: {
@@ -253,6 +270,22 @@ export function ExportDialog({
                     />
                     <Label htmlFor={`custom-${field}`} className="font-normal">
                       {field}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
+            {customColumnNames.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {customColumnNames.map((name) => (
+                  <div key={name} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`custom-column-${name}`}
+                      checked={selectedCustomColumns.includes(name)}
+                      onCheckedChange={() => toggleCustomColumnSelection(name)}
+                    />
+                    <Label htmlFor={`custom-column-${name}`} className="font-normal">
+                      {name}
                     </Label>
                   </div>
                 ))}

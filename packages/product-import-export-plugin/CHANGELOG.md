@@ -1,3 +1,10 @@
+## 3.3.11-next.0
+
+### 🚀 Features
+
+- **product-import-export-plugin:** add `id` export field, written after the translated `name`/`slug`/`description` columns so it is never CSV column 0 (import treats column 0 positionally as a product id for by-id matching)
+- **product-import-export-plugin:** add `customExportColumns` plugin option to resolve custom per-variant CSV columns (e.g. a permalink) via an `onExportStart`/`resolve` hook
+
 ## 3.3.10-next.6
 
 ### 🩹 Fixes
