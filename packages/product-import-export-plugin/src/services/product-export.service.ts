@@ -9,13 +9,12 @@ import {
   Logger,
   Product,
   ProductService,
-  ProductVariant,
   RelationCustomFieldConfig,
   RequestContext,
   StockLevelService,
   ChannelService,
 } from '@vendure/core'
-import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
+import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS, loggerCtx } from '../constants'
 import { CustomExportColumn, PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
@@ -434,7 +433,7 @@ export class ProductExportService {
         } catch (e: any) {
           Logger.warn(
             `customExportColumns "${col.name}" failed for sku ${variant.sku}: ${e?.message ?? e}`,
-            'ProductImportExportPlugin',
+            loggerCtx,
           )
           record[col.name] = ''
         }

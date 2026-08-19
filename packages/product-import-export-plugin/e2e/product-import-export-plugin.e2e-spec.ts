@@ -234,6 +234,19 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(String(body?.message ?? '')).toContain('Invalid fileName')
   })
 
+  it('rejects export-all when name is missing from selectedExportFields', async () => {
+    const response = await fetch(
+      `http://localhost:${apiPort}/product-export/export-all?selectedExportFields=id,sku,optionGroups,optionValues`,
+      {
+        method: 'POST',
+      },
+    )
+
+    expect(response.status).toBe(422)
+    const body = await response.json()
+    expect(String(body?.message ?? '')).toContain('name is a required export field')
+  })
+
   it('exports stockOnHand value for variants', async () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
