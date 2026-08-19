@@ -103,7 +103,7 @@ ProductImportExportPlugin.init({
     customExportColumns: [
       {
         name: 'permalink',
-        // Called once per export job, before the first `resolve` — use it to reset caches.
+        // Called once per export job, before the first `resolve`. Use it to reset caches.
         onExportStart: () => resetMyCache(),
         resolve: (ctx, injector, product, variant) =>
           injector.get(MyStorefrontLinkService).getProductUrl(ctx, product),
