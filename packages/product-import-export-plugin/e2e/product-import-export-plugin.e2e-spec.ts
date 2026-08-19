@@ -1031,6 +1031,11 @@ describe('ProductImportExportPlugin e2e', () => {
 
     const result = await runImport(productImporter, ctx, withExtraColumn)
     expect(result.errors).toEqual([])
+    // `imported` counts parsed products (parsed.results.length in product-importer.ts),
+    // not CSV/variant rows, so it must equal the product count we exported. This guards
+    // against a silent no-op (e.g. a header/column-count mismatch from the appended
+    // 'permalink' column) that would otherwise satisfy an empty-errors check trivially.
+    expect(result.imported).toBe(exportProductIds.length)
 
     const productIdsAfter = await productExportService.getAllProductIds(ctx)
     expect(productIdsAfter.length).toBe(productIdsBefore.length)
