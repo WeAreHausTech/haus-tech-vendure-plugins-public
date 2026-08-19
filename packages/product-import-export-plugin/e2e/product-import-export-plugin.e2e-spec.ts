@@ -984,4 +984,55 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(header).not.toContain('id')
     await exportStorageStrategy.deleteExportFile(ctx, fileName)
   })
+
+  it('re-imports an export containing id and custom columns without errors', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const productImporter = server.app.get(ProductImporter)
+    const connection = server.app.get(TransactionalConnection)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const productIdsBefore = await productExportService.getAllProductIds(ctx)
+
+    // The 'reports parser error when optionValues count mismatches optionGroups' test
+    // above deliberately imports a product with invalid optionGroups/optionValues data;
+    // the 'replace' strategy still persists it despite the reported error. Re-exporting
+    // and re-importing that already-invalid data would fail here for reasons unrelated
+    // to what this test verifies (id + custom column round-tripping), so it is excluded
+    // from the export selection.
+    const productRepo = connection.getRepository(ctx, Product)
+    const mismatchProduct = await productRepo.findOne({
+      where: { translations: { slug: 'mismatch-product' } },
+    })
+    const exportProductIds = mismatchProduct
+      ? productIdsBefore.filter((id) => id !== mismatchProduct.id)
+      : productIdsBefore
+
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      exportProductIds,
+      'roundtrip.csv',
+      '',
+      'url',
+      'id,name,sku,optionGroups,optionValues,price,taxCategory',
+    )
+    const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+
+    // Simulate a configured custom column (e.g. bov's permalink) in the file.
+    const lines = csv.trim().split(/\r?\n/)
+    const withExtraColumn = [
+      `${lines[0]},permalink`,
+      ...lines.slice(1).map((line) => `${line},https://example.com/x/`),
+    ].join('\n')
+
+    const result = await runImport(productImporter, ctx, withExtraColumn)
+    expect(result.errors).toEqual([])
+
+    const productIdsAfter = await productExportService.getAllProductIds(ctx)
+    expect(productIdsAfter.length).toBe(productIdsBefore.length)
+  })
 })
