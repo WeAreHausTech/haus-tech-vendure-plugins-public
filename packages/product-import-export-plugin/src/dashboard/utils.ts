@@ -43,6 +43,7 @@ export interface PluginInitOptions {
     defaultExportAssetsAs?: 'url' | 'json'
     defaultExportFields?: ExportFields
     requiredExportFields?: ExportFields
+    customExportColumns?: Array<{ name: string }>
   }
 }
 
