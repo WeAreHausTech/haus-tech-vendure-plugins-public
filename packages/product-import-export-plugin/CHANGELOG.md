@@ -1,3 +1,20 @@
+## 3.3.11-next.0
+
+### 🚀 Features
+
+- **product-import-export-plugin:** add progress reporting to product export process ([ed6220e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/ed6220e))
+- **product-import-export-plugin:** optimize product export process and stock level retrieval ([d281929](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/d281929))
+- **product-import-export-plugin:** enhance email notification and import/export functionality ([c133dc5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/c133dc5))
+- **product-import-export-plugin:** enforce import/export acceptance criteria and enhance documentation ([b1a93b6](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/b1a93b6))
+- **product-import-export-plugin:** update pre-version command and clean up export artifacts ([1cde024](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1cde024))
+- **product-import-export-plugin:** optimize asset handling and caching in product importer ([9d2888e](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/9d2888e))
+- **product-import-export-plugin:** enhance testing and export functionality ([1764eb2](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/1764eb2))
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** ensure tax category is always assigned to product variants ([276bed5](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/276bed5))
+- **product-import-export-plugin:** poll exports list and restore featured asset on import ([2c61b48](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/commit/2c61b48))
+
 ## 3.3.10-next.6
 
 ### 🩹 Fixes
