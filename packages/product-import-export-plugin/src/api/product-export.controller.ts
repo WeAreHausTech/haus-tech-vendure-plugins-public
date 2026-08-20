@@ -49,6 +49,19 @@ export class ProductExportController {
     return trimmed
   }
 
+  private validateNameFieldPresent(selectedExportFields: string): void {
+    const selected = new Set(
+      selectedExportFields
+        .split(',')
+        .map((field) => field.trim())
+        .filter(Boolean),
+    )
+
+    if (!selected.has('name')) {
+      throw new UnprocessableEntityException('name is a required export field')
+    }
+  }
+
   private async validateOptionColumnsForMultiVariantExport(
     ctx: RequestContext,
     selectedExportFields: string,
@@ -116,6 +129,7 @@ export class ProductExportController {
         customFields = ''
       }
 
+      this.validateNameFieldPresent(selectedExportFields)
       await this.validateOptionColumnsForMultiVariantExport(ctx, selectedExportFields, selection)
 
       const job = await this.productExportQueueService.triggerExportWithSelection(
@@ -167,6 +181,7 @@ export class ProductExportController {
         customFields = ''
       }
 
+      this.validateNameFieldPresent(selectedExportFields)
       await this.validateOptionColumnsForMultiVariantExport(ctx, selectedExportFields)
 
       const job = await this.productExportQueueService.triggerExport(
