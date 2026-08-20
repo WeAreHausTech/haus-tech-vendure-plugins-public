@@ -1,3 +1,9 @@
+## 3.3.11-next.1
+
+### 🚀 Features
+
+- **product-import-export-plugin:** backport id export field + customExportColumns to 3.5 line (3.3.11-next.0) ([#22](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/22))
+
 ## 3.3.11-next.0
 
 ### 🚀 Features
