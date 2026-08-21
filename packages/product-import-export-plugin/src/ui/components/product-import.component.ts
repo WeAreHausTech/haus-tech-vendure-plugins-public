@@ -60,6 +60,7 @@ export class ProductImportComponent implements OnInit {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getRequestHeaders(),
       },
     })
       .then((res) => res.json())

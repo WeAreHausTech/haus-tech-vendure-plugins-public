@@ -1,4 +1,4 @@
-import { Ctx, LanguageCode, RequestContext } from '@vendure/core'
+import { Allow, Ctx, LanguageCode, Permission, RequestContext } from '@vendure/core'
 import {
   Controller,
   Inject,
@@ -22,6 +22,7 @@ export class ProductImportController {
   ) {}
 
   @Post('/upload')
+  @Allow(Permission.UpdateCatalog, Permission.UpdateProduct)
   @UseInterceptors(FileInterceptor('file'))
   async updateProducts(
     @Ctx() ctx: RequestContext,
