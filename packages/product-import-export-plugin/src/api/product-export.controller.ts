@@ -1,4 +1,4 @@
-import { Ctx, RequestContext, ID } from '@vendure/core'
+import { Allow, Ctx, Permission, RequestContext, ID } from '@vendure/core'
 import {
   Body,
   Controller,
@@ -90,6 +90,7 @@ export class ProductExportController {
   }
 
   @Post('export')
+  @Allow(Permission.UpdateCatalog, Permission.UpdateProduct)
   async exportProducts(
     @Ctx() ctx: RequestContext,
     @Res() res: Response,
@@ -156,6 +157,7 @@ export class ProductExportController {
   }
 
   @Post('export-all')
+  @Allow(Permission.UpdateCatalog, Permission.UpdateProduct)
   async exportAllProducts(
     @Ctx() ctx: RequestContext,
     @Query('fileName') fileName: string,
@@ -204,6 +206,7 @@ export class ProductExportController {
   }
 
   @Get('download/:fileName')
+  @Allow(Permission.ReadCatalog, Permission.ReadProduct)
   async downloadExport(
     @Ctx() ctx: RequestContext,
     @Res() res: Response,
@@ -225,6 +228,7 @@ export class ProductExportController {
   }
 
   @Delete('delete/:fileName')
+  @Allow(Permission.UpdateCatalog, Permission.UpdateProduct)
   async deleteExport(@Ctx() ctx: RequestContext, @Param('fileName') fileName: string) {
     try {
       const validatedFileName = this.validateExportFileName(fileName)
@@ -240,11 +244,13 @@ export class ProductExportController {
   }
 
   @Post('custom-fields')
+  @Allow(Permission.ReadCatalog, Permission.ReadProduct)
   async getCustomFields(@Ctx() ctx: RequestContext, @Body() ids: string[]) {
     return this.productExportService.getCustomFields(ctx, ids)
   }
 
   @Get('exported-files')
+  @Allow(Permission.ReadCatalog, Permission.ReadProduct)
   async getExportFiles(@Ctx() ctx: RequestContext) {
     try {
       return await this.exportStorageStrategy.listExportFiles(ctx)
