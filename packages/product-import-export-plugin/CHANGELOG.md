@@ -1,3 +1,9 @@
+## 3.6.3
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** secure REST API, stop leaking storage credentials ([#24](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/24))
+
 ## 3.6.2
 
 This was a version bump only for product-import-export-plugin to align it with other projects, there were no code changes.
