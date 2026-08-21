@@ -27,7 +27,6 @@ export type PublicPluginConfig = {
 
 export type PublicChannelInfo = {
   code: string
-  token: string
   defaultLanguageCode: string
   availableLanguageCodes: string[]
 }
@@ -67,7 +66,7 @@ export class ProductImportExportPluginController {
   @Get('channel')
   @Allow(Permission.ReadCatalog, Permission.ReadProduct)
   getChannel(@Ctx() ctx: RequestContext): PublicChannelInfo {
-    const { code, token, defaultLanguageCode, availableLanguageCodes } = ctx.channel
-    return { code, token, defaultLanguageCode, availableLanguageCodes }
+    const { code, defaultLanguageCode, availableLanguageCodes } = ctx.channel
+    return { code, defaultLanguageCode, availableLanguageCodes }
   }
 }

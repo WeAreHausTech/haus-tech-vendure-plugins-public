@@ -6,6 +6,7 @@ import {
   SqljsInitializer,
   testConfig,
 } from '@vendure/testing'
+import gql from 'graphql-tag'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
 import { S3ExportStorageStrategy } from '../src/services/export-storage/s3-export-storage-strategy'
@@ -59,7 +60,20 @@ describe('REST API security e2e', () => {
       plugins: [
         ProductImportExportPlugin.init({
           importOptions: {
-            defaultOptions: { updateProductSlug: false, restoreSoftDeleted: false },
+            defaultOptions: {
+              updateProductSlug: false,
+              restoreSoftDeleted: false,
+              // The ImportOptions type also allows a strategy here; it must be filtered too.
+              storageStrategy: new S3ImportJobStorageStrategy({
+                storage: {
+                  bucket: 'fake-bucket',
+                  credentials: {
+                    accessKeyId: FAKE_ACCESS_KEY_ID,
+                    secretAccessKey: FAKE_SECRET_ACCESS_KEY,
+                  },
+                },
+              }),
+            },
             storageStrategy: new S3ImportJobStorageStrategy({
               storage: {
                 bucket: 'fake-bucket',
@@ -155,7 +169,6 @@ describe('REST API security e2e', () => {
         updateProductSlug: false,
         restoreSoftDeleted: false,
       })
-      expect(ALLOWED_EXPORT_KEYS).toEqual(expect.arrayContaining(Object.keys(config.exportOptions)))
       expect(Object.keys(config.exportOptions).sort()).toEqual(ALLOWED_EXPORT_KEYS)
       expect(config.exportOptions.defaultFileName).toBe('security-e2e.csv')
     })
@@ -172,21 +185,86 @@ describe('REST API security e2e', () => {
         'availableLanguageCodes',
         'code',
         'defaultLanguageCode',
-        'token',
       ])
       expect(channel.code).toBe('__default_channel__')
       expect(Array.isArray(channel.availableLanguageCodes)).toBe(true)
     })
   })
 
-  describe('authenticated admin keeps access', () => {
-    it('GET /product-export/exported-files succeeds', async () => {
-      // S3 listing with fake credentials will fail inside the handler, which surfaces
-      // as a 422 from the controller — the point is that the guard let us through.
-      const response = await fetch(`${baseUrl}/product-export/exported-files`, {
-        headers: authHeaders(),
+  describe('permission matrix', () => {
+    const READ_ROUTES = ALL_ENDPOINTS.filter((e) =>
+      ['/product-import-export/config', '/product-import-export/channel',
+       '/product-export/download/some-file.csv', '/product-export/custom-fields',
+       '/product-export/exported-files'].includes(e.path),
+    )
+    const WRITE_ROUTES = ALL_ENDPOINTS.filter((e) => !READ_ROUTES.includes(e))
+
+    async function call(endpoint: EndpointSpec): Promise<number> {
+      const response = await fetch(`${baseUrl}${endpoint.path}`, {
+        method: endpoint.method,
+        headers: authHeaders(endpoint.body ? { 'content-type': 'application/json' } : {}),
+        body: endpoint.body,
       })
-      expect(response.status).not.toBe(403)
+      return response.status
+    }
+
+    beforeAll(async () => {
+      // A role with ReadCatalog only: may use read routes, must be refused on write routes.
+      const { createRole } = await adminClient.query(
+        gql`
+          mutation CreateCatalogReaderRole($input: CreateRoleInput!) {
+            createRole(input: $input) {
+              id
+            }
+          }
+        `,
+        {
+          input: {
+            code: 'e2e-catalog-reader',
+            description: 'e2e: ReadCatalog only',
+            permissions: ['ReadCatalog'],
+          },
+        },
+      )
+      await adminClient.query(
+        gql`
+          mutation CreateCatalogReaderAdmin($input: CreateAdministratorInput!) {
+            createAdministrator(input: $input) {
+              id
+            }
+          }
+        `,
+        {
+          input: {
+            firstName: 'Catalog',
+            lastName: 'Reader',
+            emailAddress: 'catalog-reader@e2e.test',
+            password: 'e2e-password',
+            roleIds: [createRole.id],
+          },
+        },
+      )
+    })
+
+    it('superadmin is admitted on every route (guard passes; handler status varies)', async () => {
+      await adminClient.asSuperAdmin()
+      for (const endpoint of ALL_ENDPOINTS) {
+        expect(await call(endpoint), `${endpoint.method} ${endpoint.path}`).not.toBe(403)
+      }
+    })
+
+    it('ReadCatalog-only admin is admitted on read routes and refused on write routes', async () => {
+      await adminClient.asUserWithCredentials('catalog-reader@e2e.test', 'e2e-password')
+      try {
+        for (const endpoint of READ_ROUTES) {
+          expect(await call(endpoint), `${endpoint.method} ${endpoint.path}`).not.toBe(403)
+        }
+        for (const endpoint of WRITE_ROUTES) {
+          expect(await call(endpoint), `${endpoint.method} ${endpoint.path}`).toBe(403)
+        }
+      } finally {
+        await adminClient.asSuperAdmin()
+      }
     })
   })
 })

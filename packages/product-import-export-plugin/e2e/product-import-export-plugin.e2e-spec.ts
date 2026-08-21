@@ -206,7 +206,7 @@ describe('ProductImportExportPlugin e2e', () => {
 
     const channel = await response.json()
     expect(channel.code).toBe('__default_channel__')
-    expect(channel.token).toBe(E2E_DEFAULT_CHANNEL_TOKEN)
+    expect(channel.token).toBeUndefined()
   })
 
   it('returns exportable custom fields from HTTP endpoint', async () => {
