@@ -116,6 +116,9 @@ async function runImport(
 
 describe('ProductImportExportPlugin e2e', () => {
   const apiPort = 3057
+  const authHeaders = (): Record<string, string> => ({
+    authorization: `Bearer ${adminClient.getAuthToken()}`,
+  })
   const { server, adminClient } = createTestEnvironment(
     mergeConfig(testConfig, {
       apiOptions: { port: apiPort },
@@ -178,6 +181,7 @@ describe('ProductImportExportPlugin e2e', () => {
   it('returns plugin config defaults from HTTP endpoint', async () => {
     const response = await fetch(
       `http://localhost:${apiPort}/product-import-export/config`,
+      { headers: authHeaders() },
     )
     expect(response.status).toBe(200)
 
@@ -196,12 +200,13 @@ describe('ProductImportExportPlugin e2e', () => {
   it('returns active channel from HTTP endpoint', async () => {
     const response = await fetch(
       `http://localhost:${apiPort}/product-import-export/channel`,
+      { headers: authHeaders() },
     )
     expect(response.status).toBe(200)
 
     const channel = await response.json()
     expect(channel.code).toBe('__default_channel__')
-    expect(channel.token).toBe(E2E_DEFAULT_CHANNEL_TOKEN)
+    expect(channel.token).toBeUndefined()
   })
 
   it('returns exportable custom fields from HTTP endpoint', async () => {
@@ -211,6 +216,7 @@ describe('ProductImportExportPlugin e2e', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          ...authHeaders(),
         },
         body: JSON.stringify([]),
       },
@@ -226,6 +232,7 @@ describe('ProductImportExportPlugin e2e', () => {
       `http://localhost:${apiPort}/product-export/export-all?fileName=../bad&selectedExportFields=name,sku`,
       {
         method: 'POST',
+        headers: authHeaders(),
       },
     )
 
@@ -572,6 +579,7 @@ describe('ProductImportExportPlugin e2e', () => {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
+            ...authHeaders(),
           },
           body: JSON.stringify([productIds[0]]),
         },
@@ -778,6 +786,7 @@ describe('ProductImportExportPlugin e2e', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          ...authHeaders(),
         },
         body: JSON.stringify([targetProductId]),
       },

@@ -56,8 +56,23 @@ export const getServerLocation = (): string => {
   return origin
 }
 
-// Return vendure-token header if a non-default channel has been selected in the Dashboard
+// Same localStorage keys as @vendure/dashboard's own API client (LS_KEY_SELECTED_CHANNEL_TOKEN /
+// LS_KEY_SESSION_TOKEN). The plugin's REST routes require admin permissions, so every fetch must
+// carry the session token too, not only cookies: on a server configured with tokenMethod 'bearer'
+// there is no session cookie and credentials: 'include' alone would yield 403.
+const LS_KEY_SELECTED_CHANNEL_TOKEN = 'vendure-selected-channel-token'
+const LS_KEY_SESSION_TOKEN = 'vendure-session-token'
+
+// Return vendure-token (if a non-default channel is selected) and Authorization headers
 export const getChannelHeader = (): Record<string, string> => {
-  const token = localStorage.getItem('vendure-selected-channel-token')
-  return token ? { 'vendure-token': token } : {}
+  const headers: Record<string, string> = {}
+  const channelToken = localStorage.getItem(LS_KEY_SELECTED_CHANNEL_TOKEN)
+  if (channelToken) {
+    headers['vendure-token'] = channelToken
+  }
+  const sessionToken = localStorage.getItem(LS_KEY_SESSION_TOKEN)
+  if (sessionToken) {
+    headers.authorization = `Bearer ${sessionToken}`
+  }
+  return headers
 }
