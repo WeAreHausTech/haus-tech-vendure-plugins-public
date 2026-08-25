@@ -1,0 +1,32 @@
+# Paste under `jobs:` in `.github/workflows/ci.yml` (sibling to `build:` / `test:`).
+# Prerequisite: `haus` on PATH — e.g. `npm install -g @haus-tech/haus-workflow@latest`.
+#
+# Trivial-change carve-outs (dep bumps, lockfile-only, catalog sync) live in the
+# CLI `haus decisions check` algorithm — not in this job fragment.
+#
+# Optional lefthook pre-commit — merge under `pre-commit.commands` in lefthook.yml:
+#
+#   decisions-check:
+#     run: haus decisions check --staged
+#     fail_text: 'Staged change needs an ADR. Run `haus decisions suggest`.'
+
+decisions-gate:
+  if: github.event_name == 'pull_request'
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Install haus CLI
+      run: npm install -g @haus-tech/haus-workflow@latest
+    - name: Require ADR for decision-worthy changes
+      env:
+        PR_BODY: ${{ github.event.pull_request.body }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+      run: |
+        set -euo pipefail
+        git fetch --no-tags origin "$BASE_REF"
+        haus decisions check --range "origin/$BASE_REF..HEAD"

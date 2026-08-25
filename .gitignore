@@ -48,3 +48,15 @@ static/*-tmp/**
 # Yarn 4 transient state
 .yarn/install-state.gz
 .yarn/build-state.yml
+
+# haus fetched-docs cache (machine-local; haus reads it from disk)
+.haus-workflow/llms-cache/
+
+# HAUS:BEGIN haus-managed v=1
+# haus machine-local artifacts — must never be committed (see ADR-0025, ADR-0058)
+.haus-workflow/context-map.json
+.haus-workflow/recommendation.json
+.haus-workflow/sources-report.json
+.haus-workflow/deep-context.json
+.haus-workflow/backups/
+# HAUS:END haus-managed

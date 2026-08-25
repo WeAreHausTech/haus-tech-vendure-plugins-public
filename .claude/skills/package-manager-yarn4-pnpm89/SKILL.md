@@ -36,5 +36,6 @@ description: Package manager router for Yarn 4 and pnpm 8.9 workspaces, constrai
 
 ## References
 
+- references/conventions.md
 - references/scope.md
 - references/workflow.md

@@ -1,15 +1,5 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "haus context --from-hook"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
@@ -28,40 +18,77 @@
           }
         ],
         "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus decisions guard --from-hook"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus decisions suggest --from-hook"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus update --from-hook"
+          }
+        ],
+        "matcher": "*"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus workspace worktree doctor --from-hook"
+          }
+        ],
+        "matcher": "*"
       }
     ]
   },
   "_haus": {
     "hooks": [
-      "haus.context-hook",
       "haus.guard-file",
-      "haus.guard-bash"
+      "haus.guard-bash",
+      "haus.decisions-guard",
+      "haus.decisions-suggest",
+      "haus.update-check",
+      "hook.workspace.worktree-check"
     ],
     "hookCommands": [
-      "haus context --from-hook",
       "haus guard file-access --from-hook",
-      "haus guard bash --from-hook"
+      "haus guard bash --from-hook",
+      "haus decisions guard --from-hook",
+      "haus decisions suggest --from-hook",
+      "haus update --from-hook",
+      "haus workspace worktree doctor --from-hook"
     ],
     "denyRules": [
-      "Bash(rm -rf:*)",
       "Bash(sudo:*)",
       "Bash(chmod -R 777:*)",
-      "Bash(chown -R:*)",
       "Bash(git push --force:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(docker system prune:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push -f:*)",
       "Bash(drop database:*)",
       "Bash(truncate table:*)",
-      "Bash(php artisan migrate --force:*)",
       "Bash(npm publish:*)",
       "Bash(yarn npm publish:*)",
       "Bash(pnpm publish:*)",
-      "Read(.env)",
-      "Edit(.env)",
-      "Write(.env)",
-      "Read(.env.*)",
-      "Edit(.env.*)",
-      "Write(.env.*)",
       "Read(*.pem)",
       "Edit(*.pem)",
       "Write(*.pem)",
@@ -80,33 +107,9 @@
       "Read(id_ed25519)",
       "Edit(id_ed25519)",
       "Write(id_ed25519)",
-      "Read(*.sql)",
-      "Edit(*.sql)",
-      "Write(*.sql)",
-      "Read(*.dump)",
-      "Edit(*.dump)",
-      "Write(*.dump)",
-      "Read(*.backup)",
-      "Edit(*.backup)",
-      "Write(*.backup)",
-      "Read(*.bak)",
-      "Edit(*.bak)",
-      "Write(*.bak)",
-      "Read(storage/logs/**)",
-      "Edit(storage/logs/**)",
-      "Write(storage/logs/**)",
-      "Read(wp-content/uploads/**)",
-      "Edit(wp-content/uploads/**)",
-      "Write(wp-content/uploads/**)",
-      "Read(uploads/**)",
-      "Edit(uploads/**)",
-      "Write(uploads/**)",
       "Read(customer-data/**)",
       "Edit(customer-data/**)",
       "Write(customer-data/**)",
-      "Read(exports/**)",
-      "Edit(exports/**)",
-      "Write(exports/**)",
       "Read(secrets/**)",
       "Edit(secrets/**)",
       "Write(secrets/**)",
@@ -115,35 +118,90 @@
       "Write(certs/**)"
     ],
     "allowRules": [
-      "Bash(haus setup-project:*)",
+      "Bash(haus init:*)",
       "Bash(haus apply:*)",
       "Bash(haus doctor:*)",
       "Bash(haus scan:*)",
-      "Bash(haus context:*)",
-      "Bash(haus recommend:*)"
+      "Bash(haus recommend:*)",
+      "Bash(haus explain-recommendation:*)",
+      "Bash(haus fetch-refs:*)",
+      "Bash(haus rescan:*)",
+      "Bash(haus clone:*)",
+      "Bash(haus new:*)",
+      "Bash(haus update:*)",
+      "Bash(haus install:*)",
+      "Bash(haus configs:*)",
+      "Bash(haus ci-gate:*)",
+      "Bash(haus catalog-audit:*)",
+      "Bash(haus validate-catalog:*)",
+      "Bash(haus backups list:*)",
+      "Bash(haus guard file-access:*)",
+      "Bash(haus guard bash:*)",
+      "Bash(haus catalog bundle export:*)",
+      "Bash(haus catalog bundle import:*)",
+      "Bash(haus decisions check:*)",
+      "Bash(haus decisions suggest:*)",
+      "Bash(haus decisions next-number:*)",
+      "Bash(haus decisions guard:*)",
+      "Bash(haus decisions validate:*)",
+      "Bash(haus adr check:*)",
+      "Bash(haus adr suggest:*)",
+      "Bash(haus adr next-number:*)",
+      "Bash(haus adr guard:*)",
+      "Bash(haus adr validate:*)",
+      "Bash(haus workspace discover:*)",
+      "Bash(haus workspace scan:*)",
+      "Bash(haus workspace setup:*)",
+      "Bash(haus workspace doctor:*)",
+      "Bash(haus workspace link-context:*)",
+      "Bash(haus workspace worktree add:*)",
+      "Bash(haus workspace worktree hydrate:*)",
+      "Bash(haus workspace worktree list:*)",
+      "Bash(haus workspace worktree doctor:*)"
+    ],
+    "askRules": [
+      "Bash(rm -rf:*)",
+      "Bash(chown -R:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(docker system prune:*)",
+      "Bash(php artisan migrate --force:*)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Edit(.env.*)",
+      "Write(.env.*)",
+      "Edit(storage/logs/**)",
+      "Write(storage/logs/**)",
+      "Edit(exports/**)",
+      "Write(exports/**)",
+      "Read(*.dump)",
+      "Edit(*.dump)",
+      "Write(*.dump)",
+      "Read(*.backup)",
+      "Edit(*.backup)",
+      "Write(*.backup)",
+      "Read(*.bak)",
+      "Edit(*.bak)",
+      "Write(*.bak)",
+      "Read(wp-content/uploads/**)",
+      "Edit(wp-content/uploads/**)",
+      "Write(wp-content/uploads/**)",
+      "Read(uploads/**)",
+      "Edit(uploads/**)",
+      "Write(uploads/**)"
     ]
   },
   "permissions": {
     "deny": [
-      "Bash(rm -rf:*)",
       "Bash(sudo:*)",
       "Bash(chmod -R 777:*)",
-      "Bash(chown -R:*)",
       "Bash(git push --force:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(docker system prune:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push -f:*)",
       "Bash(drop database:*)",
       "Bash(truncate table:*)",
-      "Bash(php artisan migrate --force:*)",
       "Bash(npm publish:*)",
       "Bash(yarn npm publish:*)",
       "Bash(pnpm publish:*)",
-      "Read(.env)",
-      "Edit(.env)",
-      "Write(.env)",
-      "Read(.env.*)",
-      "Edit(.env.*)",
-      "Write(.env.*)",
       "Read(*.pem)",
       "Edit(*.pem)",
       "Write(*.pem)",
@@ -162,9 +220,72 @@
       "Read(id_ed25519)",
       "Edit(id_ed25519)",
       "Write(id_ed25519)",
-      "Read(*.sql)",
-      "Edit(*.sql)",
-      "Write(*.sql)",
+      "Read(customer-data/**)",
+      "Edit(customer-data/**)",
+      "Write(customer-data/**)",
+      "Read(secrets/**)",
+      "Edit(secrets/**)",
+      "Write(secrets/**)",
+      "Read(certs/**)",
+      "Edit(certs/**)",
+      "Write(certs/**)"
+    ],
+    "allow": [
+      "Bash(haus init:*)",
+      "Bash(haus apply:*)",
+      "Bash(haus doctor:*)",
+      "Bash(haus scan:*)",
+      "Bash(haus recommend:*)",
+      "Bash(haus explain-recommendation:*)",
+      "Bash(haus fetch-refs:*)",
+      "Bash(haus rescan:*)",
+      "Bash(haus clone:*)",
+      "Bash(haus new:*)",
+      "Bash(haus update:*)",
+      "Bash(haus install:*)",
+      "Bash(haus configs:*)",
+      "Bash(haus ci-gate:*)",
+      "Bash(haus catalog-audit:*)",
+      "Bash(haus validate-catalog:*)",
+      "Bash(haus backups list:*)",
+      "Bash(haus guard file-access:*)",
+      "Bash(haus guard bash:*)",
+      "Bash(haus catalog bundle export:*)",
+      "Bash(haus catalog bundle import:*)",
+      "Bash(haus decisions check:*)",
+      "Bash(haus decisions suggest:*)",
+      "Bash(haus decisions next-number:*)",
+      "Bash(haus decisions guard:*)",
+      "Bash(haus decisions validate:*)",
+      "Bash(haus adr check:*)",
+      "Bash(haus adr suggest:*)",
+      "Bash(haus adr next-number:*)",
+      "Bash(haus adr guard:*)",
+      "Bash(haus adr validate:*)",
+      "Bash(haus workspace discover:*)",
+      "Bash(haus workspace scan:*)",
+      "Bash(haus workspace setup:*)",
+      "Bash(haus workspace doctor:*)",
+      "Bash(haus workspace link-context:*)",
+      "Bash(haus workspace worktree add:*)",
+      "Bash(haus workspace worktree hydrate:*)",
+      "Bash(haus workspace worktree list:*)",
+      "Bash(haus workspace worktree doctor:*)"
+    ],
+    "ask": [
+      "Bash(rm -rf:*)",
+      "Bash(chown -R:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(docker system prune:*)",
+      "Bash(php artisan migrate --force:*)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Edit(.env.*)",
+      "Write(.env.*)",
+      "Edit(storage/logs/**)",
+      "Write(storage/logs/**)",
+      "Edit(exports/**)",
+      "Write(exports/**)",
       "Read(*.dump)",
       "Edit(*.dump)",
       "Write(*.dump)",
@@ -174,35 +295,12 @@
       "Read(*.bak)",
       "Edit(*.bak)",
       "Write(*.bak)",
-      "Read(storage/logs/**)",
-      "Edit(storage/logs/**)",
-      "Write(storage/logs/**)",
       "Read(wp-content/uploads/**)",
       "Edit(wp-content/uploads/**)",
       "Write(wp-content/uploads/**)",
       "Read(uploads/**)",
       "Edit(uploads/**)",
-      "Write(uploads/**)",
-      "Read(customer-data/**)",
-      "Edit(customer-data/**)",
-      "Write(customer-data/**)",
-      "Read(exports/**)",
-      "Edit(exports/**)",
-      "Write(exports/**)",
-      "Read(secrets/**)",
-      "Edit(secrets/**)",
-      "Write(secrets/**)",
-      "Read(certs/**)",
-      "Edit(certs/**)",
-      "Write(certs/**)"
-    ],
-    "allow": [
-      "Bash(haus setup-project:*)",
-      "Bash(haus apply:*)",
-      "Bash(haus doctor:*)",
-      "Bash(haus scan:*)",
-      "Bash(haus context:*)",
-      "Bash(haus recommend:*)"
+      "Write(uploads/**)"
     ]
   }
 }
