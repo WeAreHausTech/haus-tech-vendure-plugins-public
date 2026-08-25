@@ -25,3 +25,9 @@ yarn.lock
 
 # Ignore docs or exports
 CHANGELOG.md
+
+# HAUS:BEGIN haus-managed v=1
+# haus-owned files — do not reformat (keeps tamper/lock hashes stable)
+.haus-workflow/
+.claude/
+# HAUS:END haus-managed

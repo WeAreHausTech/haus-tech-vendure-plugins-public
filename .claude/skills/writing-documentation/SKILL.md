@@ -34,6 +34,8 @@ This skill ships as a default haus catalog skill. When run inside a haus-managed
   { "source": "writing-documentation", "roles": [], "stacks": {}, "patterns": [] }
   ```
 
+  **Never add fields beyond this shape** — in particular, never include the repo's absolute path, the user's home directory, or any other machine-specific string (e.g. as a `root`/`scanRoot`/`cwd` field, or embedded inside a `patterns` entry). This file is machine-local and gitignored, but if it ever leaks into git anyway it must never carry another developer's local filesystem path. `source` identifies the writer; `roles`/`stacks`/`patterns` are the signal the recommender actually consumes — no fifth field, and no machine-specific value inside any of these four.
+
   Then hint the user: run `haus recommend && haus apply` to pick up newly-discovered skills.
 
 - **App mode only under haus.** haus drives single-repo (app mode). Workspace mode is for manual multi-repo use; haus does not orchestrate it.

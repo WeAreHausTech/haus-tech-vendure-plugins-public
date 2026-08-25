@@ -1,4 +1,4 @@
-<!-- HAUS-MANAGED id=template.workflow v=1 source=@haus-tech/haus-workflow@0.16.2 hash=sha256-da5c83d84b225a451550deb4d7b146b6f6d7c45e38f58e96a784aeca1858782a -->
+<!-- HAUS-MANAGED id=template.workflow v=1 source=@haus-tech/haus-workflow@4.5.0 hash=sha256-9ccb9ed7f8088ff4c70d8af35971b902d379ed8d6102677e2803996391ccce99 -->
 # Agentic Development Workflow Standard
 
 > Tech-agnostic methodology for AI-assisted software projects.
@@ -14,7 +14,7 @@
 | UX flows      | `docs/UX.md`                                                          |
 | Mockups       | `docs/design/` (gitignore binaries, commit README.txt)                |
 | Plans         | `docs/plans/<feature-slug>.md` (one per feature, persist after merge) |
-| Decision log  | `docs/adr/`                                                           |
+| Decision log  | `docs/decisions/`                                                     |
 | Failure modes | `docs/runbook.md`                                                     |
 
 When the user says "spec", "design", "ux", "plan", or "mockup": resolve to the rows above.
@@ -62,6 +62,7 @@ All new code ships with tests. **Give every task a verifiable signal** (test, bu
 
 **6. Commit.**
 Before merging: conduct a code review (adversarial, fresh context). Present merge / PR / cleanup options to the user.
+**Docs ship with the change:** if setup, commands, env, deploy, or integrations changed, run the writing-documentation skill (`/docs`) and commit the doc updates in the same PR — or state explicitly that docs are N/A. Stale docs mislead every later agent session.
 After merging a major milestone: capture lessons learned and feed them to the standards backlog.
 
 ---
@@ -94,13 +95,14 @@ Add to `.claude/settings.json`:
       "Bash(git commit --no-verify:*)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
-      "Read(.env)",
-      "Write(.env)",
       "Read(*.pem)",
+      "Edit(*.pem)",
       "Write(*.pem)",
       "Read(*.key)",
+      "Edit(*.key)",
       "Write(*.key)"
-    ]
+    ],
+    "ask": ["Edit(.env)", "Write(.env)"]
   }
 }
 ```
@@ -111,6 +113,20 @@ Add to `.claude/settings.json`:
 
 - **Squash-merge:** `gh pr merge <n> --squash --delete-branch`. Never plain `--merge`.
 - **Conventional Commits:** `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`, `ci`, `perf`. Scope by domain: `feat(auth):`.
+- **Closing keywords: one keyword per issue, one per line.** GitHub ignores bare
+  references, so `Closes #1, #2, #3` closes only #1 — the other two stay open
+  silently and nobody notices. Write each on its own line in the PR body:
+
+  ```
+  Closes #1
+  Closes #2
+  ```
+
+  Keywords are `close`/`closes`/`closed`, `fix`/`fixes`/`fixed`,
+  `resolve`/`resolves`/`resolved`. Two traps with the same silent failure:
+  they work **only when the PR targets the default branch**, and another repo's
+  issue needs `owner/repo#123` — a bare `#123` links nothing. Close only what
+  the PR actually finishes; half-fixed issues keep their own row out of it.
 
 ---
 
@@ -176,24 +192,32 @@ pre-commit:
 
 ## Architecture Decision Records (ADR)
 
+Architecture Decision Records capture **why** a significant choice was made. The machine drafts; the human approves.
+
 Write an ADR when: choosing a library or framework, defining a data or security model, picking a merge or deploy strategy, setting an API contract, or resolving a spec conflict. If you would otherwise make an assumption: write an ADR instead.
 
-- Location: `docs/adr/`, filename: `NNNN-kebab-case-title.md`
+- Location: `docs/decisions/`, filename: `NNNN-kebab-case-title.md`
+- Index: `docs/decisions/README.md` — keep a one-line **why** per ADR; `@import` the index from `CLAUDE.md`
 - Write-once. To change: new ADR that "Supersedes ADR-NNNN". Statuses: `Proposed`, `Accepted`, `Deprecated`, `Superseded by ADR-XXXX`.
-- Maintain index table in `docs/adr/README.md`.
+- Enforcement: `haus decisions check` (CI + optional lefthook); `haus decisions suggest` drafts from the diff.
 
 ```markdown
 # ADR-NNNN: [Title]
 
-- **Status:** Accepted | **Date:** YYYY-MM-DD
+- **Status:** Proposed | Accepted | **Date:** YYYY-MM-DD
+- **Decided by:** [person] (draft by [agent])
+- **Affects:** [paths/components]
+- **Related:** [PR/issue]
 
 ## Context
 
 ## Decision
 
-## Consequences
+## Motivation (why)
 
 ## Alternatives considered
+
+## Consequences
 ```
 
 ---
@@ -218,7 +242,7 @@ Each fact has exactly one home. Never duplicate across layers.
 | --------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `AGENTS.md` / `CLAUDE.md`   | Stable rules, commands, conventions                                    | Loaded in full, every session. Keep small.                         |
 | Auto memory (`MEMORY.md`)   | Learnings the agent discovers (build quirks, debug insights, patterns) | First ~200 lines / 25 KB loaded. Accumulates without manual edits. |
-| ADR (`docs/adr/`)           | Architectural decisions, library choices, policy                       | On demand. Permanent, write-once.                                  |
+| ADR (`docs/decisions/`)     | Architectural decisions, library choices, policy                       | On demand. Permanent, write-once.                                  |
 | Runbook (`docs/runbook.md`) | Failure modes + exact fix                                              | On demand. Permanent, append-only.                                 |
 | `workflow-config.md`        | Doc paths, test commands, highest-stakes, tool choices                 | Loaded with WORKFLOW.md. Project-owned.                            |
 
@@ -236,6 +260,24 @@ Rule of thumb: ADR for WHY, runbook for HOW TO FIX, memory for what was LEARNED,
 | Debugging a specific failure        | Single agent with full context            |
 
 Each spawned agent needs a self-contained prompt: file paths, relevant decisions, expected output format. No implicit context from the parent session.
+
+---
+
+## Out-of-scope capture
+
+When you notice out-of-scope work worth keeping — a bug found mid-task, scope
+deliberately deferred from a plan, or an idea a human explicitly asks you to
+record — spawn the `issue-creator` agent instead of creating a background-task
+chip. Chips die with the session; issues persist and reach the whole team.
+
+- Findings and deferred scope: file automatically, always labelled `needs-triage`.
+- Ideas: file only when a human explicitly asks. Idea volume is unbounded —
+  auto-filed ideas bury real bugs.
+- If GitHub issues are not available — no GitHub remote, `gh` missing or
+  unauthenticated, or issues disabled on the repo — do NOT spawn the agent:
+  create a background-task chip instead and say so in your final message.
+  A finding with no capture path is a finding lost.
+- Nothing in a filed issue may be implemented before human sign-off.
 
 ---
 

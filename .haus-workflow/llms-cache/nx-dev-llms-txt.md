@@ -1,0 +1,808 @@
+# Nx
+
+> Nx is an AI-first monorepo platform that connects your editor to CI. It helps you deliver fast without breaking things by optimizing builds, scaling CI, and fixing failed PRs.
+
+Nx is a powerful, open-source, technology-agnostic monorepo platform designed to efficiently manage codebases of any scale. From small workspaces to large enterprise monorepos, Nx provides intelligent task execution, caching, and CI optimization.
+
+Note: All documentation pages are available as raw Markdown by appending `.md` to the URL.
+For example: https://nx.dev/docs/getting-started/intro.md returns the raw Markdown content.
+
+## Quickstart
+
+- [Quickstart with Nx](https://nx.dev/docs/quickstart.md): Get up and running with the Nx monorepo platform in minutes - install Nx, set up your editor, configure AI assistance, and choose your development...
+
+## Getting Started
+
+- [Getting Started](https://nx.dev/docs/getting-started.md): Get up and running with Nx in your development workflow
+- [Integrate Nx with your Coding Assistant](https://nx.dev/docs/getting-started/ai-setup.md): Set up Nx MCP server to give AI assistants deep workspace context, terminal integration, and enhanced development capabilities.
+- [Editor Integration](https://nx.dev/docs/getting-started/editor-setup.md): Set up Nx Console in VSCode or JetBrains for visual UI, task management, code generation, and enhanced AI assistance in your Nx workspace.
+- [Installation](https://nx.dev/docs/getting-started/installation.md): Install Nx globally via npm, Homebrew, Chocolatey, or apt. Add Nx to existing repos with nx init.
+- [What is Nx? Smart Monorepo Build System & CI](https://nx.dev/docs/getting-started/intro.md): Nx is a build system with smart caching and task orchestration for monorepos and polyrepos. Ship faster and keep CI fast as your codebase scales.
+- [Nx Cloud](https://nx.dev/docs/getting-started/nx-cloud.md): Get started with using Nx Cloud and improve your PRs time to green.
+- [Setting Up CI](https://nx.dev/docs/getting-started/setup-ci.md): Configure CI for your Nx workspace with remote caching, affected, distributed task execution, and self-healing.
+- [Start a New Project](https://nx.dev/docs/getting-started/start-new-project.md): Create a new Nx workspace with create-nx-workspace and pick a starter template for your stack.
+- [Add to an Existing Project](https://nx.dev/docs/getting-started/start-with-existing-project.md): Add Nx to any existing project with a single command. Start with task running and caching, then gradually adopt more capabilities.
+- [Tutorials](https://nx.dev/docs/getting-started/tutorials.md): Step-by-step tutorials for different frameworks
+- [Building and Testing Angular Apps in Nx](https://nx.dev/docs/getting-started/tutorials/angular-monorepo-tutorial.md): You'll create a frontend-focused monorepo with Nx.
+- [Caching Tasks](https://nx.dev/docs/getting-started/tutorials/caching.md): Learn how Nx caching works, including computation hashing, inputs, outputs, and remote caching, to eliminate redundant task execution and speed up...
+- [Configuring Tasks](https://nx.dev/docs/getting-started/tutorials/configuring-tasks.md): Learn how to define and configure tasks in your Nx workspace using package.json scripts, project.json targets, task dependencies, and targetDefaults.
+- [Crafting Your Nx Workspace](https://nx.dev/docs/getting-started/tutorials/crafting-your-workspace.md): Learn what an Nx workspace is, how to create one, and how to structure it with project organization, package manager workspaces, and TypeScript...
+- [Managing Dependencies](https://nx.dev/docs/getting-started/tutorials/managing-dependencies.md): Learn how Nx tracks dependencies between projects, how package manager workspaces handle internal packages, and strategies for managing external...
+- [Building and Testing React Apps in Nx](https://nx.dev/docs/getting-started/tutorials/react-monorepo-tutorial.md): You'll create a frontend-focused monorepo with Nx.
+- [Reducing Configuration Boilerplate](https://nx.dev/docs/getting-started/tutorials/reducing-configuration-boilerplate.md): Learn how Nx plugins automatically infer tasks from your tooling configuration, eliminating the need to manually define targets, caching, inputs, and...
+- [Running Tasks](https://nx.dev/docs/getting-started/tutorials/running-tasks.md): Learn how to run tasks in your Nx workspace, including single tasks, multiple tasks in parallel, and how to pass arguments.
+- [Building and Testing TypeScript Packages in Nx](https://nx.dev/docs/getting-started/tutorials/typescript-packages-tutorial.md): You'll create a TypeScript monorepo with Nx.gradient
+- [Understanding Your Workspace](https://nx.dev/docs/getting-started/tutorials/understanding-your-workspace.md): Learn how to explore your Nx workspace, including listing projects, visualizing the project graph, inspecting task details, and debugging...
+
+## Core Concepts
+
+- [Core Concepts](https://nx.dev/docs/concepts.md): Understand the core concepts of how Nx works under the hood
+- [CI Concepts](https://nx.dev/docs/concepts/ci-concepts.md): Continuous Integration concepts and best practices
+- [Building blocks of fast CI](https://nx.dev/docs/concepts/ci-concepts/building-blocks-fast-ci.md): Learn how affected tasks, caching, parallelism, and distribution work together to reduce CI time.
+- [Parallelization and distribution](https://nx.dev/docs/concepts/ci-concepts/parallelization-distribution.md): Compare local task parallelism, manual CI distribution, and distributed task execution with Nx Agents.
+- [How caching works](https://nx.dev/docs/concepts/how-caching-works.md): Learn how Nx caching reuses task results locally and across machines to avoid repeated work.
+- [Mental Model](https://nx.dev/docs/concepts/mental-model.md): Understand how project graphs, inferred tasks, task graphs, affected commands, and caching work together in Nx.
+- [How Nx plugins work](https://nx.dev/docs/concepts/nx-plugins.md): Learn how Nx plugins integrate tools and frameworks through task inference, code generation, migrations, and executors.
+- [Sync Generators](https://nx.dev/docs/concepts/sync-generators.md): Learn how to use Nx sync generators to maintain repository state and update configuration files based on the project graph before tasks are run.
+- [Task pipeline configuration](https://nx.dev/docs/concepts/task-pipeline-configuration.md): Learn how to configure task dependencies so Nx runs work in the correct order and parallelizes independent tasks.
+- [Managing configuration files](https://nx.dev/docs/concepts/types-of-configuration.md): Learn how workspace, project, and tool configuration combine to define Nx projects and tasks.
+
+## Features
+
+- [Features](https://nx.dev/docs/features.md): Discover all the powerful features that Nx provides to speed up your CI and simplify your development
+- [Automate Updating Dependencies](https://nx.dev/docs/features/automate-updating-dependencies.md): Learn how to use Nx migrate to automatically update package dependencies, configuration files, and source code to match new package versions.
+- [Cache Task Results](https://nx.dev/docs/features/cache-task-results.md): Learn how to use Nx computation caching to speed up task execution and reduce CI/CD costs by never rebuilding the same code twice.
+- [Orchestration & CI with Nx Cloud](https://nx.dev/docs/features/ci-features.md): Speed up CI, reduce costs, and eliminate flakiness with Nx Cloud's task-based CI execution model.
+- [Run Only Tasks Affected by a PR](https://nx.dev/docs/features/ci-features/affected.md): Learn how to use Nx affected command to determine and run tasks only on projects affected by your changes, improving CI speed and efficiency.
+- [Dedicated Compute Cluster](https://nx.dev/docs/features/ci-features/dedicated-compute-cluster.md): Reserve an isolated Nx Cloud compute environment for your organization and unlock Docker-in-Docker, sandboxing, and read-through caches.
+- [Distribute Task Execution (Nx Agents)](https://nx.dev/docs/features/ci-features/distribute-task-execution.md): Learn how to use Nx Agents to distribute task execution across multiple machines, optimizing CI pipeline speed and efficiency through intelligent...
+- [Docker Layer Caching](https://nx.dev/docs/features/ci-features/docker-layer-caching.md): Cache Docker build layers across CI runs on Nx Agents to speed up image builds.
+- [Docker Read-Through Cache](https://nx.dev/docs/features/ci-features/docker-read-through-cache.md): Serve repeated Docker image pulls from a cache close to your Nx Agents instead of the upstream registry.
+- [Dynamically Allocate Agents](https://nx.dev/docs/features/ci-features/dynamic-agents.md): Configure Nx Agents to dynamically scale based on PR size for cost-effective CI
+- [Detect and Retry Flaky Tasks](https://nx.dev/docs/features/ci-features/flaky-tasks.md): Nx Cloud detects flaky tasks - tests, e2e runs, or builds - by tracking results for the same task hash across CI runs, then retries them on a...
+- [GitHub Actions integration](https://nx.dev/docs/features/ci-features/github-integration.md): Speed up GitHub Actions for your monorepo with Nx: run only affected projects, share a remote cache, and add PR insights and self-healing CI with Nx...
+- [npm Read-Through Cache](https://nx.dev/docs/features/ci-features/npm-read-through-cache.md): Serve repeated npm installs from a cache close to your Nx Agents instead of the public npm registry.
+- [Remote caching](https://nx.dev/docs/features/ci-features/remote-cache.md): Share cached task results across developer machines and CI with Nx Cloud remote caching.
+- [Resource Usage](https://nx.dev/docs/features/ci-features/resource-usage.md): Understand how your tasks use CPU and memory during CI runs.
+- [Task Sandboxing](https://nx.dev/docs/features/ci-features/sandboxing.md): Confine each task to its declared inputs and outputs to catch undeclared dependencies and keep caching correct.
+- [AI-Powered Self-Healing CI](https://nx.dev/docs/features/ci-features/self-healing-ci.md): Learn how Nx Cloud Self-Healing CI uses AI to automatically detect, analyze, and fix CI failures, eliminating the need to babysit PRs and keeping you...
+- [Automatically Split Slow Tasks by File (Atomizer)](https://nx.dev/docs/features/ci-features/split-e2e-tasks.md): Automatically split large test tasks into individual file-level tasks for parallel execution
+- [Enforce Module Boundaries](https://nx.dev/docs/features/enforce-module-boundaries.md): Learn how to use Nx module boundaries to maintain a clean architecture by controlling dependencies between projects using tags and dependency...
+- [Enhance Your AI Coding Agent](https://nx.dev/docs/features/enhance-ai.md): Learn how Nx enhances your AI assistant by providing rich workspace metadata, architectural insights, and CI integration for autonomous workflows.
+- [Explore your Workspace](https://nx.dev/docs/features/explore-graph.md): Learn how Nx helps you understand your workspace by viewing project details, the project graph, and the task graph.
+- [Generate Code](https://nx.dev/docs/features/generate-code.md): Learn how to use Nx code generators to automate repetitive tasks, scaffold new projects, and maintain consistency in your codebase.
+- [Manage Releases](https://nx.dev/docs/features/manage-releases.md): Learn how to use Nx release tools to version, generate changelogs, and publish your projects with confidence using conventional commits.
+- [Multi-Language Support](https://nx.dev/docs/features/multi-language-support.md): Nx works with any language or toolchain. Plugins infer projects, tasks, and dependencies from the configuration files your tools already use.
+- [Run Tasks](https://nx.dev/docs/features/run-tasks.md): Learn how to use Nx task runner to efficiently manage and execute tasks across multiple projects in your monorepo, including parallel execution and...
+
+## Guides
+
+- [Guides](https://nx.dev/docs/guides.md): In-depth guides for working with Nx
+- [Prepare Applications for Deployment via CI](https://nx.dev/docs/guides/ci-deployment.md): Learn how to generate package.json and pruned lock files for your Nx applications to optimize container-based deployments in CI environments.
+- [Enforce Module Boundaries](https://nx.dev/docs/guides/enforce-module-boundaries.md): Control dependencies between projects
+- [Ban Dependencies with Certain Tags](https://nx.dev/docs/guides/enforce-module-boundaries/ban-dependencies-with-tags.md): Learn how to use the notDependOnLibsWithTags property to prevent projects from depending on libraries with specific tags in your Nx workspace.
+- [Ban External Imports](https://nx.dev/docs/guides/enforce-module-boundaries/ban-external-imports.md): Learn how to use ESLint module boundary constraints to prevent projects from importing specific external packages and enforce separation of concerns.
+- [Tag in Multiple Dimensions](https://nx.dev/docs/guides/enforce-module-boundaries/tag-multiple-dimensions.md): Learn how to use multiple tag dimensions in Nx to create more sophisticated module boundary constraints, controlling dependencies between projects...
+- [Tags Allow List](https://nx.dev/docs/guides/enforce-module-boundaries/tags-allow-list.md): Learn how to create exceptions to your module boundary rules by configuring allow lists that permit specific imports that would otherwise be...
+- [Guides](https://nx.dev/docs/guides/installation.md): Different ways to install Nx
+- [Nx Cloud Guides](https://nx.dev/docs/guides/nx-cloud.md): How to use Nx Cloud
+- [Reduce the Number of Affected Projects in a CI Pipeline Execution](https://nx.dev/docs/guides/nx-cloud/cipe-affected-project-graph.md): Learn how to use the Affected Project Graph feature to optimize CI pipeline execution times
+- [Enable AI Features](https://nx.dev/docs/guides/nx-cloud/enable-ai-features.md): Learn how to enable and configure AI-powered features in Nx Cloud
+- [Enable End to End Encryption](https://nx.dev/docs/guides/nx-cloud/encryption.md): Configure end-to-end encryption for task artifacts in Nx Cloud remote cache
+- [Connecting Nx Cloud to your existing Google identity provider](https://nx.dev/docs/guides/nx-cloud/google-auth.md): Use Google Identity or Google Workspaces for Nx Cloud authentication and access control
+- [Optimize Your Time to Green (TTG)](https://nx.dev/docs/guides/nx-cloud/optimize-your-ttg.md): Learn how to reduce your Time to Green (TTG) and improve developer productivity
+- [Recording Non-Nx Commands](https://nx.dev/docs/guides/nx-cloud/record-commands.md): Learn how to record and save output from arbitrary commands with Nx Cloud
+- [Azure DevOps Integration](https://nx.dev/docs/guides/nx-cloud/source-control-integration/azure-devops.md): Learn how to integrate Nx Cloud with Azure DevOps for PR integration.
+- [Bitbucket Integration](https://nx.dev/docs/guides/nx-cloud/source-control-integration/bitbucket.md): Learn how to integrate Nx Cloud with Bitbucket for PR integration.
+- [GitLab Integration](https://nx.dev/docs/guides/nx-cloud/source-control-integration/gitlab.md): Learn how to integrate Nx Cloud with GitLab for MR integration.
+- [Nx Console](https://nx.dev/docs/guides/nx-console.md): Using Nx Console extension
+- [Nx Release](https://nx.dev/docs/guides/nx-release.md): Publishing and versioning with Nx
+- [Automatically Version with Conventional Commits](https://nx.dev/docs/guides/nx-release/automatically-version-with-conventional-commits.md): Learn how to configure Nx Release to automatically determine version bumps based on conventional commit messages, enabling automated versioning in...
+- [Build Before Versioning](https://nx.dev/docs/guides/nx-release/build-before-versioning.md): Learn how to configure Nx Release to build your projects before applying version updates, ensuring that distribution files are properly generated...
+- [Configuring Version Prefix for Dependencies](https://nx.dev/docs/guides/nx-release/configuration-version-prefix.md): Learn how to set up custom version prefixes in Nx Release to control how dependency versions are specified in your manifest files (such as...
+- [Configure Changelog Format](https://nx.dev/docs/guides/nx-release/configure-changelog-format.md): Learn how to customize the format of changelogs generated by Nx Release, including options to control author information, commit references, and...
+- [Configure Custom Registries](https://nx.dev/docs/guides/nx-release/configure-custom-registries.md): Configure .npmrc to publish with Nx Release to custom npm registries, including multiple registries with scopes and per-package registry...
+- [Customize Conventional Commit Types](https://nx.dev/docs/guides/nx-release/customize-conventional-commit-types.md): Learn how to configure Nx Release to customize how different conventional commit types affect versioning and changelog generation, including changing...
+- [File Based Versioning (Version Plans)](https://nx.dev/docs/guides/nx-release/file-based-versioning-version-plans.md): Learn how to use Nx Release's version plans feature to track version bumps in separate files, similar to Changesets or Beachball, allowing for more...
+- [Programmatic API](https://nx.dev/docs/guides/nx-release/programmatic-api.md): Learn how to use the Nx Release programmatic API to go beyond the CLI and create custom release workflows.
+- [Publish in CI/CD](https://nx.dev/docs/guides/nx-release/publish-in-ci-cd.md): Learn how to configure Nx Release to automate your package publishing process in CI/CD pipelines across different ecosystems including npm, Docker,...
+- [Release Groups](https://nx.dev/docs/guides/nx-release/release-groups.md): Learn how to configure Nx Release to organize projects into release groups, with specific configuration for each group depending on your needs.
+- [Release Projects Independently](https://nx.dev/docs/guides/nx-release/release-projects-independently.md): Learn how to configure Nx Release to version and publish projects independently in your monorepo, allowing different release schedules for different...
+- [Update Dependents](https://nx.dev/docs/guides/nx-release/update-dependents.md): Learn how to configure Nx Release to automatically update dependents when a dependency is versioned, across any number of release group boundaries.
+- [Update Your Local Registry Setup to use Nx Release](https://nx.dev/docs/guides/nx-release/update-local-registry-setup.md): Learn how to update your existing local registry setup to use Nx Release for publishing packages during end-to-end testing, replacing older publish...
+- [Updating Version References in Manifest Files](https://nx.dev/docs/guides/nx-release/updating-version-references.md): Learn how to configure Nx Release to update version references in package.json and other manifest files, including strategies for source files,...
+- [Tasks & Caching](https://nx.dev/docs/guides/tasks--caching.md): Task execution and caching configuration
+- [Tips and Tricks](https://nx.dev/docs/guides/tips-n-tricks.md): Helpful tips for using Nx effectively
+- [Advanced Update Process](https://nx.dev/docs/guides/tips-n-tricks/advanced-update.md): Learn advanced techniques for updating Nx and workspace dependencies, including step-by-step migration strategies, managing complex updates, and...
+
+## Extending Nx
+
+- [Extending Nx](https://nx.dev/docs/extending-nx.md): In-depth guides for extending Nx with plugins, executors, generators, and more.
+
+## Technologies
+
+- [Technologies](https://nx.dev/docs/technologies.md): Explore Nx technology integrations and how it can support your specific stack
+- [Angular](https://nx.dev/docs/technologies/angular.md): Build scalable Angular applications with Nx powerful tooling and generators
+- [Angular with Rsbuild](https://nx.dev/docs/technologies/angular/angular-rsbuild.md): Using Rsbuild with Angular
+- [createServer - @nx/angular-rsbuild/ssr](https://nx.dev/docs/technologies/angular/angular-rsbuild/create-server.md): API Reference for createServer from @nx/angular-rsbuild/ssr
+- [Nx with Angular Rsbuild](https://nx.dev/docs/technologies/angular/angular-rsbuild/introduction.md): Use Angular Rsbuild with Nx to build and cache Angular projects across your monorepo, with affected-only builds and distributed CI.
+- [Angular with Rspack](https://nx.dev/docs/technologies/angular/angular-rspack.md): Using Rspack with Angular
+- [Angular Rspack Compiler](https://nx.dev/docs/technologies/angular/angular-rspack-compiler.md): Compilation utilities for Angular with Rspack and Rsbuild.
+- [Angular Rspack Compiler](https://nx.dev/docs/technologies/angular/angular-rspack-compiler/introduction.md): Compilation utilities for Angular with Rspack and Rsbuild.
+- [angular-rspack-compiler](https://nx.dev/docs/technologies/angular/angular-rspack-compiler/introduction.md): Compilation utilities for Angular with Rspack and Rsbuild.
+- [Guides](https://nx.dev/docs/technologies/angular/angular-rspack/guides.md): Guides for using Rspack with Angular
+- [Nx with Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack/introduction.md): Use Angular Rspack with Nx to build and cache Angular projects across your monorepo, with affected-only builds and distributed CI.
+- [angular-rspack](https://nx.dev/docs/technologies/angular/angular-rspack/introduction.md): Rspack Plugin and Loaders for building Angular.
+- [@nx/angular Executors](https://nx.dev/docs/technologies/angular/executors.md): The Nx Plugin for Angular contains executors, generators, and utilities for managing Angular applications and libraries within an Nx workspace. It...
+- [@nx/angular Generators](https://nx.dev/docs/technologies/angular/generators.md): The Nx Plugin for Angular contains executors, generators, and utilities for managing Angular applications and libraries within an Nx workspace. It...
+- [Guides](https://nx.dev/docs/technologies/angular/guides.md): In-depth guides for Angular development with Nx
+- [Nx with Angular](https://nx.dev/docs/technologies/angular/introduction.md): Nx scales your Angular monorepo with caching, distributed task execution, and affected-only builds.
+- [angular](https://nx.dev/docs/technologies/angular/introduction.md): The Nx Plugin for Angular contains executors, generators, and utilities for managing Angular applications and libraries within an Nx workspace. It...
+- [Angular Migration](https://nx.dev/docs/technologies/angular/migration.md): Migrating Angular applications to Nx
+- [@nx/angular Migrations](https://nx.dev/docs/technologies/angular/migrations.md): The Nx Plugin for Angular contains executors, generators, and utilities for managing Angular applications and libraries within an Nx workspace. It...
+- [Build Tools](https://nx.dev/docs/technologies/build-tools.md): Modern build tools support including Vite, Webpack, Rspack, Rollup, and ESBuild
+- [Docker](https://nx.dev/docs/technologies/build-tools/docker.md): Containerize your projects with Docker and Nx
+- [Nx with Docker](https://nx.dev/docs/technologies/build-tools/docker/introduction.md): Use Docker with Nx to build, cache, and deploy containerized projects from your monorepo.
+- [docker](https://nx.dev/docs/technologies/build-tools/docker/introduction.md): The Nx Plugin for Docker to aid in containerizing projects.
+- [@nx/docker Migrations](https://nx.dev/docs/technologies/build-tools/docker/migrations.md): The Nx Plugin for Docker to aid in containerizing projects.
+- [ESBuild](https://nx.dev/docs/technologies/build-tools/esbuild.md): Fast JavaScript bundler
+- [@nx/esbuild Executors](https://nx.dev/docs/technologies/build-tools/esbuild/executors.md): The Nx Plugin for esbuild contains executors and generators that support building applications using esbuild
+- [@nx/esbuild Generators](https://nx.dev/docs/technologies/build-tools/esbuild/generators.md): The Nx Plugin for esbuild contains executors and generators that support building applications using esbuild
+- [Nx with esbuild](https://nx.dev/docs/technologies/build-tools/esbuild/introduction.md): Use esbuild with Nx to build and cache projects across your monorepo, with affected-only builds and distributed CI.
+- [esbuild](https://nx.dev/docs/technologies/build-tools/esbuild/introduction.md): The Nx Plugin for esbuild contains executors and generators that support building applications using esbuild
+- [@nx/esbuild Migrations](https://nx.dev/docs/technologies/build-tools/esbuild/migrations.md): The Nx Plugin for esbuild contains executors and generators that support building applications using esbuild
+- [Rollup](https://nx.dev/docs/technologies/build-tools/rollup.md): Module bundler for JavaScript
+- [@nx/rollup Executors](https://nx.dev/docs/technologies/build-tools/rollup/executors.md): The Nx Plugin for Rollup contains executors and generators that support building applications using Rollup.
+- [@nx/rollup Generators](https://nx.dev/docs/technologies/build-tools/rollup/generators.md): The Nx Plugin for Rollup contains executors and generators that support building applications using Rollup.
+- [Nx with Rollup](https://nx.dev/docs/technologies/build-tools/rollup/introduction.md): Use Rollup with Nx to build and cache projects across your monorepo, with affected-only builds and distributed CI.
+- [rollup](https://nx.dev/docs/technologies/build-tools/rollup/introduction.md): The Nx Plugin for Rollup contains executors and generators that support building applications using Rollup.
+- [@nx/rollup Migrations](https://nx.dev/docs/technologies/build-tools/rollup/migrations.md): The Nx Plugin for Rollup contains executors and generators that support building applications using Rollup.
+- [Rsbuild](https://nx.dev/docs/technologies/build-tools/rsbuild.md): Rspack-based build tool
+- [@nx/rsbuild Generators](https://nx.dev/docs/technologies/build-tools/rsbuild/generators.md): The Nx Plugin for Rsbuild contains an Nx plugin, executors and utilities that support building applications using Rsbuild.
+- [Nx with Rsbuild](https://nx.dev/docs/technologies/build-tools/rsbuild/introduction.md): Use Rsbuild with Nx to build and cache projects across your monorepo, with affected-only builds and distributed CI.
+- [rsbuild](https://nx.dev/docs/technologies/build-tools/rsbuild/introduction.md): The Nx Plugin for Rsbuild contains an Nx plugin, executors and utilities that support building applications using Rsbuild.
+- [@nx/rsbuild Migrations](https://nx.dev/docs/technologies/build-tools/rsbuild/migrations.md): The Nx Plugin for Rsbuild contains an Nx plugin, executors and utilities that support building applications using Rsbuild.
+- [Rspack](https://nx.dev/docs/technologies/build-tools/rspack.md): Fast Rust-based bundler
+- [@nx/rspack Executors](https://nx.dev/docs/technologies/build-tools/rspack/executors.md): The Nx Plugin for Rspack contains executors and generators that support building applications using Rspack.
+- [@nx/rspack Generators](https://nx.dev/docs/technologies/build-tools/rspack/generators.md): The Nx Plugin for Rspack contains executors and generators that support building applications using Rspack.
+- [Nx with Rspack](https://nx.dev/docs/technologies/build-tools/rspack/introduction.md): Rspack is a Rust-based bundler with a webpack-compatible API. Learn how to use Rspack in an Nx monorepo with caching, affected builds, and fast CI.
+- [rspack](https://nx.dev/docs/technologies/build-tools/rspack/introduction.md): The Nx Plugin for Rspack contains executors and generators that support building applications using Rspack.
+- [@nx/rspack Migrations](https://nx.dev/docs/technologies/build-tools/rspack/migrations.md): The Nx Plugin for Rspack contains executors and generators that support building applications using Rspack.
+- [Vite](https://nx.dev/docs/technologies/build-tools/vite.md): Fast frontend build tool
+- [@nx/vite Executors](https://nx.dev/docs/technologies/build-tools/vite/executors.md): The Nx Plugin for building and testing applications using Vite
+- [@nx/vite Generators](https://nx.dev/docs/technologies/build-tools/vite/generators.md): The Nx Plugin for building and testing applications using Vite
+- [Guides](https://nx.dev/docs/technologies/build-tools/vite/guides.md): Guides for using Vite with Nx
+- [Nx with Vite](https://nx.dev/docs/technologies/build-tools/vite/introduction.md): Use Vite with Nx to build and cache projects across your monorepo, with affected-only builds and distributed CI.
+- [vite](https://nx.dev/docs/technologies/build-tools/vite/introduction.md): The Nx Plugin for building and testing applications using Vite
+- [@nx/vite Migrations](https://nx.dev/docs/technologies/build-tools/vite/migrations.md): The Nx Plugin for building and testing applications using Vite
+- [Webpack](https://nx.dev/docs/technologies/build-tools/webpack.md): Powerful module bundler
+- [@nx/webpack Executors](https://nx.dev/docs/technologies/build-tools/webpack/executors.md): The Nx Plugin for Webpack contains executors and generators that support building applications using Webpack.
+- [@nx/webpack Generators](https://nx.dev/docs/technologies/build-tools/webpack/generators.md): The Nx Plugin for Webpack contains executors and generators that support building applications using Webpack.
+- [Guides](https://nx.dev/docs/technologies/build-tools/webpack/guides.md): Guides for configuring Webpack
+- [Nx with Webpack](https://nx.dev/docs/technologies/build-tools/webpack/introduction.md): Use Webpack with Nx to build and cache projects across your monorepo, with affected-only builds and distributed CI.
+- [webpack](https://nx.dev/docs/technologies/build-tools/webpack/introduction.md): The Nx Plugin for Webpack contains executors and generators that support building applications using Webpack.
+- [@nx/webpack Migrations](https://nx.dev/docs/technologies/build-tools/webpack/migrations.md): The Nx Plugin for Webpack contains executors and generators that support building applications using Webpack.
+- [.NET](https://nx.dev/docs/technologies/dotnet.md): Build scalable .NET applications
+- [@nx/dotnet Generators](https://nx.dev/docs/technologies/dotnet/generators.md): The Nx Plugin for .NET containing graph support for working with .NET projects in an Nx workspace.
+- [Guides](https://nx.dev/docs/technologies/dotnet/guides.md): In-depth guides for .NET development with Nx
+- [Nx with .NET](https://nx.dev/docs/technologies/dotnet/introduction.md): Nx scales your .NET monorepo with caching, distributed task execution, and affected-only builds.
+- [dotnet](https://nx.dev/docs/technologies/dotnet/introduction.md): The Nx Plugin for .NET containing graph support for working with .NET projects in an Nx workspace.
+- [@nx/dotnet Migrations](https://nx.dev/docs/technologies/dotnet/migrations.md): The Nx Plugin for .NET containing graph support for working with .NET projects in an Nx workspace.
+- [ESLint](https://nx.dev/docs/technologies/eslint.md): Guides and API references for ESLint in Nx
+- [ESLint Plugin](https://nx.dev/docs/technologies/eslint/eslint-plugin.md): Nx ESLint plugin features
+- [Guides](https://nx.dev/docs/technologies/eslint/eslint-plugin/guides.md): ESLint plugin configuration guides
+- [eslint-plugin](https://nx.dev/docs/technologies/eslint/eslint-plugin/introduction.md): The eslint-plugin package is an ESLint plugin that contains a collection of recommended ESLint rule configurations which you can extend from in your...
+- [@nx/eslint-plugin Migrations](https://nx.dev/docs/technologies/eslint/eslint-plugin/migrations.md): The eslint-plugin package is an ESLint plugin that contains a collection of recommended ESLint rule configurations which you can extend from in your...
+- [@nx/eslint Executors](https://nx.dev/docs/technologies/eslint/executors.md): The ESLint plugin for Nx contains executors, generators and utilities used for linting JavaScript/TypeScript projects within an Nx workspace.
+- [@nx/eslint Generators](https://nx.dev/docs/technologies/eslint/generators.md): The ESLint plugin for Nx contains executors, generators and utilities used for linting JavaScript/TypeScript projects within an Nx workspace.
+- [Guides](https://nx.dev/docs/technologies/eslint/guides.md): Configuration and usage guides
+- [Nx with ESLint](https://nx.dev/docs/technologies/eslint/introduction.md): Use ESLint with Nx to lint projects across your monorepo, with caching, affected-only runs, and module boundary rules.
+- [eslint](https://nx.dev/docs/technologies/eslint/introduction.md): The ESLint plugin for Nx contains executors, generators and utilities used for linting JavaScript/TypeScript projects within an Nx workspace.
+- [@nx/eslint Migrations](https://nx.dev/docs/technologies/eslint/migrations.md): The ESLint plugin for Nx contains executors, generators and utilities used for linting JavaScript/TypeScript projects within an Nx workspace.
+- [Java](https://nx.dev/docs/technologies/java.md): Build scalable Java applications
+- [Gradle](https://nx.dev/docs/technologies/java/gradle.md): Using Gradle with Nx
+- [@nx/gradle Executors](https://nx.dev/docs/technologies/java/gradle/executors.md): The Nx Plugin for Gradle allows Gradle tasks to be run through Nx
+- [@nx/gradle Generators](https://nx.dev/docs/technologies/java/gradle/generators.md): The Nx Plugin for Gradle allows Gradle tasks to be run through Nx
+- [Nx with Gradle](https://nx.dev/docs/technologies/java/gradle/introduction.md): Use Gradle with Nx to cache and run tasks across your Java monorepo, with affected-only builds and distributed CI.
+- [gradle](https://nx.dev/docs/technologies/java/gradle/introduction.md): The Nx Plugin for Gradle allows Gradle tasks to be run through Nx
+- [@nx/gradle Migrations](https://nx.dev/docs/technologies/java/gradle/migrations.md): The Nx Plugin for Gradle allows Gradle tasks to be run through Nx
+- [Nx with Java](https://nx.dev/docs/technologies/java/introduction.md): Nx scales your Java monorepo with caching, distributed task execution, and affected-only builds.
+- [Maven](https://nx.dev/docs/technologies/java/maven.md): Using Maven with Nx
+- [@nx/maven Executors](https://nx.dev/docs/technologies/java/maven/executors.md): Nx plugin for Maven integration
+- [@nx/maven Generators](https://nx.dev/docs/technologies/java/maven/generators.md): Nx plugin for Maven integration
+- [Nx with Maven](https://nx.dev/docs/technologies/java/maven/introduction.md): Use Maven with Nx to cache and run tasks across your Java monorepo, with affected-only builds and distributed CI.
+- [maven](https://nx.dev/docs/technologies/java/maven/introduction.md): Nx plugin for Maven integration
+- [@nx/maven Migrations](https://nx.dev/docs/technologies/java/maven/migrations.md): Nx plugin for Maven integration
+- [Module Federation](https://nx.dev/docs/technologies/module-federation.md): Advanced guides to utilize Module Federation with Nx for micro frontends
+- [Nx with Module Federation](https://nx.dev/docs/technologies/module-federation/introduction.md): Build micro frontends with Module Federation and Nx, sharing code across your monorepo with caching and affected-only builds.
+- [module-federation](https://nx.dev/docs/technologies/module-federation/introduction.md): The Nx Plugin for Module Federation contains executors and utilities that support building applications using Module Federation.
+- [@nx/module-federation Migrations](https://nx.dev/docs/technologies/module-federation/migrations.md): The Nx Plugin for Module Federation contains executors and utilities that support building applications using Module Federation.
+- [Node.js](https://nx.dev/docs/technologies/node.md): Build scalable Node.js applications with Express, NestJS, and serverless support
+- [Express](https://nx.dev/docs/technologies/node/express.md): Express framework support
+- [@nx/express Generators](https://nx.dev/docs/technologies/node/express/generators.md): The Nx Plugin for Express contains executors and generators for allowing your workspace to create powerful Express Node applications and APIs.
+- [Nx with Express](https://nx.dev/docs/technologies/node/express/introduction.md): Nx scales your Express monorepo with caching, distributed task execution, and affected-only builds.
+- [express](https://nx.dev/docs/technologies/node/express/introduction.md): The Nx Plugin for Express contains executors and generators for allowing your workspace to create powerful Express Node applications and APIs.
+- [@nx/express Migrations](https://nx.dev/docs/technologies/node/express/migrations.md): The Nx Plugin for Express contains executors and generators for allowing your workspace to create powerful Express Node applications and APIs.
+- [@nx/node Generators](https://nx.dev/docs/technologies/node/generators.md): The Node Plugin for Nx contains generators to manage Node applications within an Nx workspace.
+- [Guides](https://nx.dev/docs/technologies/node/guides.md): Backend development guides
+- [Nx with Node.js](https://nx.dev/docs/technologies/node/introduction.md): Nx scales your Node.js monorepo with caching, distributed task execution, and affected-only builds.
+- [node](https://nx.dev/docs/technologies/node/introduction.md): The Node Plugin for Nx contains generators to manage Node applications within an Nx workspace.
+- [@nx/node Migrations](https://nx.dev/docs/technologies/node/migrations.md): The Node Plugin for Nx contains generators to manage Node applications within an Nx workspace.
+- [NestJS](https://nx.dev/docs/technologies/node/nest.md): NestJS framework support
+- [@nx/nest Generators](https://nx.dev/docs/technologies/node/nest/generators.md): The Nx Plugin for Nest contains executors and generators for allowing your workspace to create powerful Nest best in class APIs.
+- [Nx with Nest.js](https://nx.dev/docs/technologies/node/nest/introduction.md): Nx scales your Nest.js monorepo with caching, distributed task execution, and affected-only builds.
+- [nest](https://nx.dev/docs/technologies/node/nest/introduction.md): The Nx Plugin for Nest contains executors and generators for allowing your workspace to create powerful Nest best in class APIs.
+- [@nx/nest Migrations](https://nx.dev/docs/technologies/node/nest/migrations.md): The Nx Plugin for Nest contains executors and generators for allowing your workspace to create powerful Nest best in class APIs.
+- [React](https://nx.dev/docs/technologies/react.md): Create modern React applications with Nx comprehensive React support
+- [@nx/react Executors](https://nx.dev/docs/technologies/react/executors.md): The React plugin for Nx contains executors and generators for managing React applications and libraries within an Nx workspace. It provides: -...
+- [Expo](https://nx.dev/docs/technologies/react/expo.md): Expo React Native framework
+- [@nx/expo Executors](https://nx.dev/docs/technologies/react/expo/executors.md): The Expo Plugin for Nx contains executors and generators for managing and developing an expo application within your workspace. For example, you can...
+- [@nx/expo Generators](https://nx.dev/docs/technologies/react/expo/generators.md): The Expo Plugin for Nx contains executors and generators for managing and developing an expo application within your workspace. For example, you can...
+- [Nx with Expo](https://nx.dev/docs/technologies/react/expo/introduction.md): Nx scales your Expo monorepo with caching, distributed task execution, and affected-only builds.
+- [expo](https://nx.dev/docs/technologies/react/expo/introduction.md): The Expo Plugin for Nx contains executors and generators for managing and developing an expo application within your workspace. For example, you can...
+- [@nx/expo Migrations](https://nx.dev/docs/technologies/react/expo/migrations.md): The Expo Plugin for Nx contains executors and generators for managing and developing an expo application within your workspace. For example, you can...
+- [@nx/react Generators](https://nx.dev/docs/technologies/react/generators.md): The React plugin for Nx contains executors and generators for managing React applications and libraries within an Nx workspace. It provides: -...
+- [Guides](https://nx.dev/docs/technologies/react/guides.md): React development guides
+- [Nx with React](https://nx.dev/docs/technologies/react/introduction.md): Nx scales your React monorepo with caching, distributed task execution, and affected-only builds.
+- [react](https://nx.dev/docs/technologies/react/introduction.md): The React plugin for Nx contains executors and generators for managing React applications and libraries within an Nx workspace. It provides: -...
+- [@nx/react Migrations](https://nx.dev/docs/technologies/react/migrations.md): The React plugin for Nx contains executors and generators for managing React applications and libraries within an Nx workspace. It provides: -...
+- [Next.js](https://nx.dev/docs/technologies/react/next.md): Next.js framework support
+- [@nx/next Executors](https://nx.dev/docs/technologies/react/next/executors.md): The Next.js plugin for Nx contains executors and generators for managing Next.js applications and libraries within an Nx workspace. It provides: -...
+- [@nx/next Generators](https://nx.dev/docs/technologies/react/next/generators.md): The Next.js plugin for Nx contains executors and generators for managing Next.js applications and libraries within an Nx workspace. It provides: -...
+- [Guides](https://nx.dev/docs/technologies/react/next/guides.md): Next.js configuration guides
+- [Nx with Next.js](https://nx.dev/docs/technologies/react/next/introduction.md): Nx scales your Next.js monorepo with caching, distributed task execution, and affected-only builds.
+- [next](https://nx.dev/docs/technologies/react/next/introduction.md): The Next.js plugin for Nx contains executors and generators for managing Next.js applications and libraries within an Nx workspace. It provides: -...
+- [@nx/next Migrations](https://nx.dev/docs/technologies/react/next/migrations.md): The Next.js plugin for Nx contains executors and generators for managing Next.js applications and libraries within an Nx workspace. It provides: -...
+- [React Native](https://nx.dev/docs/technologies/react/react-native.md): Mobile app development with React Native
+- [@nx/react-native Executors](https://nx.dev/docs/technologies/react/react-native/executors.md): The Nx Plugin for React Native contains generators for managing React Native applications and libraries within an Nx workspace. It provides:...
+- [@nx/react-native Generators](https://nx.dev/docs/technologies/react/react-native/generators.md): The Nx Plugin for React Native contains generators for managing React Native applications and libraries within an Nx workspace. It provides:...
+- [Nx with React Native](https://nx.dev/docs/technologies/react/react-native/introduction.md): Nx scales your React Native monorepo with caching, distributed task execution, and affected-only builds.
+- [react-native](https://nx.dev/docs/technologies/react/react-native/introduction.md): The Nx Plugin for React Native contains generators for managing React Native applications and libraries within an Nx workspace. It provides:...
+- [@nx/react-native Migrations](https://nx.dev/docs/technologies/react/react-native/migrations.md): The Nx Plugin for React Native contains generators for managing React Native applications and libraries within an Nx workspace. It provides:...
+- [Remix](https://nx.dev/docs/technologies/react/remix.md): Remix framework support
+- [@nx/remix Executors](https://nx.dev/docs/technologies/react/remix/executors.md): The Remix plugin for Nx contains executors and generators for managing Remix applications and libraries within an Nx workspace. It provides: -...
+- [@nx/remix Generators](https://nx.dev/docs/technologies/react/remix/generators.md): The Remix plugin for Nx contains executors and generators for managing Remix applications and libraries within an Nx workspace. It provides: -...
+- [Nx with Remix](https://nx.dev/docs/technologies/react/remix/introduction.md): Nx scales your Remix monorepo with caching, distributed task execution, and affected-only builds.
+- [remix](https://nx.dev/docs/technologies/react/remix/introduction.md): The Remix plugin for Nx contains executors and generators for managing Remix applications and libraries within an Nx workspace. It provides: -...
+- [@nx/remix Migrations](https://nx.dev/docs/technologies/react/remix/migrations.md): The Remix plugin for Nx contains executors and generators for managing Remix applications and libraries within an Nx workspace. It provides: -...
+- [Test Tools](https://nx.dev/docs/technologies/test-tools.md): Comprehensive testing support with Vitest, Jest, Cypress, Playwright, Storybook, and Detox
+- [Cypress](https://nx.dev/docs/technologies/test-tools/cypress.md): E2E testing with Cypress
+- [@nx/cypress Executors](https://nx.dev/docs/technologies/test-tools/cypress/executors.md): The Nx Plugin for Cypress contains executors and generators allowing your workspace to use the powerful Cypress integration testing capabilities.
+- [@nx/cypress Generators](https://nx.dev/docs/technologies/test-tools/cypress/generators.md): The Nx Plugin for Cypress contains executors and generators allowing your workspace to use the powerful Cypress integration testing capabilities.
+- [Guides](https://nx.dev/docs/technologies/test-tools/cypress/guides.md): Cypress configuration and usage
+- [Nx with Cypress](https://nx.dev/docs/technologies/test-tools/cypress/introduction.md): Run Cypress through Nx for caching, affected test runs, and faster CI across your monorepo.
+- [cypress](https://nx.dev/docs/technologies/test-tools/cypress/introduction.md): The Nx Plugin for Cypress contains executors and generators allowing your workspace to use the powerful Cypress integration testing capabilities.
+- [@nx/cypress Migrations](https://nx.dev/docs/technologies/test-tools/cypress/migrations.md): The Nx Plugin for Cypress contains executors and generators allowing your workspace to use the powerful Cypress integration testing capabilities.
+- [Detox](https://nx.dev/docs/technologies/test-tools/detox.md): React Native testing with Detox
+- [@nx/detox Executors](https://nx.dev/docs/technologies/test-tools/detox/executors.md): The Nx Plugin for Detox contains executors and generators for allowing your workspace to use the powerful Detox integration testing capabilities.
+- [@nx/detox Generators](https://nx.dev/docs/technologies/test-tools/detox/generators.md): The Nx Plugin for Detox contains executors and generators for allowing your workspace to use the powerful Detox integration testing capabilities.
+- [Nx with Detox](https://nx.dev/docs/technologies/test-tools/detox/introduction.md): Run Detox through Nx for caching, affected test runs, and faster CI across your monorepo.
+- [detox](https://nx.dev/docs/technologies/test-tools/detox/introduction.md): The Nx Plugin for Detox contains executors and generators for allowing your workspace to use the powerful Detox integration testing capabilities.
+- [@nx/detox Migrations](https://nx.dev/docs/technologies/test-tools/detox/migrations.md): The Nx Plugin for Detox contains executors and generators for allowing your workspace to use the powerful Detox integration testing capabilities.
+- [Jest](https://nx.dev/docs/technologies/test-tools/jest.md): Unit testing with Jest
+- [@nx/jest Executors](https://nx.dev/docs/technologies/test-tools/jest/executors.md): The Nx Plugin for Jest contains executors and generators allowing your workspace to use the powerful Jest testing capabilities.
+- [@nx/jest Generators](https://nx.dev/docs/technologies/test-tools/jest/generators.md): The Nx Plugin for Jest contains executors and generators allowing your workspace to use the powerful Jest testing capabilities.
+- [Nx with Jest](https://nx.dev/docs/technologies/test-tools/jest/introduction.md): Run Jest through Nx for caching, affected test runs, and faster CI across your monorepo.
+- [jest](https://nx.dev/docs/technologies/test-tools/jest/introduction.md): The Nx Plugin for Jest contains executors and generators allowing your workspace to use the powerful Jest testing capabilities.
+- [@nx/jest Migrations](https://nx.dev/docs/technologies/test-tools/jest/migrations.md): The Nx Plugin for Jest contains executors and generators allowing your workspace to use the powerful Jest testing capabilities.
+- [Playwright](https://nx.dev/docs/technologies/test-tools/playwright.md): E2E testing with Playwright
+- [@nx/playwright Executors](https://nx.dev/docs/technologies/test-tools/playwright/executors.md): The Nx Plugin for Playwright contains executors and generators allowing your workspace to use the powerful Playwright integration testing...
+- [@nx/playwright Generators](https://nx.dev/docs/technologies/test-tools/playwright/generators.md): The Nx Plugin for Playwright contains executors and generators allowing your workspace to use the powerful Playwright integration testing...
+- [Guides](https://nx.dev/docs/technologies/test-tools/playwright/guides.md): Playwright configuration and usage
+- [Nx with Playwright](https://nx.dev/docs/technologies/test-tools/playwright/introduction.md): Run Playwright through Nx for caching, affected test runs, and faster CI across your monorepo.
+- [playwright](https://nx.dev/docs/technologies/test-tools/playwright/introduction.md): The Nx Plugin for Playwright contains executors and generators allowing your workspace to use the powerful Playwright integration testing...
+- [@nx/playwright Migrations](https://nx.dev/docs/technologies/test-tools/playwright/migrations.md): The Nx Plugin for Playwright contains executors and generators allowing your workspace to use the powerful Playwright integration testing...
+- [Storybook](https://nx.dev/docs/technologies/test-tools/storybook.md): Component development with Storybook
+- [@nx/storybook Executors](https://nx.dev/docs/technologies/test-tools/storybook/executors.md): The Nx Plugin for Storybook contains executors and generators for allowing your workspace to use the powerful Storybook integration testing &...
+- [@nx/storybook Generators](https://nx.dev/docs/technologies/test-tools/storybook/generators.md): The Nx Plugin for Storybook contains executors and generators for allowing your workspace to use the powerful Storybook integration testing &...
+- [Guides](https://nx.dev/docs/technologies/test-tools/storybook/guides.md): Storybook configuration guides
+- [Nx with Storybook](https://nx.dev/docs/technologies/test-tools/storybook/introduction.md): Use Storybook with Nx for caching, affected builds, and faster CI across your monorepo.
+- [storybook](https://nx.dev/docs/technologies/test-tools/storybook/introduction.md): The Nx Plugin for Storybook contains executors and generators for allowing your workspace to use the powerful Storybook integration testing &...
+- [@nx/storybook Migrations](https://nx.dev/docs/technologies/test-tools/storybook/migrations.md): The Nx Plugin for Storybook contains executors and generators for allowing your workspace to use the powerful Storybook integration testing &...
+- [Vitest](https://nx.dev/docs/technologies/test-tools/vitest.md): Component development with Vitest
+- [@nx/vitest Executors](https://nx.dev/docs/technologies/test-tools/vitest/executors.md): The Nx Plugin for Vitest to enable fast unit testing with Vitest.
+- [@nx/vitest Generators](https://nx.dev/docs/technologies/test-tools/vitest/generators.md): The Nx Plugin for Vitest to enable fast unit testing with Vitest.
+- [Guides](https://nx.dev/docs/technologies/test-tools/vitest/guides.md): Vitest configuration and usage guides
+- [Nx with Vitest](https://nx.dev/docs/technologies/test-tools/vitest/introduction.md): Run Vitest through Nx for caching, affected test runs, and faster CI across your monorepo.
+- [vitest](https://nx.dev/docs/technologies/test-tools/vitest/introduction.md): The Nx Plugin for Vitest to enable fast unit testing with Vitest.
+- [@nx/vitest Migrations](https://nx.dev/docs/technologies/test-tools/vitest/migrations.md): The Nx Plugin for Vitest to enable fast unit testing with Vitest.
+- [TypeScript](https://nx.dev/docs/technologies/typescript.md): Advanced TypeScript support with project references, incremental builds, and more
+- [@nx/js Executors](https://nx.dev/docs/technologies/typescript/executors.md): The JS plugin for Nx contains executors and generators that provide the best experience for developing JavaScript and TypeScript projects.
+- [@nx/js Generators](https://nx.dev/docs/technologies/typescript/generators.md): The JS plugin for Nx contains executors and generators that provide the best experience for developing JavaScript and TypeScript projects.
+- [Guides](https://nx.dev/docs/technologies/typescript/guides.md): TypeScript configuration and best practices
+- [Nx with TypeScript](https://nx.dev/docs/technologies/typescript/introduction.md): Nx scales your TypeScript or JavaScript monorepo with caching, distributed task execution, and affected-only builds.
+- [js](https://nx.dev/docs/technologies/typescript/introduction.md): The JS plugin for Nx contains executors and generators that provide the best experience for developing JavaScript and TypeScript projects.
+- [@nx/js Migrations](https://nx.dev/docs/technologies/typescript/migrations.md): The JS plugin for Nx contains executors and generators that provide the best experience for developing JavaScript and TypeScript projects.
+- [Vue](https://nx.dev/docs/technologies/vue.md): Build Vue applications with Nx Vue plugin supporting Vue 3 and Nuxt
+- [@nx/vue Generators](https://nx.dev/docs/technologies/vue/generators.md): The Vue plugin for Nx contains executors and generators for managing Vue applications and libraries within an Nx workspace. It provides: -...
+- [Nx with Vue](https://nx.dev/docs/technologies/vue/introduction.md): Nx scales your Vue monorepo with caching, distributed task execution, and affected-only builds.
+- [vue](https://nx.dev/docs/technologies/vue/introduction.md): The Vue plugin for Nx contains executors and generators for managing Vue applications and libraries within an Nx workspace. It provides: -...
+- [@nx/vue Migrations](https://nx.dev/docs/technologies/vue/migrations.md): The Vue plugin for Nx contains executors and generators for managing Vue applications and libraries within an Nx workspace. It provides: -...
+- [Nuxt](https://nx.dev/docs/technologies/vue/nuxt.md): Nuxt framework support
+- [@nx/nuxt Generators](https://nx.dev/docs/technologies/vue/nuxt/generators.md): The Nuxt plugin for Nx contains executors and generators for managing Nuxt applications and libraries within an Nx workspace. It provides: -...
+- [Guides](https://nx.dev/docs/technologies/vue/nuxt/guides.md): Nuxt configuration guides
+- [Nx with Nuxt](https://nx.dev/docs/technologies/vue/nuxt/introduction.md): Nx scales your Nuxt monorepo with caching, distributed task execution, and affected-only builds.
+- [nuxt](https://nx.dev/docs/technologies/vue/nuxt/introduction.md): The Nuxt plugin for Nx contains executors and generators for managing Nuxt applications and libraries within an Nx workspace. It provides: -...
+- [@nx/nuxt Migrations](https://nx.dev/docs/technologies/vue/nuxt/migrations.md): The Nuxt plugin for Nx contains executors and generators for managing Nuxt applications and libraries within an Nx workspace. It provides: -...
+
+## Reference
+
+- [References](https://nx.dev/docs/reference.md): API references, commands, and configuration documentation
+- [Angular](https://nx.dev/docs/reference/angular.md): Angular API reference for Nx plugins
+- [Benchmarks](https://nx.dev/docs/reference/benchmarks.md): Performance benchmarks and comparisons
+- [Conformance](https://nx.dev/docs/reference/conformance.md): Code conformance and standards
+- [Create a Conformance Rule](https://nx.dev/docs/reference/conformance/create-conformance-rule.md): Learn how to create custom conformance rules to enforce standards and best practices across your Nx workspace.
+- [@nx/conformance - Executors](https://nx.dev/docs/reference/conformance/executors.md): The @nx/conformance plugin provides various executors to help you create and configure conformance within your Nx workspace. Below is a complete...
+- [@nx/conformance - Generators](https://nx.dev/docs/reference/conformance/generators.md): Generators for Nx Conformance
+- [Overview of the Nx Conformance Plugin](https://nx.dev/docs/reference/conformance/overview.md): The Nx Conformance plugin provides the ability to write and apply rules for your workspace
+- [Test a Conformance Rules](https://nx.dev/docs/reference/conformance/test-conformance-rule.md): Learn how to test custom conformance rules the @nx/conformance/testing utilities.
+- [Cypress](https://nx.dev/docs/reference/cypress.md): Cypress API reference for Nx plugins
+- [Deprecated](https://nx.dev/docs/reference/deprecated.md): Deprecated features and APIs in Nx
+- [affected:graph - CLI command](https://nx.dev/docs/reference/deprecated/affected-graph.md): Graph dependencies affected by changes
+- [Angular Schematics and Builders](https://nx.dev/docs/reference/deprecated/angular-schematics-builders.md): Learn about the deprecation of Angular schematics and builders in Nx 17, and how to handle interoperability between Nx and Angular CLI tools.
+- [As Provided vs. Derived Generator Path Options](https://nx.dev/docs/reference/deprecated/as-provided-vs-derived.md): Learn about the transition from derived to as-provided path options in Nx generators, improving transparency and predictability in code generation.
+- [Cacheable Operations](https://nx.dev/docs/reference/deprecated/cacheable-operations.md): Learn about the transition from cacheableOperations array to the cache property in Nx 17 for defining which tasks are cacheable.
+- [Deprecating Custom Tasks Runner](https://nx.dev/docs/reference/deprecated/custom-tasks-runner.md): Learn about the transition from Custom Tasks Runner to the new plugin-based API in Nx, including pre and post task execution hooks and self-hosted...
+- [Global Implicit Dependencies](https://nx.dev/docs/reference/deprecated/global-implicit-dependencies.md): Learn about the transition from global implicit dependencies to inputs and namedInputs in Nx, and how to properly configure project dependencies on...
+- [Integrated Repos vs. Package-Based Repos vs. Standalone Apps](https://nx.dev/docs/reference/deprecated/integrated-vs-package-based.md): Understand the historical differences between integrated, package-based, and standalone repositories in Nx, and how to choose the right approach for...
+- [Legacy Cache](https://nx.dev/docs/reference/deprecated/legacy-cache.md): Learn about the transition from legacy file system cache to the new database cache in Nx 21, including migration options for custom task runners and...
+- [NPM Scope](https://nx.dev/docs/reference/deprecated/npm-scope.md): Learn about the deprecation of npmScope property in nx.json and how to properly configure organization prefixes using package.json name property.
+- [print-affected - CLI command](https://nx.dev/docs/reference/deprecated/print-affected.md): Prints information about the projects and targets affected by changes
+- [Rescoping Packages from @nrwl to @nx](https://nx.dev/docs/reference/deprecated/rescope.md): Learn about the transition of official Nx plugins from @nrwl to @nx npm scope, and how to update your dependencies accordingly.
+- [Runtime Cache Inputs](https://nx.dev/docs/reference/deprecated/runtime-cache-inputs.md): Learn about the transition from runtimeCacheInputs in tasksRunnerOptions to the new inputs and namedInputs configuration for runtime cache inputs.
+- [Deprecation notice: self-hosted remote cache packages](https://nx.dev/docs/reference/deprecated/self-hosted-cache-packages.md): @nx/s3-cache, @nx/gcs-cache, @nx/azure-cache, and @nx/shared-fs-cache are deprecated due to CVE-2025-36852 (CREEP).
+- [Extending the Project Graph (v1 API)](https://nx.dev/docs/reference/deprecated/v1-nx-plugin-api.md): Learn about the deprecated v1 API for extending the Nx project graph through project inference and project graph plugins.
+- [Workspace Executors](https://nx.dev/docs/reference/deprecated/workspace-executors.md): Learn how to migrate from workspace executors to local executors in Nx plugins for better build process management.
+- [Workspace Generators](https://nx.dev/docs/reference/deprecated/workspace-generators.md): Learn how to migrate from workspace generators to local generators in Nx plugins for better code generation management.
+- [workspace.json](https://nx.dev/docs/reference/deprecated/workspace-json.md): Learn about the deprecation of workspace.json in Nx and how to migrate to project.json files for better project configuration management.
+- [Detox](https://nx.dev/docs/reference/detox.md): Detox API reference for Nx plugins
+- [.NET](https://nx.dev/docs/reference/dotnet.md): .NET API reference for Nx plugins
+- [Nx Environment Variables](https://nx.dev/docs/reference/environment-variables.md): Learn how Nx loads environment variables and find a reference for the variables that configure Nx, plugins, and Nx Cloud.
+- [ESBuild](https://nx.dev/docs/reference/esbuild.md): ESBuild API reference for Nx plugins
+- [ESLint](https://nx.dev/docs/reference/eslint.md): ESLint API reference for Nx plugins
+- [Nx Glossary](https://nx.dev/docs/reference/glossary.md): A reference of Nx-specific terms used throughout the documentation.
+- [Inputs and Named Inputs](https://nx.dev/docs/reference/inputs.md): Learn how Nx uses inputs to compute cache hashes for tasks, including file sets, runtime inputs, and environment variables that affect task outputs.
+- [Java](https://nx.dev/docs/reference/java.md): Java API reference for Nx plugins
+- [Jest](https://nx.dev/docs/reference/jest.md): Jest API reference for Nx plugins
+- [Module Federation](https://nx.dev/docs/reference/module-federation.md): Module Federation API reference for Nx plugins
+- [Node](https://nx.dev/docs/reference/node.md): Node.js API reference for Nx plugins
+- [Nx Cloud References](https://nx.dev/docs/reference/nx-cloud.md): API references, commands, and configuration documentation for Nx Cloud
+- [Cloud Commands](https://nx.dev/docs/reference/nx-cloud-cli.md): Reference for the Nx Cloud CLI commands you run directly
+- [CI Configuration File](https://nx.dev/docs/reference/nx-cloud/ci-config.md): Configure Nx Cloud CI Pipeline Executions with the .nx/ci-config.yaml file
+- [Nx Cloud Credit Pricing Reference](https://nx.dev/docs/reference/nx-cloud/credits-pricing.md): Pricing information for Nx Cloud credits and agent resource classes
+- [Enterprise Release Notes](https://nx.dev/docs/reference/nx-cloud/release-notes.md): Release notes for Nx Cloud Enterprise
+- [Nx Console Settings Reference](https://nx.dev/docs/reference/nx-console-settings.md): Complete reference of all configuration settings for Nx Console in VSCode and JetBrains IDEs.
+- [Nx Daemon](https://nx.dev/docs/reference/nx-daemon.md): Learn how the Nx Daemon watches workspace files and keeps project graph computation fast between commands.
+- [nx.json Reference](https://nx.dev/docs/reference/nx-json.md): A comprehensive reference for the nx.json configuration file, which controls Nx CLI behavior, project defaults, and workspace settings.
+- [Nx MCP Server Reference](https://nx.dev/docs/reference/nx-mcp.md): Complete reference for the Nx MCP (Model Context Protocol) server, including available tools, configuration options, and setup instructions for...
+- [.nxignore Reference](https://nx.dev/docs/reference/nxignore.md): Learn how to use the .nxignore file to specify files in your workspace that should be completely ignored by Nx during affected calculations.
+- [Code Owners](https://nx.dev/docs/reference/owners.md): Managing code ownership
+- [@nx/owners - Generators](https://nx.dev/docs/reference/owners/generators.md): Generators for Nx Owners configuration
+- [Overview of the Nx Owners Plugin](https://nx.dev/docs/reference/owners/overview.md): The Nx Owners plugin provides the ability to define code ownership based on projects in addition to files
+- [Playwright](https://nx.dev/docs/reference/playwright.md): Playwright API reference for Nx plugins
+- [Nx Powerpack End User License Agreement](https://nx.dev/docs/reference/powerpack-license.md): Legacy Nx Powerpack EULA, preserved for reference.
+- [Project Configuration](https://nx.dev/docs/reference/project-configuration.md): Learn how Nx constructs project configuration from inferred tasks, workspace defaults, and project-level files, with detailed explanations of task...
+- [React](https://nx.dev/docs/reference/react.md): React API reference for Nx plugins
+- [Nx Release Schedule and Support Policy](https://nx.dev/docs/reference/releases.md): Information about Nx package releases, including version support timelines, LTS policy, and deprecation guidelines for the nx and @nx/* packages.
+- [Rollup](https://nx.dev/docs/reference/rollup.md): Rollup API reference for Nx plugins
+- [Rsbuild](https://nx.dev/docs/reference/rsbuild.md): Rsbuild API reference for Nx plugins
+- [Rspack](https://nx.dev/docs/reference/rspack.md): Rspack API reference for Nx plugins
+- [Storybook](https://nx.dev/docs/reference/storybook.md): Storybook API reference for Nx plugins
+- [Telemetry](https://nx.dev/docs/reference/telemetry.md): Learn about the usage data Nx collects, why it's collected, and how to opt out.
+- [TypeScript](https://nx.dev/docs/reference/typescript.md): TypeScript API reference for Nx plugins
+- [Vite](https://nx.dev/docs/reference/vite.md): Vite API reference for Nx plugins
+- [Vitest](https://nx.dev/docs/reference/vitest.md): Vitest API reference for Nx plugins
+- [Vue](https://nx.dev/docs/reference/vue.md): Vue API reference for Nx plugins
+- [Webpack](https://nx.dev/docs/reference/webpack.md): Webpack API reference for Nx plugins
+
+## Enterprise
+
+- [Enterprise](https://nx.dev/docs/enterprise.md): Enterprise features and deployment options for Nx
+- [Activate Enterprise License](https://nx.dev/docs/enterprise/activate-license.md): Learn how to obtain and register an Nx Enterprise plan extensions license to unlock enterprise features like conformance rules and code ownership.
+- [Configure Conformance Rules in Nx Cloud](https://nx.dev/docs/enterprise/configure-conformance-rules-in-nx-cloud.md): Configure and manage Nx Conformance rules across workspaces using the Nx Cloud UI
+- [Run Language-Agnostic Conformance Rules](https://nx.dev/docs/enterprise/conformance.md): Learn how to use Nx Enterprise conformance rules to enforce organizational standards, maintain consistency, and ensure security across your workspace.
+- [Custom Workflows](https://nx.dev/docs/enterprise/custom-workflows.md): Run scheduled tasks to gather data and run checks automatically across your organization with automated data collection and proactive monitoring.
+- [Define Code Ownership at the Project Level](https://nx.dev/docs/enterprise/owners.md): Learn how to use Nx owners plugin to manage code ownership at the project level and automatically generate CODEOWNERS files for GitHub, Bitbucket, or...
+- [Publish Conformance Rules to Nx Cloud](https://nx.dev/docs/enterprise/publish-conformance-rules-to-nx-cloud.md): Create and publish custom Nx Conformance rules to your Nx Cloud organization
+- [Single Tenant](https://nx.dev/docs/enterprise/single-tenant.md): Single tenant deployment options
+- [BitBucket Cloud Auth](https://nx.dev/docs/enterprise/single-tenant/auth-bitbucket.md): Configure authentication for Nx Cloud using BitBucket Cloud OAuth
+- [BitBucket Data Center Auth](https://nx.dev/docs/enterprise/single-tenant/auth-bitbucket-data-center.md): Configure authentication for Nx Cloud using BitBucket Data Center on-premise
+- [GitHub Auth](https://nx.dev/docs/enterprise/single-tenant/auth-github.md): Configure authentication for Nx Cloud using a GitHub OAuth app
+- [GitLab Auth](https://nx.dev/docs/enterprise/single-tenant/auth-gitlab.md): Configure authentication for Nx Cloud using a GitLab app
+- [Azure SAML Auth](https://nx.dev/docs/enterprise/single-tenant/azure-saml.md): Configure SAML authentication for Nx Cloud Enterprise with Azure
+- [Custom GitHub App](https://nx.dev/docs/enterprise/single-tenant/custom-github-app.md): Create and configure a custom GitHub App for Nx Cloud Enterprise integration
+- [Okta SAML Auth](https://nx.dev/docs/enterprise/single-tenant/okta-saml.md): Configure SAML authentication for Nx Cloud Enterprise with Okta
+- [Single Tenant Nx Cloud Hosting](https://nx.dev/docs/enterprise/single-tenant/overview.md): Nx Cloud Enterprise hosting options including multi-tenant and single tenant instances
+
+## Troubleshooting
+
+- [Troubleshooting](https://nx.dev/docs/troubleshooting.md): Common issues and solutions when working with Nx
+
+## how-nx-works
+
+- [How Nx Works](https://nx.dev/docs/how-nx-works.md): Core concepts and mental models behind Nx
+
+## kb
+
+- [Nx CLI and CI Access Tokens](https://nx.dev/docs/kb/access-tokens.md): Configure read-only and read-write CI access tokens for secure remote cache access
+- [Add Language Support to Nx](https://nx.dev/docs/kb/add-language-support.md): Build an Nx plugin that brings multi-language support to your workspace, creating projects, tasks, and dependencies from configuration files, using...
+- [Adding Images, Fonts, and Files](https://nx.dev/docs/kb/adding-assets-react.md): Learn how to import and use assets like images, fonts, and files directly in your Nx projects, including special handling for SVGs in React, Next.js,...
+- [Adding Nx to your Existing Project](https://nx.dev/docs/kb/adding-to-existing-project.md): Add Nx to an existing single-project repository. Your existing scripts stay as they are and pick up caching, task ordering, and affected runs.
+- [Adding Nx to an NPM/Yarn/PNPM Monorepo](https://nx.dev/docs/kb/adding-to-monorepo.md): Learn how to integrate Nx into an existing NPM, Yarn, or PNPM monorepo to gain task scheduling, caching, and improved CI performance.
+- [Disable Graph Links Created from Analyzing Source Files](https://nx.dev/docs/kb/analyze-source-files.md): Learn how to configure Nx to only use dependencies defined in package.json instead of detecting dependencies from source code analysis.
+- [Angular - Configuring styles and preprocessor options](https://nx.dev/docs/kb/angular-configuring-styles.md): This guide explains how to configure styles and preprocessor options for Angular Storybook projects in your Nx workspace.
+- [Micro Frontends with Angular](https://nx.dev/docs/kb/angular-micro-frontends.md): Build Angular micro frontends with Native Federation in an Nx workspace: the supported path after Nx v23, and how Nx orchestrates the apps.
+- [Module Federation with Server-Side Rendering](https://nx.dev/docs/kb/angular-module-federation-with-ssr.md): Learn how to set up Module Federation with Server-Side Rendering (SSR) for Angular and React applications using Nx generators.
+- [Nx and Angular Versions](https://nx.dev/docs/kb/angular-nx-version-matrix.md): Find the Nx versions that support each Angular version, including recommended pairings and supported ranges.
+- [Angular - Set up Compodoc for Storybook on Nx](https://nx.dev/docs/kb/angular-storybook-compodoc.md): This guide explains how to set up Compodoc for Storybook in Angular projects within your Nx workspace.
+- [Set Up Application Proxies](https://nx.dev/docs/kb/application-proxies.md): Learn how to configure proxies for your frontend applications to communicate with backend services during local development, avoiding CORS issues...
+- [Assignment Rules](https://nx.dev/docs/kb/assignment-rules.md): Control which tasks run on which agents using assignment rules with Nx Agents
+- [Automate GitHub Releases](https://nx.dev/docs/kb/automate-github-releases.md): Learn how to configure Nx Release to automatically create GitHub releases with changelogs generated from your conventional commits, for both...
+- [Automate GitLab Releases](https://nx.dev/docs/kb/automate-gitlab-releases.md): Learn how to configure Nx Release to automatically create GitLab releases with changelogs generated from your conventional commits, for both...
+- [Storybook best practices for making the most out of Nx](https://nx.dev/docs/kb/best-practices.md): The purpose of this guide is to help you set up Storybook in your Nx workspace so that you can get the most out of Nx and its powerful capabilities.
+- [Bring your own AI API key](https://nx.dev/docs/kb/bring-your-own-ai-api-key.md): Route Nx Cloud self-healing CI through your own Anthropic, AWS Bedrock, Azure AI Foundry, or Google Vertex AI account.
+- [Bring Your Own Compute](https://nx.dev/docs/kb/bring-your-own-compute.md): Learn how to run Nx Agents on your own CI compute across various CI providers
+- [Configuring Browser Support](https://nx.dev/docs/kb/browser-support.md): Learn how to configure browser compatibility for your Nx applications using browserslist, optimize bundle size with modern browser targets, and debug...
+- [Publishable and Buildable Nx Libraries](https://nx.dev/docs/kb/buildable-and-publishable-libraries.md): Learn about buildable and publishable libraries in Nx, when to use them, and how they adjust your project configuration for distribution.
+- [Bun Workspaces: Setup, Commands, and Best Practices](https://nx.dev/docs/kb/bun-workspaces.md): Learn Bun workspaces: setup, linking packages with workspace:*, running scripts with --filter, and best practices for fast monorepos.
+- [Bundling Projects for Deployment](https://nx.dev/docs/kb/bundling-node-projects.md): Bundle your Node.js application into a single file with no node_modules needed. Deploy without a package.json install step.
+- [Cache Security](https://nx.dev/docs/kb/cache-security.md): Best practices for securing your remote cache and preventing cache poisoning in Nx Cloud
+- [Large Next.js Apps Made Faster with Nx](https://nx.dev/docs/kb/caching.md): Explore how Nx optimizes and speeds up large Next.js applications with shared components, buildable packages, and efficient caching strategies.
+- [Change Cache Location](https://nx.dev/docs/kb/change-cache-location.md): Learn how to customize where Nx stores its cache files by modifying the cacheDirectory setting in your nx.json configuration.
+- [Speed Up CI with a Build Cache](https://nx.dev/docs/kb/ci-caching.md): How a build cache speeds up CI: local and remote caching, affected-only runs, and task distribution, and when each one pays off.
+- [Understanding "CI Execution Failed"](https://nx.dev/docs/kb/ci-execution-failed.md): Common causes and solutions for CI execution failures in Nx Cloud
+- [Code Ownership](https://nx.dev/docs/kb/code-ownership.md): Learn about code ownership challenges in monorepos and how Nx helps manage shared code with tools like CODEOWNERS and module boundary rules.
+- [Compile TypeScript Libraries to Multiple Formats](https://nx.dev/docs/kb/compile-multiple-formats.md): Learn how to use Nx with Rollup to compile TypeScript libraries to both ESM and CommonJS formats for maximum compatibility.
+- [Compose Executors](https://nx.dev/docs/kb/compose-executors.md): Learn how to compose and chain Nx executors together, including how to invoke other targets and executors from within your custom executors.
+- [Composing Generators](https://nx.dev/docs/kb/composing-generators.md): Learn how to combine and reuse Nx generators to build complex workflows from simpler building blocks, including using Nx Devkit generators and...
+- [Configuring the Cloud Runner](https://nx.dev/docs/kb/config.md): Configuration options for Nx Cloud runner in nx.json
+- [Configure Inputs for Task Caching](https://nx.dev/docs/kb/configure-inputs.md): Learn how to optimize when Nx restores from the cache by customizing what should be taken into consideration when calculating computation hashes for...
+- [Configure Outputs for Task Caching](https://nx.dev/docs/kb/configure-outputs.md): Learn how to optimize what Nx restores from the cache
+- [Configure Vite on your Nx workspace](https://nx.dev/docs/kb/configure-vite.md): This guide explains how you can configure Vite in your Nx workspace.
+- [Configuring ESLint with TypeScript](https://nx.dev/docs/kb/configuring-eslint-with-typescript.md): Learn how to properly configure ESLint with TypeScript in your Nx workspace, including setting up type-checking and managing parser options for...
+- [How Storybook is configured on your Nx workspace](https://nx.dev/docs/kb/configuring-storybook.md): This guide explains how Storybook is configured on your Nx workspace.
+- [Nx Console Generate Command](https://nx.dev/docs/kb/console-generate-command.md): Learn how to use the Nx Console Generate UI to create projects, libraries, and components with a visual form interface that provides real-time...
+- [Nx Console Migrate UI](https://nx.dev/docs/kb/console-migrate-ui.md): Learn how to use the Nx Console Migrate UI to interactively update package dependencies, configuration files, and source code to match new package...
+- [Nx Console & Nx Cloud Integration](https://nx.dev/docs/kb/console-nx-cloud.md): Learn how Nx Console integrates with Nx Cloud to provide CI pipeline visibility, notifications, and quick access to build results directly from your...
+- [Nx Console Project Details View](https://nx.dev/docs/kb/console-project-details.md): Learn how to use Nx Console's Project Details View to explore project information, run tasks, and navigate the dependency graph directly from your...
+- [Nx Console Run Command](https://nx.dev/docs/kb/console-run-command.md): Learn how to use the Nx Console Run Command to execute project targets and customize command options directly from your editor's Command Palette.
+- [Nx Console Telemetry](https://nx.dev/docs/kb/console-telemetry.md): Learn about the telemetry data collected by Nx Console extensions, what information is gathered, and how to disable telemetry collection in different...
+- [Module Federation Consumer and Provider (v23+)](https://nx.dev/docs/kb/consumer-and-provider.md): Use the new @nx/react:consumer and :provider generators to scaffold React Module Federation apps with Vite, Rsbuild, or Rspack.
+- [Migrate to Inferred Tasks](https://nx.dev/docs/kb/convert-to-inferred.md): Learn how to convert your Nx workspace from explicit executor configuration to using inferred tasks for reduced configuration and improved caching.
+- [createConfig - @nx/angular-rspack](https://nx.dev/docs/kb/create-config.md): API Reference for createConfig from @nx/angular-rspack
+- [Creating an Install Package](https://nx.dev/docs/kb/create-install-package.md): Learn how to create a custom "create-x" package for your Nx plugin to provide a seamless project bootstrapping experience with npm, yarn, or other...
+- [Create a Custom Plugin Preset](https://nx.dev/docs/kb/create-preset.md): Learn how to create a custom preset generator for your Nx plugin that can be used with create-nx-workspace to generate customized workspaces.
+- [createServer - @nx/angular-rspack/ssr](https://nx.dev/docs/kb/create-server.md): API Reference for createServer from @nx/angular-rspack/ssr
+- [Create a Sync Generator](https://nx.dev/docs/kb/create-sync-generator.md): Learn how to create and register sync generators in Nx to ensure your file system is in the correct state before tasks run, including global and...
+- [CreateNodes API Compatibility](https://nx.dev/docs/kb/createnodes-compatibility.md): Understand which createNodes API version is used by different Nx versions and how to write plugins that support multiple Nx versions.
+- [Creating Files with a Generator](https://nx.dev/docs/kb/creating-files.md): Learn how to create, update, and manage files in your Nx workspace using generators, including working with static and dynamic file templates.
+- [How to configure Webpack and Vite for Storybook](https://nx.dev/docs/kb/custom-builder-configs.md): This guide explains how to customize the webpack configuration and your vite configuration for Storybook.
+- [Custom images for Nx Agents](https://nx.dev/docs/kb/custom-images.md): Create and configure custom Docker images for Nx Agents
+- [Creating Custom Steps](https://nx.dev/docs/kb/custom-steps.md): Define and use custom workflow steps in Nx Cloud launch templates
+- [Custom Workspace ESLint Rules](https://nx.dev/docs/kb/custom-workspace-rules.md): Learn how to create and configure custom ESLint rules specific to your Nx workspace, enabling team-wide code conventions and project-specific linting.
+- [Cypress Component Testing](https://nx.dev/docs/kb/cypress-component-testing.md): Learn how to set up and use Cypress component testing in your Nx workspace for React, Angular, and Next.js projects, including configuration and test...
+- [Using setupNodeEvents with Cypress preset](https://nx.dev/docs/kb/cypress-setup-node-events.md): Learn how to properly configure and use the setupNodeEvents function with Nx Cypress preset to customize Cypress behavior while maintaining web...
+- [Migrating to Cypress V11](https://nx.dev/docs/kb/cypress-v11-migration.md): A guide to migrating your Nx projects from Cypress v8/v9 to v11, including configuration changes, file renaming, and handling potential edge cases.
+- [Define Secondary Entry Points for TypeScript Packages](https://nx.dev/docs/kb/define-secondary-entrypoints.md): Learn how to configure multiple entry points for your TypeScript packages using Nx, allowing consumers to import specific parts of your library.
+- [Defining a Task Pipeline](https://nx.dev/docs/kb/defining-task-pipeline.md): This recipe shows how to define task dependencies in your Nx workspace
+- [Dependency Checks ESLint Rule](https://nx.dev/docs/kb/dependency-checks.md): Learn how to use the @nx/dependency-checks ESLint rule to identify mismatches between dependencies in package.json and actual project dependencies.
+- [Dependency Management Strategies](https://nx.dev/docs/kb/dependency-management.md): Compare independently maintained dependencies versus single version policy approaches for monorepos, with guidance on choosing the right strategy for...
+- [Deploying Next.js Applications to Vercel](https://nx.dev/docs/kb/deploy-nextjs-to-vercel.md): Learn how to configure and deploy Next.js applications from an Nx workspace to Vercel, including setting up build commands and implementing...
+- [Deploying Nuxt applications to Vercel](https://nx.dev/docs/kb/deploy-nuxt-to-vercel.md): A detailed guide on how to deploy Nuxt applications from Nx workspaces to Vercel.
+- [Pruning Projects for Deployment](https://nx.dev/docs/kb/deploying-node-projects.md): Generate a pruned package.json and lockfile so Docker installs only production dependencies. Replaces the deprecated generatePackageJson option in Nx...
+- [Use the Docker layer cache with Nx Agents](https://nx.dev/docs/kb/docker-layer-cache-with-nx-agents.md): Configure Docker Buildx to reuse image layers across Nx Agent runs.
+- [Advanced Angular Micro Frontends with Dynamic Module Federation](https://nx.dev/docs/kb/dynamic-module-federation-with-angular.md): Learn how to implement Dynamic Module Federation in Angular applications to achieve "Build once, deploy everywhere" with Nx, enabling runtime...
+- [Enable TypeScript Batch Mode](https://nx.dev/docs/kb/enable-tsc-batch-mode.md): Use the @nx/js:tsc batch implementation to compile multiple TypeScript projects in a single process, reducing build times for large workspaces.
+- [Enforce Module Boundaries ESLint Rule](https://nx.dev/docs/kb/enforce-module-boundaries.md): Learn how to use the @nx/enforce-module-boundaries ESLint rule to define strict rules for accessing resources between different projects in your Nx...
+- [Executors and Configurations](https://nx.dev/docs/kb/executors-and-configurations.md): Learn how Nx executors define how tasks run and how to configure them in project.json files.
+- [Faster Builds with Module Federation](https://nx.dev/docs/kb/faster-builds-with-module-federation.md): Learn how Module Federation in Nx enables faster builds by splitting large SPAs into smaller remote applications while minimizing common downsides.
+- [Optimize Testing with Feature-Based Testing](https://nx.dev/docs/kb/feature-based-testing.md): Learn how to optimize your testing strategy by breaking down monolithic test projects into feature-scoped tests that run only when needed.
+- [Fix sandbox violations](https://nx.dev/docs/kb/fix-sandbox-violations.md): Step-by-step guide to download sandbox reports, classify each violation, and update project configuration so caching becomes reliable again.
+- [What Is a Flaky Test? Causes, Detection, and Fixes](https://nx.dev/docs/kb/flaky-tests-in-ci.md): A flaky test passes and fails on the same code. Learn what causes flaky tests, how to detect them in CI, and how to fix the common patterns.
+- [Migrate from .eslintrc to ESLint Flat Config](https://nx.dev/docs/kb/flat-config.md): Migrate .eslintrc to ESLint flat config step by step: eslint.config.mjs setup, FlatCompat for legacy configs, Next.js gotchas, and Nx automation.
+- [Monorepo Folder Structure](https://nx.dev/docs/kb/folder-structure.md): How to structure a monorepo: flat vs grouped layouts, organizing by scope, library types, and changing the folder structure as teams evolve.
+- [Migrating from Turborepo to Nx](https://nx.dev/docs/kb/from-turborepo.md): Step-by-step guide to migrate a Turborepo workspace to Nx with nx init, covering package-specific tasks, continuous tasks, environment inputs, and...
+- [Getting Started - Angular Rspack](https://nx.dev/docs/kb/getting-started.md): Learn how to get started with Angular Rspack applications in Nx.
+- [GitHub App Permissions](https://nx.dev/docs/kb/github-app-permissions.md): A detailed breakdown of each permission the Nx Cloud GitHub App requires and why.
+- [Gradle Tutorial](https://nx.dev/docs/kb/gradle-tutorial.md): You'll add Nx to an existing Gradle repo
+- [Handling Configurations](https://nx.dev/docs/kb/handling-configurations.md): Guide on how to handle configurations with Angular Rspack
+- [Heartbeat and Main Job Completion Handling](https://nx.dev/docs/kb/heartbeat-and-manual-shutdown-handling.md): How Nx Cloud tracks main job completion and manages agent shutdown through the heartbeat process
+- [Identify Dependencies Between Folders](https://nx.dev/docs/kb/identify-dependencies-between-folders.md): Learn how to analyze and visualize dependencies between folders in your Nx workspace to help identify which code should be extracted into separate...
+- [Import an Existing Project into an Nx Workspace](https://nx.dev/docs/kb/import-project.md): Learn how to use the nx import command to move projects between repositories while preserving git history, managing dependencies, and handling...
+- [Include All package.json Files as Projects](https://nx.dev/docs/kb/include-all-packagejson.md): Learn how to configure Nx to include all package.json files as projects in your workspace graph, not just those referenced in workspaces...
+- [Including Assets in Your Build](https://nx.dev/docs/kb/include-assets-in-build.md): Learn how to configure Nx executors to include and copy assets into your output bundle using regex patterns or object format for precise control.
+- [Incremental Builds for .NET Projects](https://nx.dev/docs/kb/incremental-builds.md): Learn how Nx optimizes .NET builds by leveraging target dependencies and avoiding duplicate compilations.
+- [Install Nx in a Non-JavaScript Repository](https://nx.dev/docs/kb/install-non-javascript.md): Learn how to install and use Nx in repositories that don't contain JavaScript or TypeScript code, such as .NET or Java-based workspaces.
+- [Build-time Internationalization (i18n) with Angular Rspack](https://nx.dev/docs/kb/internationalization.md): Guide on how to use Angular build-time i18n with Angular Rspack
+- [ESLint Plugin](https://nx.dev/docs/kb/introduction.md): Nx ESLint plugin features
+- [JavaScript and TypeScript](https://nx.dev/docs/kb/js-and-ts.md): Learn how to use Nx with both JavaScript and TypeScript, including how to generate JS files, mix languages in your workspace, and build TypeScript...
+- [Keep Nx Versions in Sync](https://nx.dev/docs/kb/keep-nx-versions-in-sync.md): Learn how to ensure all Nx plugins in your repository are using the same version to avoid compatibility issues and debugging challenges.
+- [Launch Template Examples](https://nx.dev/docs/kb/launch-template-examples.md): Common configuration examples for Nx Agents launch templates
+- [Launch Templates](https://nx.dev/docs/kb/launch-templates.md): Define setup steps for Nx Agents with custom launch templates
+- [Write a Simple Executor](https://nx.dev/docs/kb/local-executors.md): Learn how to create, run, and customize local executors in your Nx workspace to standardize development, building, and deployment tasks.
+- [Local Generators](https://nx.dev/docs/kb/local-generators.md): Learn how to create, run, and customize local generators in your Nx workspace to automate common development tasks and standardize workflows.
+- [Manage Library Versions with Module Federation](https://nx.dev/docs/kb/manage-library-versions-with-module-federation.md): Learn how Module Federation's Shared API prevents dependency conflicts and reduces bundle size by managing shared library versions across federated...
+- [Manual Migration of Existing Code Bases](https://nx.dev/docs/kb/manual-migration.md): Learn how to manually integrate Nx into your existing codebase by installing dependencies, configuring nx.json, setting up caching, and updating your...
+- [Merge Atomized Playwright Outputs](https://nx.dev/docs/kb/merge-atomized-outputs.md): Learn how to enable output merging for atomized Playwright tests
+- [What is Micro Frontend Architecture?](https://nx.dev/docs/kb/micro-frontend-architecture.md): Micro frontends split a web app into independently deployed modules. Learn when to use them, when not to, and how to build them with Module...
+- [Migrating an Angular CLI Project to Nx](https://nx.dev/docs/kb/migrate-angular-cli-to-nx.md): Learn how to transform your Angular CLI workspace into an Nx workspace, either as a standalone app or a full monorepo, with automated migration tools.
+- [Migrate from @nx-dotnet/core to @nx/dotnet](https://nx.dev/docs/kb/migrate-from-nx-dotnet-core.md): Step-by-step guide to migrate from the community @nx-dotnet/core plugin to the official @nx/dotnet plugin
+- [Migrate Angular with Webpack to Rspack](https://nx.dev/docs/kb/migrate-from-webpack.md): Guide on how to Migrate Angular projects using Webpack to Rspack
+- [Migrate `nx` imports to `@nx/devkit`](https://nx.dev/docs/kb/migrate-nx-imports-to-devkit.md): The `nx` package is the CLI, not a public import surface. Move plugin and script imports to `@nx/devkit` so they keep working in future major...
+- [Migrate a Polyrepo to a Monorepo](https://nx.dev/docs/kb/migrate-polyrepo-to-monorepo.md): Move projects out of a polyrepo or multirepo setup into one Nx workspace with nx import, keep their git history, and know which repositories to leave...
+- [Migrate from start-ci-run to start-nx-agents](https://nx.dev/docs/kb/migrate-to-ci-config.md): Move your start-ci-run CLI flags into a .nx/ci-config.yaml file and switch to start-nx-agents
+- [Migrating to @nx/vitest from @nx/vite](https://nx.dev/docs/kb/migrating-from-nx-vite.md): This is a migration guide to switch to @nx/vitest from @nx/vite
+- [Migration Generators](https://nx.dev/docs/kb/migration-generators.md): Learn how to create migration generators for your Nx plugin to automatically update configuration files when your plugin makes breaking changes.
+- [Modifying Files with a Generator](https://nx.dev/docs/kb/modifying-files.md): Learn different approaches to modify existing files in your Nx workspace using generators, from simple JSON updates to advanced AST manipulation.
+- [Monorepo CI best practices](https://nx.dev/docs/kb/monorepo-ci-best-practices.md): Keep monorepo CI fast as the repository grows with affected-only runs, task caching, distribution across agents, e2e splitting, flaky handling, and...
+- [Monorepo vs Polyrepo](https://nx.dev/docs/kb/monorepo-vs-polyrepo.md): Compare code sharing, CI, and ownership tradeoffs to choose a repository strategy.
+- [Use Repositories from Multiple GitHub Organizations in Nx Cloud](https://nx.dev/docs/kb/multiple-github-organizations.md): Choose an access model and connect repositories from multiple GitHub organizations to one Nx Cloud organization
+- [How to configure Next.js plugins](https://nx.dev/docs/kb/next-config-setup.md): A guide for configuring Next.js plugins with Nx
+- [Deploying AWS Lambda Functions in Node.js](https://nx.dev/docs/kb/node-aws-lambda.md): Learn how to set up, develop, and deploy AWS Lambda functions in an Nx workspace using the @nx/aws-lambda plugin.
+- [Deploying a Node App to Fly.io](https://nx.dev/docs/kb/node-server-fly-io.md): Learn how to deploy a Node.js backend application from an Nx workspace to Fly.io, including Docker setup and automating the deployment process.
+- [Add and Deploy Netlify Edge Functions with Node](https://nx.dev/docs/kb/node-serverless-functions-netlify.md): Learn how to set up, develop, and deploy Node.js serverless functions to Netlify from an Nx workspace, including local development and production...
+- [Configure the npm proxy cache for Nx Agents](https://nx.dev/docs/kb/npm-proxy-cache-setup-for-nx-agents.md): Configure npm, pnpm, or Yarn to install public packages through the Nx Cloud proxy cache.
+- [npm Workspaces: Setup, Commands, and Best Practices](https://nx.dev/docs/kb/npm-workspaces.md): Learn npm workspaces: the workspaces field, installing and linking local packages, running scripts with --workspace flags, and best practices that...
+- [Nx Agents at Scale](https://nx.dev/docs/kb/nx-agents.md): Learn how Nx distributed task execution can dramatically improve CI performance in large monorepos with multiple applications and shared libraries.
+- [Nx and the Angular CLI](https://nx.dev/docs/kb/nx-and-angular.md): Compare Nx and Angular CLI features, understand similarities and differences, and learn how Nx enhances Angular development with improved caching,...
+- [Troubleshoot Nx Console Issues](https://nx.dev/docs/kb/nx-console-troubleshooting.md): Learn how to resolve common issues with Nx Console, including Node.js version conflicts with nvm and WSL configuration in JetBrains IDEs.
+- [Nx Devkit and Angular Devkit](https://nx.dev/docs/kb/nx-devkit-angular-devkit.md): Compare Nx Devkit and Angular Devkit for creating generators and executors, understand key differences in implementation, and learn how to convert...
+- [NxModuleFederationPlugin](https://nx.dev/docs/kb/nx-module-federation-plugin.md): Reference for the NxModuleFederationPlugin and NxModuleFederationDevServerPlugin Rspack plugins used by legacy Nx Module Federation setups.
+- [Fix Nx Commands Failing in Claude Code Sandbox](https://nx.dev/docs/kb/nx-sandbox-unix-sockets.md): Nx commands fail inside Claude Code sandbox because Unix sockets are blocked. Set allowAllUnixSockets to fix daemon, plugin isolation, and forked...
+- [Nx vs Bazel](https://nx.dev/docs/kb/nx-vs-bazel.md): Bazel offers rigorous caching and remote execution at extreme scale, at the cost of an upfront migration and ongoing build engineering. Nx delivers...
+- [Nx vs Blacksmith](https://nx.dev/docs/kb/nx-vs-blacksmith.md): Blacksmith replaces GitHub Actions runners with faster machines. Nx reduces how much work runs at all with affected detection, remote task caching,...
+- [Nx vs Buildkite](https://nx.dev/docs/kb/nx-vs-buildkite.md): Buildkite is a CI platform you migrate to. Nx is a task-graph layer that runs on any CI, including Buildkite. Compare caching, affected detection,...
+- [Nx vs Depot](https://nx.dev/docs/kb/nx-vs-depot.md): Depot makes every CI minute faster and cheaper with better runners and colocated caches. Nx removes minutes entirely with affected detection, remote...
+- [Nx vs Develocity](https://nx.dev/docs/kb/nx-vs-develocity.md): Develocity (formerly Gradle Enterprise) accelerates and observes JVM builds. Nx covers the whole monorepo, JS/TS and JVM and beyond, with one graph,...
+- [Nx vs Lerna](https://nx.dev/docs/kb/nx-vs-lerna.md): Nx vs Lerna compared by the team that maintains both: task running, caching, versioning and publishing with nx release, and when to use each.
+- [Nx vs Rush Stack](https://nx.dev/docs/kb/nx-vs-rush-stack.md): Nx vs Rush Stack (Rush, Heft, API Extractor) compared: configuration effort, task running, build caching, CI distribution, and publishing workflows.
+- [Nx vs Turborepo](https://nx.dev/docs/kb/nx-vs-turborepo.md): Nx vs Turborepo on the same workspace, with distributed CI, task sandboxing, polyglot builds, generators, and release management.
+- [Nx vs Vite+](https://nx.dev/docs/kb/nx-vs-vite-plus.md): Nx vs Vite+ on task running, caching, and CI. Vite+ ships a local-only task cache in beta. Nx runs the same Vite toolchain with remote caching,...
+- [Publishing Storybook - One main Storybook instance for all projects](https://nx.dev/docs/kb/one-storybook-for-all.md): Dive into a comprehensive guide on how to consolidate all your Storybook stories from different projects into one unified Storybook instance. Ideal...
+- [Publishing Storybook - One Storybook instance per scope](https://nx.dev/docs/kb/one-storybook-per-scope.md): Learn how to set up individual Storybook instances for each scope within an Nx workspace. This guide provides a structured approach, emphasizing...
+- [Publishing Storybook - One main Storybook instance using Storybook Composition](https://nx.dev/docs/kb/one-storybook-with-composition.md): Dive into the comprehensive guide on publishing a unified Storybook instance from multiple frameworks within an Nx workspace using Storybook...
+- [Enforce Organizational Best Practices with a Local Plugin](https://nx.dev/docs/kb/organization-specific-plugin.md): Learn how to create a custom Nx plugin that encodes your organization's best practices into code generators for consistent project creation.
+- [Set up Storybook for Angular Projects](https://nx.dev/docs/kb/overview-angular.md): This guide explains how to set up Storybook for Angular projects in your Nx workspace.
+- [Set up Storybook for React Projects](https://nx.dev/docs/kb/overview-react.md): This guide explains how to set up Storybook for React projects in your Nx workspace.
+- [Set up Storybook for Vue and Nuxt Projects](https://nx.dev/docs/kb/overview-vue.md): This guide explains how to set up Storybook for Vue and Nuxt projects in your Nx workspace.
+- [Pass Args to Commands](https://nx.dev/docs/kb/pass-args-to-commands.md): Recipe describing how to pass args to tasks running commands
+- [Profiling Performance](https://nx.dev/docs/kb/performance-profiling.md): Learn how to profile and optimize Nx task execution performance using Chrome DevTools and environment variables to identify bottlenecks and improve...
+- [Write a Performant Project Graph Plugin](https://nx.dev/docs/kb/performant-project-graph-plugins.md): Practical patterns and caveats for writing fast createNodes plugins, including disk caching, work hoisting, and parallel config loading.
+- [Nx Cloud and Personal Access Tokens](https://nx.dev/docs/kb/personal-access-tokens.md): Provision and manage personal access tokens for secure Nx Cloud authentication
+- [pnpm Workspaces: Setup, Commands, and Best Practices](https://nx.dev/docs/kb/pnpm-workspaces.md): Learn pnpm workspaces: pnpm-workspace.yaml setup, the workspace: protocol, running scripts with --filter, catalogs, and best practices that scale.
+- [Preserving Git Histories when Migrating Projects to Nx](https://nx.dev/docs/kb/preserving-git-histories.md): Learn techniques for maintaining git history when importing standalone projects into your Nx workspace, including proper directory reorganization and...
+- [Project Dependency Rules](https://nx.dev/docs/kb/project-dependency-rules.md): Learn how to organize your Nx workspace with library types like feature, UI, data-access, and utility libraries, and enforce dependency rules between...
+- [Project Size](https://nx.dev/docs/kb/project-size.md): Understand the trade-offs of project granularity in Nx, including benefits like faster commands, clearer boundaries, and improved developer...
+- [Scrape Prometheus metrics from Nx Cloud](https://nx.dev/docs/kb/prometheus-metrics.md): Scrape workspace-level Prometheus metrics from a single-tenant Nx Cloud instance with Grafana Alloy or Prometheus, and manage the service account...
+- [Publish Your Nx Plugin](https://nx.dev/docs/kb/publish-plugin.md): Learn how to publish your Nx plugin to npm and get it listed in the official Nx plugin registry so others can discover and use it.
+- [Using Nx Release with Rust](https://nx.dev/docs/kb/publish-rust-crates.md): Learn how to version Rust libraries, generate changelogs, and publish Rust crates in a monorepo using Nx Release with a step-by-step guide.
+- [React Compiler with Nx](https://nx.dev/docs/kb/react-compiler.md): Learn how to enable and configure React Compiler in Nx projects to automatically optimize your React code with memoization for better performance.
+- [Micro Frontends with React](https://nx.dev/docs/kb/react-micro-frontends.md): Build React micro frontends with Module Federation and Nx: generate consumers and providers, share dependencies safely, and scale CI as apps multiply.
+- [React Router with Nx](https://nx.dev/docs/kb/react-router.md): Learn how to create, build, serve, and test React Router applications within an Nx workspace, leveraging Nx powerful tooling for modern web...
+- [Reduce Repetitive Configuration](https://nx.dev/docs/kb/reduce-repetitive-configuration.md): Learn how to use Nx targetDefaults, namedInputs, and other features to minimize duplicate configuration across projects in your workspace.
+- [Reduce Wasted Time in CI](https://nx.dev/docs/kb/reduce-waste.md): How the affected command and remote caching eliminate wasted time in CI pipelines
+- [Release Docker Images](https://nx.dev/docs/kb/release-docker-images.md): Learn how to use Nx Release to version and publish Docker images from your monorepo with calendar-based versioning.
+- [Release TypeScript/JavaScript Packages to NPM](https://nx.dev/docs/kb/release-npm-packages.md): Learn how to use Nx Release to version, generate changelogs, and publish TypeScript/JavaScript packages to NPM in your monorepo.
+- [Resolve Circular Dependencies](https://nx.dev/docs/kb/resolve-circular-dependencies.md): Learn how to identify and fix circular dependencies in your Nx workspace to improve code organization and make the affected algorithm more effective.
+- [Run Root-Level NPM Scripts with Nx](https://nx.dev/docs/kb/root-level-scripts.md): Learn how to run npm scripts from your root package.json using Nx to benefit from caching, task orchestration, and other Nx features.
+- [Running Custom Commands](https://nx.dev/docs/kb/run-commands-executor.md): Learn how to run custom terminal commands with Nx to make them cacheable, distributable, and compatible with Nx affected commands.
+- [Run Tasks in Parallel](https://nx.dev/docs/kb/run-tasks-in-parallel.md): Learn how to configure Nx to run multiple tasks simultaneously by adjusting the parallel option in the command line or nx.json configuration.
+- [Self-hosted remote cache](https://nx.dev/docs/kb/self-hosted-caching.md): Set up a self-hosted remote cache server for Nx using the OpenAPI specification, or use Nx Cloud for a fully managed remote cache.
+- [Setting Up CI for Nx Cloud](https://nx.dev/docs/kb/setup-ci.md): Set up Nx Cloud on GitHub Actions, CircleCI, GitLab, Azure Pipelines, Jenkins, or Bitbucket.
+- [Setup Incremental Builds for Angular Applications](https://nx.dev/docs/kb/setup-incremental-builds-angular.md): Learn how to configure your Angular applications in Nx to use incremental builds, improving build performance by only rebuilding what changed.
+- [Skip Task Caching](https://nx.dev/docs/kb/skipping-cache.md): Learn how to bypass Nx caching mechanism for specific tasks, skip remote caching from Nx Cloud, and reset the cache when needed.
+- [Source Control Integration](https://nx.dev/docs/kb/source-control-integration.md): How to integrate Nx Cloud with your source control platform
+- [Convert from a Standalone Repository to a Monorepo](https://nx.dev/docs/kb/standalone-to-monorepo.md): Learn how to transform your standalone Nx repository into a full monorepo structure by moving your root-level application into the apps directory.
+- [Setting up Storybook Composition with Nx](https://nx.dev/docs/kb/storybook-composition-setup.md): Learn how to set up Storybook composition in your Nx workspace to combine multiple Storybook instances into one unified interface.
+- [Setting up Storybook Interaction Tests with Nx](https://nx.dev/docs/kb/storybook-interaction-tests.md): This guide shows you how to set up Storybook interaction tests in your Nx workspace and how to run them.
+- [Switch to Workspaces and Project References](https://nx.dev/docs/kb/switch-to-workspaces-project-references.md): Migrate from TypeScript path aliases to package manager workspaces for project linking, enabling TypeScript project references for better performance.
+- [Hook into the Task Running Lifecycle](https://nx.dev/docs/kb/task-running-lifecycle.md): Learn how to extend Nx task running process with preTasksExecution and postTasksExecution hooks to implement custom logic before and after tasks run.
+- [Terminal UI](https://nx.dev/docs/kb/terminal-ui.md): Learn how to leverage and configure the Nx Terminal UI when running tasks
+- [Testing Without Building Dependencies](https://nx.dev/docs/kb/testing-without-building-dependencies.md): Learn how to configure Vitest to test projects using TypeScript project references without building dependency libraries first.
+- [Troubleshoot Cache Misses](https://nx.dev/docs/kb/troubleshoot-cache-misses.md): Learn how to diagnose and fix issues when Nx tasks are not being replayed from cache as expected, using project configuration checks and Nx Cloud...
+- [Troubleshoot Convert to Inferred Migration](https://nx.dev/docs/kb/troubleshoot-convert-to-inferred.md): Learn how to resolve common issues when migrating from executor-based tasks to inferred tasks in Nx, with specific solutions for Next.js, Remix, and...
+- [Troubleshoot Nx Installations](https://nx.dev/docs/kb/troubleshoot-nx-install-issues.md): Learn how to resolve common Nx installation issues, including native module problems, platform compatibility, and Node.js architecture mismatches.
+- [Troubleshoot Nx Console Issues](https://nx.dev/docs/kb/troubleshooting-console-troubleshooting.md): Learn how to resolve common issues with Nx Console, including Node.js version conflicts with nvm and WSL configuration in JetBrains IDEs.
+- [TSC Batch Mode](https://nx.dev/docs/kb/tsc-batch-mode.md): Learn how Nx TSC batch mode dramatically improves TypeScript compilation speed by leveraging project references and incremental builds while...
+- [Use TypeScript 7.0 alongside TypeScript 6.0](https://nx.dev/docs/kb/typescript-7.md): Run TypeScript 7.0 through Nx tasks while keeping TypeScript 6.0 available for tools that need the compiler API.
+- [TypeScript Project Linking](https://nx.dev/docs/kb/typescript-project-linking.md): Learn how to efficiently reference code between TypeScript projects in your monorepo using project linking instead of relative paths.
+- [Unknown Local Cache Error](https://nx.dev/docs/kb/unknown-local-cache.md): Learn how to troubleshoot and resolve Nx cache errors related to machine ID changes, network drives, and understand how Nx ensures cache security.
+- [Update Your Global Nx Installation](https://nx.dev/docs/kb/update-global-installation.md): Learn how to update your global Nx installation to avoid common errors when the workspace structure changes, including steps to identify and remove...
+- [Upgrading Storybook](https://nx.dev/docs/kb/upgrading-storybook.md): This guide explains how to upgrade Storybook in your Nx workspace using Nx migrations or the Storybook CLI.
+- [Set Up Bun with Mise on CI](https://nx.dev/docs/kb/use-bun.md): Learn how to use bun as your package manager with Nx Cloud and Nx Agents using mise for toolchain management
+- [Using Tailwind CSS with React](https://nx.dev/docs/kb/using-tailwind-css-in-react.md): Learn how to set up and configure Tailwind CSS in your React applications within an Nx workspace.
+- [Using Tailwind CSS with Angular](https://nx.dev/docs/kb/using-tailwind-css-with-angular-projects.md): Learn how to set up and configure Tailwind CSS in Angular applications and libraries within an Nx workspace, including dependency management and...
+- [Using Tailwind CSS with Module Federation](https://nx.dev/docs/kb/using-tailwind-css-with-module-federation.md): Learn how to configure Tailwind CSS so that classes used in remote applications are properly compiled by the host application.
+- [Vite Module Federation](https://nx.dev/docs/kb/vite-module-federation.md): Set up Module Federation with Vite in an Nx workspace using the @module-federation/vite plugin, with Nx orchestrating the host and remote tasks.
+- [Wait for Tasks](https://nx.dev/docs/kb/wait-for-tasks.md): Learn how to ensure dependent tasks are completed before running a primary task in Nx, using dependsOn property or the waitUntilTargets option for...
+- [Configure Webpack in your Nx workspace](https://nx.dev/docs/kb/webpack-config-setup.md): A guide on how to configure webpack on your Nx workspace, and instructions on how to customize your webpack configuration
+- [Webpack plugins](https://nx.dev/docs/kb/webpack-plugins.md): A guide for webpack plugins that are provided by Nx.
+- [What is a Monorepo?](https://nx.dev/docs/kb/what-is-a-monorepo.md): Compare monorepos with monoliths, identify their benefits, and see why AI agents work better in a monorepo.
+- [Workspace Watching](https://nx.dev/docs/kb/workspace-watching.md): Learn how to use Nx workspace watching feature to automatically execute commands when files change, improving development workflow and productivity.
+- [Using Yarn Plug'n'Play with Nx](https://nx.dev/docs/kb/yarn-pnp.md): Learn how to configure and use Yarn Plug'n'Play (PnP) in your Nx workspace to improve installation speed, reduce disk usage, and enforce dependency...
+- [Yarn Workspaces: Setup, Commands, and Best Practices](https://nx.dev/docs/kb/yarn-workspaces.md): Learn Yarn workspaces: setup, linking packages, running scripts with yarn workspaces foreach, hoisting behavior, and best practices for growing...
+
+## platform-features
+
+- [Platform Features](https://nx.dev/docs/platform-features.md): Explore all the powerful features that Nx provides
+- [Code Organization](https://nx.dev/docs/platform-features/code-organization.md): Tools and features for organizing code in your Nx workspace
+- [Enforce Module Boundaries](https://nx.dev/docs/platform-features/code-organization/enforce-module-boundaries.md): Enforce constraints on project dependencies in your workspace
+- [Enterprise](https://nx.dev/docs/platform-features/enterprise.md): Enterprise features for Nx Cloud
+- [Conformance Reference](https://nx.dev/docs/platform-features/enterprise/conformance-reference.md): Reference documentation for Nx conformance rules
+- [Single Tenant](https://nx.dev/docs/platform-features/enterprise/single-tenant.md): Single tenant deployment guides for Nx Cloud
+- [Maintenance](https://nx.dev/docs/platform-features/maintenance.md): Guides for maintaining and upgrading your Nx workspace
+- [Orchestration & CI](https://nx.dev/docs/platform-features/orchestration-ci.md): Features for orchestrating tasks and optimizing CI pipelines with Nx
+- [Release & Publishing](https://nx.dev/docs/platform-features/release-publishing.md): Tools for managing releases and publishing packages with Nx
+
+## technologies-tools
+
+- [Technologies & Tools](https://nx.dev/docs/technologies-tools.md): Nx support for popular frameworks, libraries, and build tools
+- [Build Tools](https://nx.dev/docs/technologies-tools/build-tools.md): Nx support for build tools like Webpack, Vite, Rollup, and more
+- [.NET](https://nx.dev/docs/technologies-tools/dotnet.md): Nx support for .NET projects
+- [Frameworks & Libraries](https://nx.dev/docs/technologies-tools/frameworks-libraries.md): Nx support for popular frameworks and libraries
+- [Java (JVM)](https://nx.dev/docs/technologies-tools/java-jvm.md): Nx support for Java projects using Gradle and Maven
+- [Node](https://nx.dev/docs/technologies-tools/node.md): Nx support for Node.js backend frameworks like Express and Nest
+- [Test Tools](https://nx.dev/docs/technologies-tools/test-tools.md): Nx support for testing tools like Cypress, Jest, Playwright, and more
+
+## Devkit API Reference (@nx/devkit)
+
+The following are API docs for `@nx/devkit`, the package used by plugin authors to extend Nx with custom generators, executors, and project graph plugins.
+
+- [@nx/devkit Overview](https://nx.dev/docs/reference/devkit/.md)
+- [addDependenciesToPackageJson](https://nx.dev/docs/reference/devkit/addDependenciesToPackageJson.md)
+- [addProjectConfiguration](https://nx.dev/docs/reference/devkit/addProjectConfiguration.md)
+- [AggregateCreateNodesError](https://nx.dev/docs/reference/devkit/AggregateCreateNodesError.md)
+- [applyChangesToString](https://nx.dev/docs/reference/devkit/applyChangesToString.md)
+- [AsyncIteratorExecutor](https://nx.dev/docs/reference/devkit/AsyncIteratorExecutor.md)
+- [cacheDir](https://nx.dev/docs/reference/devkit/cacheDir.md)
+- [ChangeType](https://nx.dev/docs/reference/devkit/ChangeType.md)
+- [convertNxExecutor](https://nx.dev/docs/reference/devkit/convertNxExecutor.md)
+- [convertNxGenerator](https://nx.dev/docs/reference/devkit/convertNxGenerator.md)
+- [CreateDependencies](https://nx.dev/docs/reference/devkit/CreateDependencies.md)
+- [CreateDependenciesContext](https://nx.dev/docs/reference/devkit/CreateDependenciesContext.md)
+- [CreateMetadata](https://nx.dev/docs/reference/devkit/CreateMetadata.md)
+- [CreateMetadataContext](https://nx.dev/docs/reference/devkit/CreateMetadataContext.md)
+- [CreateNodes](https://nx.dev/docs/reference/devkit/CreateNodes.md)
+- [CreateNodesContext](https://nx.dev/docs/reference/devkit/CreateNodesContext.md)
+- [CreateNodesContextV2](https://nx.dev/docs/reference/devkit/CreateNodesContextV2.md)
+- [createNodesFromFiles](https://nx.dev/docs/reference/devkit/createNodesFromFiles.md)
+- [CreateNodesFunction](https://nx.dev/docs/reference/devkit/CreateNodesFunction.md)
+- [CreateNodesFunctionV2](https://nx.dev/docs/reference/devkit/CreateNodesFunctionV2.md)
+- [CreateNodesResult](https://nx.dev/docs/reference/devkit/CreateNodesResult.md)
+- [CreateNodesResultArray](https://nx.dev/docs/reference/devkit/CreateNodesResultArray.md)
+- [CreateNodesResultV2](https://nx.dev/docs/reference/devkit/CreateNodesResultV2.md)
+- [CreateNodesV2](https://nx.dev/docs/reference/devkit/CreateNodesV2.md)
+- [createProjectFileMapUsingProjectGraph](https://nx.dev/docs/reference/devkit/createProjectFileMapUsingProjectGraph.md)
+- [createProjectGraphAsync](https://nx.dev/docs/reference/devkit/createProjectGraphAsync.md)
+- [CustomHasher](https://nx.dev/docs/reference/devkit/CustomHasher.md)
+- [defaultTasksRunner](https://nx.dev/docs/reference/devkit/defaultTasksRunner.md)
+- [DefaultTasksRunnerOptions](https://nx.dev/docs/reference/devkit/DefaultTasksRunnerOptions.md)
+- [DependencyType](https://nx.dev/docs/reference/devkit/DependencyType.md)
+- [detectPackageManager](https://nx.dev/docs/reference/devkit/detectPackageManager.md)
+- [DynamicDependency](https://nx.dev/docs/reference/devkit/DynamicDependency.md)
+- [ensurePackage](https://nx.dev/docs/reference/devkit/ensurePackage.md)
+- [Executor](https://nx.dev/docs/reference/devkit/Executor.md)
+- [ExecutorContext](https://nx.dev/docs/reference/devkit/ExecutorContext.md)
+- [ExecutorsJson](https://nx.dev/docs/reference/devkit/ExecutorsJson.md)
+- [ExpandedPluginConfiguration](https://nx.dev/docs/reference/devkit/ExpandedPluginConfiguration.md)
+- [extractLayoutDirectory](https://nx.dev/docs/reference/devkit/extractLayoutDirectory.md)
+- [FileChange](https://nx.dev/docs/reference/devkit/FileChange.md)
+- [FileData](https://nx.dev/docs/reference/devkit/FileData.md)
+- [FileMap](https://nx.dev/docs/reference/devkit/FileMap.md)
+- [formatFiles](https://nx.dev/docs/reference/devkit/formatFiles.md)
+- [generateFiles](https://nx.dev/docs/reference/devkit/generateFiles.md)
+- [Generator](https://nx.dev/docs/reference/devkit/Generator.md)
+- [GeneratorCallback](https://nx.dev/docs/reference/devkit/GeneratorCallback.md)
+- [GeneratorsJson](https://nx.dev/docs/reference/devkit/GeneratorsJson.md)
+- [getDependencyVersionFromPackageJson](https://nx.dev/docs/reference/devkit/getDependencyVersionFromPackageJson.md)
+- [getOutputsForTargetAndConfiguration](https://nx.dev/docs/reference/devkit/getOutputsForTargetAndConfiguration.md)
+- [getPackageManagerCommand](https://nx.dev/docs/reference/devkit/getPackageManagerCommand.md)
+- [getPackageManagerVersion](https://nx.dev/docs/reference/devkit/getPackageManagerVersion.md)
+- [getProjects](https://nx.dev/docs/reference/devkit/getProjects.md)
+- [getWorkspaceLayout](https://nx.dev/docs/reference/devkit/getWorkspaceLayout.md)
+- [glob](https://nx.dev/docs/reference/devkit/glob.md)
+- [globAsync](https://nx.dev/docs/reference/devkit/globAsync.md)
+- [GraphJson](https://nx.dev/docs/reference/devkit/GraphJson.md)
+- [Hash](https://nx.dev/docs/reference/devkit/Hash.md)
+- [hashArray](https://nx.dev/docs/reference/devkit/hashArray.md)
+- [Hasher](https://nx.dev/docs/reference/devkit/Hasher.md)
+- [HasherContext](https://nx.dev/docs/reference/devkit/HasherContext.md)
+- [ImplicitDependency](https://nx.dev/docs/reference/devkit/ImplicitDependency.md)
+- [ImplicitDependencyEntry](https://nx.dev/docs/reference/devkit/ImplicitDependencyEntry.md)
+- [ImplicitJsonSubsetDependency](https://nx.dev/docs/reference/devkit/ImplicitJsonSubsetDependency.md)
+- [installPackagesTask](https://nx.dev/docs/reference/devkit/installPackagesTask.md)
+- [isDaemonEnabled](https://nx.dev/docs/reference/devkit/isDaemonEnabled.md)
+- [isWorkspacesEnabled](https://nx.dev/docs/reference/devkit/isWorkspacesEnabled.md)
+- [joinPathFragments](https://nx.dev/docs/reference/devkit/joinPathFragments.md)
+- [JsonParseOptions](https://nx.dev/docs/reference/devkit/JsonParseOptions.md)
+- [JsonSerializeOptions](https://nx.dev/docs/reference/devkit/JsonSerializeOptions.md)
+- [logger](https://nx.dev/docs/reference/devkit/logger.md)
+- [Migration](https://nx.dev/docs/reference/devkit/Migration.md)
+- [MigrationReturnObject](https://nx.dev/docs/reference/devkit/MigrationReturnObject.md)
+- [MigrationsJson](https://nx.dev/docs/reference/devkit/MigrationsJson.md)
+- [mockSchematicsForTesting](https://nx.dev/docs/reference/devkit/ngcli_adapter/mockSchematicsForTesting.md)
+- [moveFilesToNewDirectory](https://nx.dev/docs/reference/devkit/moveFilesToNewDirectory.md)
+- [names](https://nx.dev/docs/reference/devkit/names.md)
+- [ngcli_adapter Overview](https://nx.dev/docs/reference/devkit/ngcli_adapter.md)
+- [normalizePath](https://nx.dev/docs/reference/devkit/normalizePath.md)
+- [NX_VERSION](https://nx.dev/docs/reference/devkit/NX_VERSION.md)
+- [NxAffectedConfig](https://nx.dev/docs/reference/devkit/NxAffectedConfig.md)
+- [NxJsonConfiguration](https://nx.dev/docs/reference/devkit/NxJsonConfiguration.md)
+- [NxPlugin](https://nx.dev/docs/reference/devkit/NxPlugin.md)
+- [NxPluginV2](https://nx.dev/docs/reference/devkit/NxPluginV2.md)
+- [NxScopedHost](https://nx.dev/docs/reference/devkit/ngcli_adapter/NxScopedHost.md)
+- [offsetFromRoot](https://nx.dev/docs/reference/devkit/offsetFromRoot.md)
+- [Optional](https://nx.dev/docs/reference/devkit/Optional.md)
+- [output](https://nx.dev/docs/reference/devkit/output.md)
+- [OverwriteStrategy](https://nx.dev/docs/reference/devkit/OverwriteStrategy.md)
+- [PackageManager](https://nx.dev/docs/reference/devkit/PackageManager.md)
+- [parseJson](https://nx.dev/docs/reference/devkit/parseJson.md)
+- [parseTargetString](https://nx.dev/docs/reference/devkit/parseTargetString.md)
+- [PluginConfiguration](https://nx.dev/docs/reference/devkit/PluginConfiguration.md)
+- [PostTasksExecution](https://nx.dev/docs/reference/devkit/PostTasksExecution.md)
+- [PostTasksExecutionContext](https://nx.dev/docs/reference/devkit/PostTasksExecutionContext.md)
+- [PreTasksExecution](https://nx.dev/docs/reference/devkit/PreTasksExecution.md)
+- [PreTasksExecutionContext](https://nx.dev/docs/reference/devkit/PreTasksExecutionContext.md)
+- [ProjectConfiguration](https://nx.dev/docs/reference/devkit/ProjectConfiguration.md)
+- [ProjectFileMap](https://nx.dev/docs/reference/devkit/ProjectFileMap.md)
+- [ProjectGraph](https://nx.dev/docs/reference/devkit/ProjectGraph.md)
+- [ProjectGraphDependency](https://nx.dev/docs/reference/devkit/ProjectGraphDependency.md)
+- [ProjectGraphExternalNode](https://nx.dev/docs/reference/devkit/ProjectGraphExternalNode.md)
+- [ProjectGraphProjectNode](https://nx.dev/docs/reference/devkit/ProjectGraphProjectNode.md)
+- [ProjectsConfigurations](https://nx.dev/docs/reference/devkit/ProjectsConfigurations.md)
+- [ProjectsMetadata](https://nx.dev/docs/reference/devkit/ProjectsMetadata.md)
+- [ProjectType](https://nx.dev/docs/reference/devkit/ProjectType.md)
+- [PromiseExecutor](https://nx.dev/docs/reference/devkit/PromiseExecutor.md)
+- [RawProjectGraphDependency](https://nx.dev/docs/reference/devkit/RawProjectGraphDependency.md)
+- [readCachedProjectGraph](https://nx.dev/docs/reference/devkit/readCachedProjectGraph.md)
+- [readJson](https://nx.dev/docs/reference/devkit/readJson.md)
+- [readJsonFile](https://nx.dev/docs/reference/devkit/readJsonFile.md)
+- [readNxJson](https://nx.dev/docs/reference/devkit/readNxJson.md)
+- [readProjectConfiguration](https://nx.dev/docs/reference/devkit/readProjectConfiguration.md)
+- [readProjectsConfigurationFromProjectGraph](https://nx.dev/docs/reference/devkit/readProjectsConfigurationFromProjectGraph.md)
+- [readTargetOptions](https://nx.dev/docs/reference/devkit/readTargetOptions.md)
+- [RemoteCache](https://nx.dev/docs/reference/devkit/RemoteCache.md)
+- [removeDependenciesFromPackageJson](https://nx.dev/docs/reference/devkit/removeDependenciesFromPackageJson.md)
+- [removeProjectConfiguration](https://nx.dev/docs/reference/devkit/removeProjectConfiguration.md)
+- [reverse](https://nx.dev/docs/reference/devkit/reverse.md)
+- [runExecutor](https://nx.dev/docs/reference/devkit/runExecutor.md)
+- [runTasksInSerial](https://nx.dev/docs/reference/devkit/runTasksInSerial.md)
+- [serializeJson](https://nx.dev/docs/reference/devkit/serializeJson.md)
+- [StaleProjectGraphCacheError](https://nx.dev/docs/reference/devkit/StaleProjectGraphCacheError.md)
+- [StaticDependency](https://nx.dev/docs/reference/devkit/StaticDependency.md)
+- [StringChange](https://nx.dev/docs/reference/devkit/StringChange.md)
+- [StringDeletion](https://nx.dev/docs/reference/devkit/StringDeletion.md)
+- [StringInsertion](https://nx.dev/docs/reference/devkit/StringInsertion.md)
+- [stripIndents](https://nx.dev/docs/reference/devkit/stripIndents.md)
+- [stripJsonComments](https://nx.dev/docs/reference/devkit/stripJsonComments.md)
+- [Target](https://nx.dev/docs/reference/devkit/Target.md)
+- [TargetConfiguration](https://nx.dev/docs/reference/devkit/TargetConfiguration.md)
+- [TargetDefaultArrayEntry](https://nx.dev/docs/reference/devkit/TargetDefaultArrayEntry.md)
+- [TargetDefaultEntry](https://nx.dev/docs/reference/devkit/TargetDefaultEntry.md)
+- [TargetDefaultFilter](https://nx.dev/docs/reference/devkit/TargetDefaultFilter.md)
+- [TargetDefaults](https://nx.dev/docs/reference/devkit/TargetDefaults.md)
+- [TargetDefaultValue](https://nx.dev/docs/reference/devkit/TargetDefaultValue.md)
+- [TargetDependencyConfig](https://nx.dev/docs/reference/devkit/TargetDependencyConfig.md)
+- [targetToTargetString](https://nx.dev/docs/reference/devkit/targetToTargetString.md)
+- [Task](https://nx.dev/docs/reference/devkit/Task.md)
+- [TaskGraph](https://nx.dev/docs/reference/devkit/TaskGraph.md)
+- [TaskGraphExecutor](https://nx.dev/docs/reference/devkit/TaskGraphExecutor.md)
+- [TaskHasher](https://nx.dev/docs/reference/devkit/TaskHasher.md)
+- [TaskResult](https://nx.dev/docs/reference/devkit/TaskResult.md)
+- [TaskResults](https://nx.dev/docs/reference/devkit/TaskResults.md)
+- [toJS](https://nx.dev/docs/reference/devkit/toJS.md)
+- [ToJSOptions](https://nx.dev/docs/reference/devkit/ToJSOptions.md)
+- [Tree](https://nx.dev/docs/reference/devkit/Tree.md)
+- [updateJson](https://nx.dev/docs/reference/devkit/updateJson.md)
+- [updateNxJson](https://nx.dev/docs/reference/devkit/updateNxJson.md)
+- [updateProjectConfiguration](https://nx.dev/docs/reference/devkit/updateProjectConfiguration.md)
+- [updateTsConfigsToJs](https://nx.dev/docs/reference/devkit/updateTsConfigsToJs.md)
+- [validateDependency](https://nx.dev/docs/reference/devkit/validateDependency.md)
+- [visitNotIgnoredFiles](https://nx.dev/docs/reference/devkit/visitNotIgnoredFiles.md)
+- [Workspace](https://nx.dev/docs/reference/devkit/Workspace.md)
+- [WorkspaceJsonConfiguration](https://nx.dev/docs/reference/devkit/WorkspaceJsonConfiguration.md)
+- [workspaceLayout](https://nx.dev/docs/reference/devkit/workspaceLayout.md)
+- [workspaceRoot](https://nx.dev/docs/reference/devkit/workspaceRoot.md)
+- [wrapAngularDevkitSchematic](https://nx.dev/docs/reference/devkit/ngcli_adapter/wrapAngularDevkitSchematic.md)
+- [writeJson](https://nx.dev/docs/reference/devkit/writeJson.md)
+- [writeJsonFile](https://nx.dev/docs/reference/devkit/writeJsonFile.md)
