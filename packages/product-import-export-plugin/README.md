@@ -89,6 +89,43 @@ Available import storage strategies:
 | `requiredExportFields`  | `string[]`            | `['name', 'sku']`       | Fields that must always be included                          |
 | `storageStrategy`       | `'s3' \| 'disk'`      | `'disk'`                | Where exported files are stored                              |
 | `s3Options`             | `object`              | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`) |
+| `customExportColumns`   | `CustomExportColumn[]`| `undefined`              | Additional CSV columns computed per row. See [Custom export columns](#custom-export-columns) |
+
+### Custom export columns
+
+Use `exportOptions.customExportColumns` to inject additional CSV columns whose values are computed
+per product/variant, for example a storefront permalink built from a custom service:
+
+```typescript
+ProductImportExportPlugin.init({
+  importOptions: {},
+  exportOptions: {
+    customExportColumns: [
+      {
+        name: 'permalink',
+        // Called once per export job, before the first `resolve`. Use it to reset caches.
+        onExportStart: () => resetMyCache(),
+        resolve: (ctx, injector, product, variant) =>
+          injector.get(MyStorefrontLinkService).getProductUrl(ctx, product),
+      },
+    ],
+  },
+})
+```
+
+- `name` becomes the CSV column header and the id used to select the column in the export UI.
+  It must not contain `:` (colon headers are reserved by the import format), must not collide
+  with a built-in export field name, and must be unique among `customExportColumns`. These rules
+  are validated once at plugin init time, so a misconfigured column fails fast on startup rather
+  than mid-export.
+- `onExportStart` is awaited once per export job, before the first `resolve` call for any selected
+  custom column. Use it to reset per-job state such as a cache.
+- `resolve(ctx, injector, product, variant)` runs once per variant row. Its return value is written
+  to the cell (`''` for `null`/`undefined`). If a `resolve` call throws, the plugin logs a warning
+  and leaves that cell empty rather than failing the whole export.
+- Custom columns only appear in the CSV when selected: the Dashboard export dialog lists them as
+  checkboxes (default-checked) alongside the built-in fields, and they are sent in
+  `selectedExportFields` like any other field.
 
 ### Storage strategy
 
@@ -196,9 +233,10 @@ The Admin UI offers basic import and export. Some features such as the export-al
 ### Exporting products
 
 1. In the Admin UI or Dashboard, select products to export (or use bulk export).
-2. Configure export fields (assets, facets, custom fields, etc.).
+2. Configure export fields (`id`, assets, facets, custom fields, etc.).
    - For products with more than one variant, `optionGroups` and `optionValues` must be included.
-   - `productId` is not available as a selectable export field.
+   - `id` is the product id, written on every variant row. It is deliberately never the first CSV
+     column, since the importer treats column 0 as a product id for by-id matching.
    - If `customFields` are not selected, no custom-field columns are written to the CSV.
 3. Choose asset format: URL or JSON.
 4. Start the export (it is added to a job queue and runs in the background).

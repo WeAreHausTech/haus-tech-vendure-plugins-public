@@ -241,6 +241,19 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(String(body?.message ?? '')).toContain('Invalid fileName')
   })
 
+  it('rejects export-all when name is missing from selectedExportFields', async () => {
+    const response = await fetch(
+      `http://localhost:${apiPort}/product-export/export-all?selectedExportFields=id,sku,optionGroups,optionValues`,
+      {
+        method: 'POST',
+      },
+    )
+
+    expect(response.status).toBe(422)
+    const body = await response.json()
+    expect(String(body?.message ?? '')).toContain('name is a required export field')
+  })
+
   it('exports stockOnHand value for variants', async () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
@@ -933,5 +946,120 @@ describe('ProductImportExportPlugin e2e', () => {
 
     await productImportService.processFile(ctx, file, true, LanguageCode.en, 'replace')
     await waitFor(async () => (await productExportService.getAllProductIds(ctx)).length >= baselineCount + 300)
+  })
+
+  it('exports product id on every variant row when id is selected', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const productIds = await productExportService.getAllProductIds(ctx)
+
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'id-export.csv',
+      '',
+      'url',
+      'id,name,sku,optionGroups,optionValues',
+    )
+    const stream = await exportStorageStrategy.getExportFileStream(ctx, fileName)
+    const exportedCsv = await streamToString(stream)
+    const lines = exportedCsv.trim().split(/\r?\n/)
+    const header = lines[0].split(',')
+
+    // Import treats CSV column 0 as a Vendure product id — 'id' must never be first.
+    expect(header[0]).not.toBe('id')
+    expect(header).toContain('id')
+
+    const idIdx = header.indexOf('id')
+    const rows = lines.slice(1).map((line) => line.split(','))
+    expect(rows.length).toBeGreaterThan(productIds.length) // fixture has multi-variant products
+    for (const row of rows) {
+      expect(row[idIdx]).toMatch(/^\d+$/) // id present on continuation rows too
+    }
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+  })
+
+  it('omits id column when id is not selected', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const productIds = await productExportService.getAllProductIds(ctx)
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      productIds,
+      'no-id-export.csv',
+      '',
+      'url',
+      'name,sku,optionGroups,optionValues',
+    )
+    const stream = await exportStorageStrategy.getExportFileStream(ctx, fileName)
+    const header = (await streamToString(stream)).trim().split(/\r?\n/)[0].split(',')
+    expect(header).not.toContain('id')
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+  })
+
+  it('re-imports an export containing id and custom columns without errors', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productExportService = server.app.get(ProductExportService)
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+    const productImporter = server.app.get(ProductImporter)
+    const connection = server.app.get(TransactionalConnection)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const productIdsBefore = await productExportService.getAllProductIds(ctx)
+
+    // The 'reports parser error when optionValues count mismatches optionGroups' test
+    // above deliberately imports a product with invalid optionGroups/optionValues data;
+    // the 'replace' strategy still persists it despite the reported error. Re-exporting
+    // and re-importing that already-invalid data would fail here for reasons unrelated
+    // to what this test verifies (id + custom column round-tripping), so it is excluded
+    // from the export selection.
+    const productRepo = connection.getRepository(ctx, Product)
+    const mismatchProduct = await productRepo.findOne({
+      where: { translations: { slug: 'mismatch-product' } },
+    })
+    const exportProductIds = mismatchProduct
+      ? productIdsBefore.filter((id) => id !== mismatchProduct.id)
+      : productIdsBefore
+
+    const fileName = await productExportService.createExportFile(
+      ctx,
+      exportProductIds,
+      'roundtrip.csv',
+      '',
+      'url',
+      'id,name,sku,optionGroups,optionValues,price,taxCategory',
+    )
+    const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    await exportStorageStrategy.deleteExportFile(ctx, fileName)
+
+    // Simulate a configured custom column (e.g. bov's permalink) in the file.
+    const lines = csv.trim().split(/\r?\n/)
+    const withExtraColumn = [
+      `${lines[0]},permalink`,
+      ...lines.slice(1).map((line) => `${line},https://example.com/x/`),
+    ].join('\n')
+
+    const result = await runImport(productImporter, ctx, withExtraColumn)
+    expect(result.errors).toEqual([])
+    // `imported` counts parsed products (parsed.results.length in product-importer.ts),
+    // not CSV/variant rows, so it must equal the product count we exported. This guards
+    // against a silent no-op (e.g. a header/column-count mismatch from the appended
+    // 'permalink' column) that would otherwise satisfy an empty-errors check trivially.
+    expect(result.imported).toBe(exportProductIds.length)
+
+    const productIdsAfter = await productExportService.getAllProductIds(ctx)
+    expect(productIdsAfter.length).toBe(productIdsBefore.length)
   })
 })

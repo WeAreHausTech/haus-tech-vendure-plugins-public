@@ -31,6 +31,7 @@ const MANDATORY_OPTION_FIELDS: Array<ProductFields | VariantFields> = [
 ]
 
 const AVAILABLE_EXPORT_FIELDS: ExportFields = [
+  'id',
   'name',
   'slug',
   'description',
@@ -87,6 +88,8 @@ export const ExportConfigurationPanel = forwardRef<
   const [fileName, setFileName] = useState('')
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([])
   const [selectedCustomFields, setSelectedCustomFields] = useState<string[]>([])
+  const [customColumnNames, setCustomColumnNames] = useState<string[]>([])
+  const [selectedCustomColumns, setSelectedCustomColumns] = useState<string[]>([])
   const [exportAssetsAs, setExportAssetsAs] = useState<'url' | 'json'>('url')
   const [selectedExportFields, setSelectedExportFields] = useState<ExportFields>([])
   const [toggleAllChecked, setToggleAllChecked] = useState(false)
@@ -129,6 +132,12 @@ export const ExportConfigurationPanel = forwardRef<
         setCustomFieldNames(names)
         setSelectedCustomFields([...names])
 
+        const columnNames = (configData.exportOptions?.customExportColumns ?? []).map(
+          (c: { name: string }) => c.name,
+        )
+        setCustomColumnNames(columnNames)
+        setSelectedCustomColumns(columnNames)
+
         const defaultAssets =
           configData.exportOptions?.defaultExportAssetsAs ||
           configData.exportOptions?.exportAssetsAsOptions?.[0] ||
@@ -157,8 +166,17 @@ export const ExportConfigurationPanel = forwardRef<
     const allCustom =
       customFieldNames.length === 0 ||
       customFieldNames.every((f) => selectedCustomFields.includes(f))
-    return allStandard && allCustom
-  }, [selectedExportFields, selectedCustomFields, customFieldNames])
+    const allCustomColumns =
+      customColumnNames.length === 0 ||
+      customColumnNames.every((c) => selectedCustomColumns.includes(c))
+    return allStandard && allCustom && allCustomColumns
+  }, [
+    selectedExportFields,
+    selectedCustomFields,
+    customFieldNames,
+    selectedCustomColumns,
+    customColumnNames,
+  ])
 
   useEffect(() => {
     setToggleAllChecked(derivedToggleAll)
@@ -167,6 +185,12 @@ export const ExportConfigurationPanel = forwardRef<
   const toggleCustomField = (fieldName: string) => {
     setSelectedCustomFields((prev) =>
       prev.includes(fieldName) ? prev.filter((f) => f !== fieldName) : [...prev, fieldName],
+    )
+  }
+
+  const toggleCustomColumnSelection = (name: string) => {
+    setSelectedCustomColumns((prev) =>
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name],
     )
   }
 
@@ -182,9 +206,11 @@ export const ExportConfigurationPanel = forwardRef<
     if (checked) {
       setSelectedExportFields([...AVAILABLE_EXPORT_FIELDS])
       setSelectedCustomFields([...customFieldNames])
+      setSelectedCustomColumns([...customColumnNames])
     } else {
       setSelectedExportFields([...(config?.requiredExportFields || []), ...MANDATORY_OPTION_FIELDS])
       setSelectedCustomFields([])
+      setSelectedCustomColumns([])
     }
   }
 
@@ -206,7 +232,7 @@ export const ExportConfigurationPanel = forwardRef<
         )}&customFields=${encodeURIComponent(
           selectedCustomFields.join(','),
         )}&exportAssetsAs=${exportAssetsAs}&selectedExportFields=${encodeURIComponent(
-          selectedExportFields.join(','),
+          [...selectedExportFields, ...selectedCustomColumns].join(','),
         )}`,
         {
           method: 'POST',
@@ -240,6 +266,7 @@ export const ExportConfigurationPanel = forwardRef<
     isExportAll,
     productIdsFetchKey,
     selectedCustomFields,
+    selectedCustomColumns,
     exportAssetsAs,
     selectedExportFields,
     onExportSuccess,
@@ -322,6 +349,26 @@ export const ExportConfigurationPanel = forwardRef<
                       />
                       <Label htmlFor={`${idPrefix}-custom-${field}`} className="font-normal">
                         {field}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {customColumnNames.length > 0 && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="text-muted-foreground pb-2">Custom columns</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {customColumnNames.map((name) => (
+                    <div key={name} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`${idPrefix}-custom-column-${name}`}
+                        checked={selectedCustomColumns.includes(name)}
+                        onCheckedChange={() => toggleCustomColumnSelection(name)}
+                      />
+                      <Label htmlFor={`${idPrefix}-custom-column-${name}`} className="font-normal">
+                        {name}
                       </Label>
                     </div>
                   ))}
