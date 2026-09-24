@@ -237,9 +237,9 @@ export class ProductExportService {
           ],
         )
         for (const product of items) {
-          // The loader returns plain (untranslated) ProductVariant entities: exportProduct only
-          // reads nested `.translations` arrays off variants/options/facetValues, never a
-          // flattened `languageCode`-bearing field, so the missing translateDeep step is safe here.
+          // The cast only satisfies the `Translated<Product>` typing: ProductService.findAll never
+          // translated variants either, and exportProduct reads `.translations` arrays off variants,
+          // options and facet values.
           product.variants = (variantsByProductId.get(String(product.id)) ?? []) as unknown as typeof product.variants
         }
 
@@ -256,10 +256,10 @@ export class ProductExportService {
             )
           : new Map<string, number>()
 
-        // Process products sequentially. The expensive relations are already eager-loaded by findAll
-        // above, so each product is pure in-memory work plus a single sequential CSV write — there is
-        // no benefit to running these concurrently on the shared connection, and the per-product
-        // await yields to the event loop so BullMQ can renew the job lock.
+        // Process products sequentially. Variants were already loaded above by loadVariantsForProducts
+        // and the other relations by findAll, so each product is pure in-memory work plus a single
+        // sequential CSV write — there is no benefit to running these concurrently on the shared
+        // connection, and the per-product await yields to the event loop so BullMQ can renew the job lock.
         for (const product of items) {
           await this.exportProduct(
             ctx,
