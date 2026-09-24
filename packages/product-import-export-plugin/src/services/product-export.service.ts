@@ -343,12 +343,15 @@ export class ProductExportService {
       where: { productId: In(productIds), deletedAt: IsNull() },
       order: { id: 'ASC' },
     })
+    const idPosition = new Map(idRows.map((row, index) => [String(row.id), index]))
     for (const ids of chunk(idRows.map((row) => row.id), VARIANT_LOAD_CHUNK_SIZE)) {
+      // No `order` here: with relationLoadStrategy 'query', TypeORM propagates the find's order
+      // into every relation sub-query via deepValue(order, relation.propertyPath), which throws
+      // for an embedded `customFields.<name>` relation path (reads a property off undefined).
       const variants = await repository.find({
         where: { id: In(ids) },
         relations: variantRelations,
         relationLoadStrategy: 'query',
-        order: { id: 'ASC' },
       })
       for (const variant of variants) {
         const key = String(variant.productId)
@@ -361,6 +364,15 @@ export class ProductExportService {
       }
       // Yield between chunks so BullMQ's lock renewal timer can fire on long pages.
       await new Promise<void>((resolve) => setImmediate(resolve))
+    }
+    // Restore ascending variant id order: chunks are loaded without an `order`, so within (and
+    // once merged, across) a product's list, variants are in the order the query-strategy joins
+    // return them, not id order.
+    for (const [key, list] of byProductId) {
+      byProductId.set(
+        key,
+        sortBy(list, (variant) => idPosition.get(String(variant.id))),
+      )
     }
     return byProductId
   }
