@@ -68,6 +68,48 @@ function buildLargeProductCsv(): string {
   return [header, ...rows].join('\n')
 }
 
+/** 3 option groups with 5 values each: 125 variants on one product, spanning two 100-item load chunks. */
+function buildChunkedProductCsv(): string {
+  const header = 'name,slug,description,optionGroups,sku,optionValues,price,taxCategory,stockOnHand'
+  const rows: string[] = []
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL']
+  const colours = ['Red', 'Blue', 'Green', 'Black', 'White']
+  const finishes = ['Matt', 'Gloss', 'Satin', 'Raw', 'Brushed']
+  let first = true
+  for (const size of sizes) {
+    for (const colour of colours) {
+      for (const finish of finishes) {
+        const sku = `CHUNK-${size}-${colour}-${finish}`.toUpperCase()
+        const productCols = first
+          ? 'Chunked product,chunked-product,One hundred twenty five variants,Size|Colour|Finish'
+          : ',,,'
+        rows.push(`${productCols},${sku},${size}|${colour}|${finish},100,Standard Tax,1`)
+        first = false
+      }
+    }
+  }
+  return [header, ...rows].join('\n')
+}
+
+/**
+ * The CHUNK- SKUs in the same row order buildChunkedProductCsv generates them. The importer
+ * creates variants in CSV row order, so this is also the order variant ids ascend in.
+ */
+function chunkedProductSkusInGenerationOrder(): string[] {
+  const skus: string[] = []
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL']
+  const colours = ['Red', 'Blue', 'Green', 'Black', 'White']
+  const finishes = ['Matt', 'Gloss', 'Satin', 'Raw', 'Brushed']
+  for (const size of sizes) {
+    for (const colour of colours) {
+      for (const finish of finishes) {
+        skus.push(`CHUNK-${size}-${colour}-${finish}`.toUpperCase())
+      }
+    }
+  }
+  return skus
+}
+
 /** Five single-variant products, so a pageSize of 2 yields three pages. */
 function buildFiveProductsCsv(): string {
   const header = 'name,slug,description,sku,price,taxCategory,stockOnHand'
@@ -141,6 +183,7 @@ describe('export paging and large products', () => {
     exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
     expect(await runImport(buildFiveProductsCsv())).toEqual([])
     expect(await runImport(buildLargeProductCsv())).toEqual([])
+    expect(await runImport(buildChunkedProductCsv())).toEqual([])
   }, 120_000)
 
   afterAll(async () => {
@@ -151,7 +194,7 @@ describe('export paging and large products', () => {
     const ids = await productExportService.getAllProductIds(ctx)
     const numeric = ids.map((id) => Number(id))
     expect(numeric).toEqual([...numeric].sort((a, b) => a - b))
-    expect(numeric.length).toBe(6)
+    expect(numeric.length).toBe(7)
   })
 
   it('exports every product exactly once across pages', async () => {
@@ -178,6 +221,26 @@ describe('export paging and large products', () => {
     expect(bigRows.find((cells) => cells[skuCol] === 'BIG-S-RED-MATT')?.[optionValuesCol]).toBe('S|Red|Matt')
   })
 
+  // Exercises loadVariantsForProducts across a chunk boundary: 125 variants > VARIANT_LOAD_CHUNK_SIZE
+  // (100), so this product's variants are loaded across two chunk queries and merged back together.
+  // There is no variant id column in the export, so ascending id order is asserted via SKU insertion
+  // order instead: ProductImporter creates variants in CSV row order, so ids ascend with rows, and
+  // chunkedProductSkusInGenerationOrder() reproduces that row order.
+  it('exports all 125 variants of a product that spans two load chunks', async () => {
+    const { csv } = await runExport('name,sku,optionGroups,optionValues', 'chunked.csv', 2)
+    const lines = csv.trim().split(/\r?\n/)
+    const header = lines[0].split(',')
+    const skuCol = header.indexOf('sku')
+    const chunkedSkus = lines
+      .slice(1)
+      .map((l) => l.split(','))
+      .filter((cells) => cells[skuCol]?.startsWith('CHUNK-'))
+      .map((cells) => cells[skuCol])
+    expect(chunkedSkus.length).toBe(125)
+    expect(new Set(chunkedSkus).size).toBe(125)
+    expect(chunkedSkus).toEqual(chunkedProductSkusInGenerationOrder())
+  })
+
   // Regression test for a crash on the real catalog: with a ProductVariant relation custom
   // field configured (see the `manual` field in mergeConfig above), variantRelationCustomFields
   // includes a `customFields.manual` path. loadVariantsForProducts's chunk `find` previously
@@ -191,7 +254,7 @@ describe('export paging and large products', () => {
       .split(/\r?\n/)
       .slice(1)
       .map((line) => line.split(',')[1])
-    expect(skus.length).toBe(69)
-    expect(new Set(skus).size).toBe(69)
+    expect(skus.length).toBe(194)
+    expect(new Set(skus).size).toBe(194)
   })
 })
