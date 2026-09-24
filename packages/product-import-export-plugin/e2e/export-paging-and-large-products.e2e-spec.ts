@@ -1,7 +1,7 @@
 import path from 'path'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { Readable } from 'node:stream'
-import { LanguageCode, RequestContextService, mergeConfig } from '@vendure/core'
+import { Asset, LanguageCode, RequestContextService, mergeConfig } from '@vendure/core'
 import {
   E2E_DEFAULT_CHANNEL_TOKEN,
   createTestEnvironment,
@@ -18,7 +18,7 @@ import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
 import { initialData } from './fixtures/initial-data'
 
 const sqliteDataDir = path.join(__dirname, '__data__', 'export-paging')
-const SQLITE_SCHEMA_VERSION = '3.5'
+const SQLITE_SCHEMA_VERSION = '3.6'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')
@@ -82,6 +82,15 @@ describe('export paging and large products', () => {
   const { server } = createTestEnvironment(
     mergeConfig(testConfig, {
       apiOptions: { port: apiPort },
+      // A ProductVariant relation custom field: its config-level presence alone makes
+      // createExportFile build a `customFields.<name>` relation path for every chunked
+      // variant load, regardless of whether any variant has a value set or the field is
+      // requested in an export's selected fields.
+      customFields: {
+        ProductVariant: [
+          { name: 'manual', type: 'relation', entity: Asset, graphQLType: 'Asset', nullable: true, eager: false },
+        ],
+      },
       plugins: [ProductImportExportPlugin.init({ importOptions: {}, exportOptions: {} })],
     }),
   )
@@ -167,5 +176,22 @@ describe('export paging and large products', () => {
     expect(bigRows.length).toBe(64)
     expect(new Set(bigRows.map((cells) => cells[skuCol])).size).toBe(64)
     expect(bigRows.find((cells) => cells[skuCol] === 'BIG-S-RED-MATT')?.[optionValuesCol]).toBe('S|Red|Matt')
+  })
+
+  // Regression test for a crash on the real catalog: with a ProductVariant relation custom
+  // field configured (see the `manual` field in mergeConfig above), variantRelationCustomFields
+  // includes a `customFields.manual` path. loadVariantsForProducts's chunk `find` previously
+  // passed `order: { id: 'ASC' }` alongside `relationLoadStrategy: 'query'`, and TypeORM
+  // propagates that order into every relation sub-query via `deepValue(order, relation.propertyPath)`
+  // — for the embedded `customFields.manual` path this reads `.manual` off `undefined` and throws.
+  it('exports every product when a ProductVariant relation custom field is configured', async () => {
+    const { csv } = await runExport('name,sku', 'variant-relation-custom-field.csv', 2)
+    const skus = csv
+      .trim()
+      .split(/\r?\n/)
+      .slice(1)
+      .map((line) => line.split(',')[1])
+    expect(skus.length).toBe(69)
+    expect(new Set(skus).size).toBe(69)
   })
 })
