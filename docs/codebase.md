@@ -49,6 +49,21 @@ Image badges (e.g. "New", "Sale") attached to collections and inherited by every
 | `src/gql/generated.ts`, `src/ui/gql/` | Generated GraphQL types (do not hand-edit)                              |
 | `e2e/`                          | `badge-plugin.e2e-spec.ts` + fixtures                                         |
 
+### `packages/dashboard-locale-plugin` — `@haus-tech/dashboard-locale-plugin`
+
+Applies a configured display language, region and content language to every administrator in the React Dashboard, once per administrator; a later choice in the language dialog stands. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`, `@vendure/dashboard ^3.6.0`.
+
+| Path                                          | Purpose                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `src/dashboard-locale.plugin.ts`              | Plugin definition; registers the user-scoped `haus.dashboardLocale.appliedDefaults` settings store field |
+| `src/api/`                                    | Admin GraphQL `dashboardLocaleDefaults` query + resolver                         |
+| `src/constants.ts` / `src/types.ts`           | Options token, settings store key; `DashboardLocalePluginOptions`                |
+| `src/dashboard/index.tsx`                     | Dashboard extension: an invisible toolbar item                                   |
+| `src/dashboard/locale-defaults-applier.tsx`   | Waits for the user settings, applies the defaults, writes the marker             |
+| `src/dashboard/resolve-locale-action.ts`      | Pure decision function (apply / mark / none) — has unit specs                    |
+| `src/dashboard/constants.ts`                  | Mirror of the settings store key; the extension must not import server code (`src/constants.spec.ts` keeps them equal) |
+| `e2e/`                                        | `dashboard-locale-plugin.e2e-spec.ts` + fixtures                                 |
+
 ### `packages/elastic-search-synonyms` — `@haus-tech/elastic-search-synonyms`
 
 Manage Elasticsearch synonym sets from the Vendure admin UI / Dashboard. Synonym groups are persisted in the DB and synced to Elasticsearch on startup and on change via the Elasticsearch Synonyms API (ES 8.x/9.x). License MIT. `peerDependencies`: `@elastic/elasticsearch ^8 || ^9`, `@vendure/core ^3.6.0`.
@@ -66,7 +81,7 @@ Manage Elasticsearch synonym sets from the Vendure admin UI / Dashboard. Synonym
 | `src/dashboard/`                           | Vendure Dashboard (React) extension                               |
 | `src/gql/generated.ts`, `src/ui/gql/`      | Generated GraphQL types (do not hand-edit)                         |
 
-The only plugin with unit specs today; it has no `e2e/` directory.
+It has unit specs but no `e2e/` directory.
 
 ### `packages/product-import-export-plugin` — `@haus-tech/product-import-export-plugin`
 
@@ -105,7 +120,7 @@ This is the only plugin exposing **REST controllers** rather than only GraphQL; 
 
 ## Tests
 
-- Unit specs: `packages/<plugin>/src/**/*.spec.ts`, run by each plugin's `vitest.config.ts` via the Nx `test` target. Only `elastic-search-synonyms` has any today.
-- E2E specs: `packages/**/*.e2e-spec.ts`, run by the root `vitest.config.ts` (`badge-plugin/e2e/`, `product-import-export-plugin/e2e/`).
+- Unit specs: `packages/<plugin>/src/**/*.spec.ts`, run by each plugin's `vitest.config.ts` via the Nx `test` target. Only `elastic-search-synonyms` and `dashboard-locale-plugin` have any today.
+- E2E specs: `packages/**/*.e2e-spec.ts`, run by the root `vitest.config.ts` (`badge-plugin/e2e/`, `dashboard-locale-plugin/e2e/`, `product-import-export-plugin/e2e/`).
 - Every project sets `passWithNoTests: true` — a green `yarn test` does not imply coverage.
 - `node_modules` is not committed; `yarn install` is required before running tests locally.
