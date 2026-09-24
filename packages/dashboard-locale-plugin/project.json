@@ -34,7 +34,7 @@
         "{workspaceRoot}/coverage/{projectRoot}"
       ],
       "options": {
-        "config": "vitest.config.ts",
+        "config": "packages/dashboard-locale-plugin/vitest.config.ts",
         "passWithNoTests": true,
         "coverage": true
       }
