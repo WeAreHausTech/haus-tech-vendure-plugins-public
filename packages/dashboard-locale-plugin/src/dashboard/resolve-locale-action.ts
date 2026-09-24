@@ -66,3 +66,19 @@ export function resolveLocaleAction(
   }
   return { type: 'apply', patch }
 }
+
+/**
+ * Whether settings as stored on the server hold every configured default. The marker is only
+ * written once this is true, so a lost or failed settings save never leaves a marker behind.
+ */
+export function matchesDefaults(
+  storedSettings: unknown,
+  defaults: LocaleDefaults,
+  availableContentLanguages?: readonly string[],
+): boolean {
+  if (storedSettings == null || typeof storedSettings !== 'object') {
+    return false
+  }
+  const action = resolveLocaleAction(storedSettings as LocaleSettings, defaults, null, availableContentLanguages)
+  return action.type === 'mark'
+}

@@ -68,7 +68,7 @@ Rebuild the Dashboard after adding the plugin, since it ships a Dashboard extens
 
 - The plugin adds a `dashboardLocaleDefaults` query to the Admin API (any authenticated administrator) returning the configured values.
 - It registers a user-scoped settings store field, `haus.dashboardLocale.appliedDefaults`, holding a fingerprint of the defaults last applied to that user.
-- A Dashboard extension (an invisible toolbar item) waits until the user's settings have loaded from the server. If the stored fingerprint does not match the configured defaults, it sets the values and then stores the fingerprint.
+- A Dashboard extension (an invisible toolbar item) waits until the user's settings have loaded from the server. If the stored fingerprint does not match the configured defaults, it sets the values, waits until the Dashboard has saved them on the server, and only then stores the fingerprint. If that save fails, no fingerprint is stored and the next load tries again.
 
 ## Known limitations
 

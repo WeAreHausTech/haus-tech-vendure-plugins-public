@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultsFingerprint, LocaleDefaults, LocaleSettings, resolveLocaleAction } from './resolve-locale-action'
+import {
+  defaultsFingerprint,
+  LocaleDefaults,
+  LocaleSettings,
+  matchesDefaults,
+  resolveLocaleAction,
+} from './resolve-locale-action'
 
 const swedish: LocaleDefaults = { displayLanguage: 'sv', displayLocale: 'SE', contentLanguage: 'sv' }
 const english: LocaleSettings = { displayLanguage: 'en', displayLocale: undefined, contentLanguage: 'en' }
@@ -97,5 +103,28 @@ describe('defaultsFingerprint', () => {
 
   it('differs when any configured value differs', () => {
     expect(defaultsFingerprint(swedish)).not.toBe(defaultsFingerprint({ ...swedish, displayLocale: 'FI' }))
+  })
+})
+
+describe('matchesDefaults', () => {
+  it('is true when the stored settings hold every configured default', () => {
+    expect(matchesDefaults({ displayLanguage: 'sv', displayLocale: 'SE', contentLanguage: 'sv', theme: 'dark' }, swedish)).toBe(true)
+  })
+
+  it('is false when a stored setting differs from its default', () => {
+    expect(matchesDefaults({ displayLanguage: 'en', displayLocale: 'SE', contentLanguage: 'sv' }, swedish)).toBe(false)
+  })
+
+  it('is false when a default is missing from the stored settings', () => {
+    expect(matchesDefaults({ displayLanguage: 'sv', contentLanguage: 'sv' }, swedish)).toBe(false)
+  })
+
+  it('is false when nothing is stored yet', () => {
+    expect(matchesDefaults(null, swedish)).toBe(false)
+    expect(matchesDefaults('not settings', swedish)).toBe(false)
+  })
+
+  it('ignores a content language the active channel does not offer', () => {
+    expect(matchesDefaults({ displayLanguage: 'sv', displayLocale: 'SE', contentLanguage: 'en' }, swedish, ['en'])).toBe(true)
   })
 })
