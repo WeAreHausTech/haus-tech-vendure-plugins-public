@@ -1,6 +1,6 @@
 # Haus Tech Vendure Plugins (public)
 
-Public, open-source Nx monorepo of [Vendure](https://www.vendure.io/) (TypeScript) plugins under `packages/`. Each plugin is built, tested, versioned, and published to npm independently under the `@haus-tech/` scope. This repo contains libraries only — no Vendure server or application. Three plugins ship today: `@haus-tech/badge-plugin`, `@haus-tech/elastic-search-synonyms`, and `@haus-tech/product-import-export-plugin`.
+Public, open-source Nx monorepo of [Vendure](https://www.vendure.io/) (TypeScript) plugins under `packages/`. Each plugin is built, tested, versioned, and published to npm independently under the `@haus-tech/` scope. This repo contains libraries only — no Vendure server or application. Four plugins ship today: `@haus-tech/badge-plugin`, `@haus-tech/dashboard-locale-plugin`, `@haus-tech/elastic-search-synonyms`, and `@haus-tech/product-import-export-plugin`.
 
 ## Agent Context Guide
 

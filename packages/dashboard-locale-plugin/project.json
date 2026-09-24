@@ -1,0 +1,78 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "dashboard-locale-plugin",
+  "root": "packages/dashboard-locale-plugin",
+  "sourceRoot": "packages/dashboard-locale-plugin/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "options": {
+        "outputPath": "dist/packages/dashboard-locale-plugin",
+        "main": "packages/dashboard-locale-plugin/src/index.ts",
+        "tsConfig": "packages/dashboard-locale-plugin/tsconfig.json",
+        "assets": [
+          "packages/dashboard-locale-plugin/README.md",
+          "packages/dashboard-locale-plugin/CHANGELOG.md",
+          {
+            "input": "packages/dashboard-locale-plugin/src/dashboard",
+            "glob": "**/*",
+            "output": "./src/dashboard",
+            "ignore": [
+              "**/*.spec.ts"
+            ]
+          }
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
+      "options": {
+        "config": "vitest.config.ts",
+        "passWithNoTests": true,
+        "coverage": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": [
+        "{options.outputFile}"
+      ],
+      "options": {
+        "lintFilePatterns": [
+          "packages/dashboard-locale-plugin/**/*.ts",
+          "packages/dashboard-locale-plugin/**/*.tsx"
+        ]
+      }
+    },
+    "upgrade:vendure": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm update @vendure/* --save",
+        "cwd": "packages/dashboard-locale-plugin"
+      }
+    },
+    "version": {
+      "executor": "@nx/workspace:version",
+      "dependsOn": [
+        "update-readme"
+      ],
+      "options": {
+        "changelog": true,
+        "push": true
+      }
+    },
+    "update-readme": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx scripts/update-readmes.ts dashboard-locale-plugin"
+      }
+    }
+  }
+}

@@ -4,9 +4,10 @@
 
 ## What is published
 
-Three public npm packages under the `@haus-tech/` scope, built to `dist/packages/<plugin>/`:
+Four public npm packages under the `@haus-tech/` scope, built to `dist/packages/<plugin>/`:
 
 - `@haus-tech/badge-plugin`
+- `@haus-tech/dashboard-locale-plugin`
 - `@haus-tech/elastic-search-synonyms`
 - `@haus-tech/product-import-export-plugin`
 
