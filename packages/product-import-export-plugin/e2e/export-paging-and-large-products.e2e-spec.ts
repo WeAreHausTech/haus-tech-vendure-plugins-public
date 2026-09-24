@@ -78,7 +78,7 @@ function buildFiveProductsCsv(): string {
 }
 
 describe('export paging and large products', () => {
-  const apiPort = 3059
+  const apiPort = 3060
   const { server } = createTestEnvironment(
     mergeConfig(testConfig, {
       apiOptions: { port: apiPort },
