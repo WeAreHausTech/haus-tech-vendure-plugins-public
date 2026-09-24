@@ -9,6 +9,7 @@ import {
   Logger,
   Product,
   ProductService,
+  ProductVariant,
   RelationCustomFieldConfig,
   RequestContext,
   StockLevel,
@@ -16,12 +17,14 @@ import {
   ChannelService,
   TransactionalConnection,
 } from '@vendure/core'
+import { SortOrder } from '@vendure/common/lib/generated-types'
+import { In, IsNull } from 'typeorm'
 import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS, loggerCtx } from '../constants'
 import { CustomExportColumn, PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
-import { forEach, sortBy, startsWith } from 'lodash'
+import { chunk, forEach, sortBy, startsWith } from 'lodash'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
 
@@ -55,6 +58,12 @@ function formatTimestampForFilename(date: Date = new Date()): string {
 
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
+
+/**
+ * Variants per relation load. 100 keeps TypeORM's (entities × relation rows) grouping in the
+ * low millions of comparisons even for products with ~12 assets and ~5 facet values per variant.
+ */
+const VARIANT_LOAD_CHUNK_SIZE = 100
 
 @Injectable()
 export class ProductExportService {
@@ -201,25 +210,38 @@ export class ProductExportService {
             filter: {
               id: { in: selectionIds as string[] },
             },
+            // Without an explicit sort Vendure emits no ORDER BY, so offset paging is
+            // heap-ordered and can skip or repeat products between pages.
+            sort: { id: SortOrder.ASC },
             skip: (currentPage - 1) * pageSize,
             take: pageSize,
           },
-          [
-            'variants',
-            'facetValues',
-            'facetValues.facet',
-            'optionGroups',
-            'assets',
-            'variants.assets',
-            'variants.facetValues',
-            'variants.facetValues.facet',
-            'variants.options',
-            ...productRelationCustomFields,
-            ...variantRelationCustomFields,
-          ],
+          ['facetValues', 'facetValues.facet', 'optionGroups', 'assets', ...productRelationCustomFields],
         )
 
         hasMore = currentPage * pageSize < totalItems
+
+        // Variants are loaded separately in bounded chunks. Loading them through findAll's
+        // relation list lets TypeORM's query-strategy grouping run over every variant relation
+        // row on the page at once (O(variants × rows)); a page of 25 large products with ~4 000
+        // variants and ~47 000 asset rows took minutes and froze the worker's event loop.
+        const variantsByProductId = await this.loadVariantsForProducts(
+          ctx,
+          items.map((product) => product.id),
+          [
+            'assets',
+            'facetValues',
+            'facetValues.facet',
+            'options',
+            ...variantRelationCustomFields.map((relation) => relation.replace(/^variants\./, '')),
+          ],
+        )
+        for (const product of items) {
+          // The loader returns plain (untranslated) ProductVariant entities: exportProduct only
+          // reads nested `.translations` arrays off variants/options/facetValues, never a
+          // flattened `languageCode`-bearing field, so the missing translateDeep step is safe here.
+          product.variants = (variantsByProductId.get(String(product.id)) ?? []) as unknown as typeof product.variants
+        }
 
         // Fetch stock on hand for the whole page in a single query. Doing this up front (instead of
         // per-product, in parallel) avoids firing many concurrent queries over the request's single
@@ -297,6 +319,50 @@ export class ProductExportService {
 
       throw error
     }
+  }
+
+  /**
+   * Loads the non-deleted variants of the given products with the relations the export needs,
+   * in chunks of {@link VARIANT_LOAD_CHUNK_SIZE} variants. TypeORM's `query` relation strategy
+   * groups relation rows with nested loops over (entities × rows), so the cost of one load is
+   * bounded by the chunk size instead of by the product page. Returns variants keyed by product
+   * id, each list in ascending variant id order.
+   */
+  private async loadVariantsForProducts(
+    ctx: RequestContext,
+    productIds: ID[],
+    variantRelations: string[],
+  ): Promise<Map<string, ProductVariant[]>> {
+    const byProductId = new Map<string, ProductVariant[]>()
+    if (productIds.length === 0) {
+      return byProductId
+    }
+    const repository = this.connection.getRepository(ctx, ProductVariant)
+    const idRows = await repository.find({
+      select: { id: true },
+      where: { productId: In(productIds), deletedAt: IsNull() },
+      order: { id: 'ASC' },
+    })
+    for (const ids of chunk(idRows.map((row) => row.id), VARIANT_LOAD_CHUNK_SIZE)) {
+      const variants = await repository.find({
+        where: { id: In(ids) },
+        relations: variantRelations,
+        relationLoadStrategy: 'query',
+        order: { id: 'ASC' },
+      })
+      for (const variant of variants) {
+        const key = String(variant.productId)
+        const list = byProductId.get(key)
+        if (list) {
+          list.push(variant)
+        } else {
+          byProductId.set(key, [variant])
+        }
+      }
+      // Yield between chunks so BullMQ's lock renewal timer can fire on long pages.
+      await new Promise<void>((resolve) => setImmediate(resolve))
+    }
+    return byProductId
   }
 
   async exportProduct(
@@ -664,6 +730,7 @@ export class ProductExportService {
                 },
               }
             : {}),
+          sort: { id: SortOrder.ASC },
           skip,
           take: pageSize,
         },
@@ -687,6 +754,7 @@ export class ProductExportService {
 
     do {
       const { items, totalItems: total } = await this.productService.findAll(ctx, {
+        sort: { id: SortOrder.ASC },
         skip: offset,
         take: limit,
       })
