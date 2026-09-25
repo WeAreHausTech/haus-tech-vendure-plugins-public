@@ -338,8 +338,12 @@ export class ProductExportService {
       return byProductId
     }
     const repository = this.connection.getRepository(ctx, ProductVariant)
+    // loadEagerRelations false: the id-only query would otherwise still join every variant's
+    // eager translations and prices for the whole page (TypeORM joins eager relations regardless
+    // of `select`), the one load here that is bounded by the page instead of by the chunk size.
     const idRows = await repository.find({
       select: { id: true },
+      loadEagerRelations: false,
       where: { productId: In(productIds), deletedAt: IsNull() },
       order: { id: 'ASC' },
     })

@@ -17,7 +17,9 @@ import { ProductImporter } from '../src/providers/import-providers/product-impor
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
 import { initialData } from './fixtures/initial-data'
 
-const sqliteDataDir = path.join(__dirname, '__data__', 'export-paging')
+// A sibling of the shared `__data__` dir, not a child of it: the main spec removes `__data__`
+// recursively in its beforeAll on a schema bump, and vitest runs spec files in parallel.
+const sqliteDataDir = path.join(__dirname, '__data-export-paging__')
 const SQLITE_SCHEMA_VERSION = '3.6'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
