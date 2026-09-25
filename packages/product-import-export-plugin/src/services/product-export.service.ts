@@ -9,6 +9,7 @@ import {
   Logger,
   Product,
   ProductService,
+  ProductVariant,
   RelationCustomFieldConfig,
   RequestContext,
   StockLevel,
@@ -16,12 +17,14 @@ import {
   ChannelService,
   TransactionalConnection,
 } from '@vendure/core'
+import { SortOrder } from '@vendure/common/lib/generated-types'
+import { In, IsNull } from 'typeorm'
 import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS, loggerCtx } from '../constants'
 import { CustomExportColumn, PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
-import { forEach, sortBy, startsWith } from 'lodash'
+import { chunk, forEach, sortBy, startsWith } from 'lodash'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
 
@@ -55,6 +58,12 @@ function formatTimestampForFilename(date: Date = new Date()): string {
 
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
+
+/**
+ * Variants per relation load. 100 keeps TypeORM's (entities × relation rows) grouping in the
+ * low millions of comparisons even for products with ~12 assets and ~5 facet values per variant.
+ */
+const VARIANT_LOAD_CHUNK_SIZE = 100
 
 @Injectable()
 export class ProductExportService {
@@ -201,25 +210,38 @@ export class ProductExportService {
             filter: {
               id: { in: selectionIds as string[] },
             },
+            // Without an explicit sort Vendure emits no ORDER BY, so offset paging is
+            // heap-ordered and can skip or repeat products between pages.
+            sort: { id: SortOrder.ASC },
             skip: (currentPage - 1) * pageSize,
             take: pageSize,
           },
-          [
-            'variants',
-            'facetValues',
-            'facetValues.facet',
-            'optionGroups',
-            'assets',
-            'variants.assets',
-            'variants.facetValues',
-            'variants.facetValues.facet',
-            'variants.options',
-            ...productRelationCustomFields,
-            ...variantRelationCustomFields,
-          ],
+          ['facetValues', 'facetValues.facet', 'optionGroups', 'assets', ...productRelationCustomFields],
         )
 
         hasMore = currentPage * pageSize < totalItems
+
+        // Variants are loaded separately in bounded chunks. Loading them through findAll's
+        // relation list lets TypeORM's query-strategy grouping run over every variant relation
+        // row on the page at once (O(variants × rows)); a page of 25 large products with ~4 000
+        // variants and ~47 000 asset rows took minutes and froze the worker's event loop.
+        const variantsByProductId = await this.loadVariantsForProducts(
+          ctx,
+          items.map((product) => product.id),
+          [
+            'assets',
+            'facetValues',
+            'facetValues.facet',
+            'options',
+            ...variantRelationCustomFields.map((relation) => relation.replace(/^variants\./, '')),
+          ],
+        )
+        for (const product of items) {
+          // The cast only satisfies the `Translated<Product>` typing: ProductService.findAll never
+          // translated variants either, and exportProduct reads `.translations` arrays off variants,
+          // options and facet values.
+          product.variants = (variantsByProductId.get(String(product.id)) ?? []) as unknown as typeof product.variants
+        }
 
         // Fetch stock on hand for the whole page in a single query. Doing this up front (instead of
         // per-product, in parallel) avoids firing many concurrent queries over the request's single
@@ -234,10 +256,10 @@ export class ProductExportService {
             )
           : new Map<string, number>()
 
-        // Process products sequentially. The expensive relations are already eager-loaded by findAll
-        // above, so each product is pure in-memory work plus a single sequential CSV write — there is
-        // no benefit to running these concurrently on the shared connection, and the per-product
-        // await yields to the event loop so BullMQ can renew the job lock.
+        // Process products sequentially. Variants were already loaded above by loadVariantsForProducts
+        // and the other relations by findAll, so each product is pure in-memory work plus a single
+        // sequential CSV write — there is no benefit to running these concurrently on the shared
+        // connection, and the per-product await yields to the event loop so BullMQ can renew the job lock.
         for (const product of items) {
           await this.exportProduct(
             ctx,
@@ -299,6 +321,66 @@ export class ProductExportService {
     }
   }
 
+  /**
+   * Loads the non-deleted variants of the given products with the relations the export needs,
+   * in chunks of {@link VARIANT_LOAD_CHUNK_SIZE} variants. TypeORM's `query` relation strategy
+   * groups relation rows with nested loops over (entities × rows), so the cost of one load is
+   * bounded by the chunk size instead of by the product page. Returns variants keyed by product
+   * id, each list in ascending variant id order.
+   */
+  private async loadVariantsForProducts(
+    ctx: RequestContext,
+    productIds: ID[],
+    variantRelations: string[],
+  ): Promise<Map<string, ProductVariant[]>> {
+    const byProductId = new Map<string, ProductVariant[]>()
+    if (productIds.length === 0) {
+      return byProductId
+    }
+    const repository = this.connection.getRepository(ctx, ProductVariant)
+    // loadEagerRelations false: the id-only query would otherwise still join every variant's
+    // eager translations and prices for the whole page (TypeORM joins eager relations regardless
+    // of `select`), the one load here that is bounded by the page instead of by the chunk size.
+    const idRows = await repository.find({
+      select: { id: true },
+      loadEagerRelations: false,
+      where: { productId: In(productIds), deletedAt: IsNull() },
+      order: { id: 'ASC' },
+    })
+    const idPosition = new Map(idRows.map((row, index) => [String(row.id), index]))
+    for (const ids of chunk(idRows.map((row) => row.id), VARIANT_LOAD_CHUNK_SIZE)) {
+      // No `order` here: with relationLoadStrategy 'query', TypeORM propagates the find's order
+      // into every relation sub-query via deepValue(order, relation.propertyPath), which throws
+      // for an embedded `customFields.<name>` relation path (reads a property off undefined).
+      const variants = await repository.find({
+        where: { id: In(ids) },
+        relations: variantRelations,
+        relationLoadStrategy: 'query',
+      })
+      for (const variant of variants) {
+        const key = String(variant.productId)
+        const list = byProductId.get(key)
+        if (list) {
+          list.push(variant)
+        } else {
+          byProductId.set(key, [variant])
+        }
+      }
+      // Yield between chunks so BullMQ's lock renewal timer can fire on long pages.
+      await new Promise<void>((resolve) => setImmediate(resolve))
+    }
+    // Restore ascending variant id order: chunks are loaded without an `order`, so within (and
+    // once merged, across) a product's list, variants are in the order the query-strategy joins
+    // return them, not id order.
+    for (const [key, list] of byProductId) {
+      byProductId.set(
+        key,
+        sortBy(list, (variant) => idPosition.get(String(variant.id))),
+      )
+    }
+    return byProductId
+  }
+
   async exportProduct(
     ctx: RequestContext,
     product: Product,
@@ -332,7 +414,9 @@ export class ProductExportService {
         ? ''
         : assets.length > 0
           ? this.handleAssets(
-              assets.map(({ asset }) => asset),
+              // Sort by the stored position: row order is not position order, and the importer
+              // makes the first listed image the featured image.
+              sortBy(assets, (orderable) => orderable.position).map(({ asset }) => asset),
               exportAssetsAs,
             )
           : this.handleAssets([product.featuredAsset], exportAssetsAs)
@@ -400,7 +484,7 @@ export class ProductExportService {
       )
 
       const variantAssets = this.handleAssets(
-        variant.assets.map(({ asset }) => asset),
+        sortBy(variant.assets, (orderable) => orderable.position).map(({ asset }) => asset),
         exportAssetsAs,
       )
 
@@ -664,6 +748,7 @@ export class ProductExportService {
                 },
               }
             : {}),
+          sort: { id: SortOrder.ASC },
           skip,
           take: pageSize,
         },
@@ -687,6 +772,7 @@ export class ProductExportService {
 
     do {
       const { items, totalItems: total } = await this.productService.findAll(ctx, {
+        sort: { id: SortOrder.ASC },
         skip: offset,
         take: limit,
       })
