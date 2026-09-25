@@ -1,3 +1,9 @@
+## 3.3.12
+
+### 🔥 Performance
+
+- **product-import-export-plugin:** load export variants in bounded chunks ([#26](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/26))
+
 ## 3.3.11
 
 ### 🩹 Fixes
