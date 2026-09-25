@@ -1,7 +1,20 @@
 import path from 'path'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { Readable } from 'node:stream'
-import { Asset, LanguageCode, RequestContextService, mergeConfig } from '@vendure/core'
+import type { ReadStream } from 'node:fs'
+import {
+  Asset,
+  AssetService,
+  LanguageCode,
+  Product,
+  ProductAsset,
+  ProductVariant,
+  ProductVariantAsset,
+  RequestContextService,
+  TransactionalConnection,
+  mergeConfig,
+} from '@vendure/core'
+import { parse } from 'csv-parse/sync'
 import {
   E2E_DEFAULT_CHANNEL_TOKEN,
   createTestEnvironment,
@@ -157,14 +170,19 @@ describe('export paging and large products', () => {
     return errors
   }
 
-  async function runExport(selectedExportFields: string, fileName: string, pageSize: number) {
+  async function runExport(
+    selectedExportFields: string,
+    fileName: string,
+    pageSize: number,
+    exportAssetsAs: 'url' | 'json' = 'url',
+  ) {
     const ids = await productExportService.getAllProductIds(ctx)
     const exported = await productExportService.createExportFile(
       ctx,
       ids,
       fileName,
       '',
-      'url',
+      exportAssetsAs,
       selectedExportFields,
       pageSize,
     )
@@ -258,5 +276,48 @@ describe('export paging and large products', () => {
       .map((line) => line.split(',')[1])
     expect(skus.length).toBe(194)
     expect(new Set(skus).size).toBe(194)
+  })
+
+  // Asset rows whose storage order differs from their `position` (as on the real catalog, where
+  // 14 969 to 38 375 variants came out of 3.3.11 in the wrong order). The importer makes the first
+  // listed image the featured image, so the export must follow `position`, not row order.
+  it('lists product and variant assets in position order, not row order', async () => {
+    const connection = server.app.get(TransactionalConnection)
+    const assetService = server.app.get(AssetService)
+    // 1x1 transparent PNG, so the asset service can read real dimensions.
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      'base64',
+    )
+    const assets: Asset[] = []
+    for (const name of ['first.png', 'second.png', 'third.png']) {
+      const created = await assetService.createFromFileStream(Readable.from(png) as unknown as ReadStream, name, ctx)
+      if (!(created instanceof Asset)) {
+        throw new Error(`asset ${name} was not created: ${JSON.stringify(created)}`)
+      }
+      assets.push(created)
+    }
+    const variant = await connection.getRepository(ctx, ProductVariant).findOneOrFail({ where: { sku: 'PAGED-001' } })
+    const product = await connection.getRepository(ctx, Product).findOneOrFail({ where: { id: variant.productId } })
+    // Rows are inserted as third, first, second, so storage order is not position order.
+    const insertionOrder = [2, 0, 1]
+    await connection.getRepository(ctx, ProductVariantAsset).save(
+      insertionOrder.map(
+        (position) => new ProductVariantAsset({ productVariantId: variant.id, assetId: assets[position].id, position }),
+      ),
+    )
+    await connection.getRepository(ctx, ProductAsset).save(
+      insertionOrder.map(
+        (position) => new ProductAsset({ productId: product.id, assetId: assets[position].id, position }),
+      ),
+    )
+
+    const { csv } = await runExport('name,sku,assets,variantAssets', 'asset-order.csv', 2, 'json')
+    const rows: Record<string, string>[] = parse(csv, { columns: true })
+    const row = rows.find((r) => r.sku === 'PAGED-001')
+    const idsIn = (cell: string) => [...cell.matchAll(/'id':(\d+)/g)].map((m) => m[1])
+    const expected = assets.map((asset) => String(asset.id))
+    expect(idsIn(row?.variantAssets ?? '')).toEqual(expected)
+    expect(idsIn(row?.assets ?? '')).toEqual(expected)
   })
 })

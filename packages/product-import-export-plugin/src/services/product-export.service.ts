@@ -414,7 +414,9 @@ export class ProductExportService {
         ? ''
         : assets.length > 0
           ? this.handleAssets(
-              assets.map(({ asset }) => asset),
+              // Sort by the stored position: row order is not position order, and the importer
+              // makes the first listed image the featured image.
+              sortBy(assets, (orderable) => orderable.position).map(({ asset }) => asset),
               exportAssetsAs,
             )
           : this.handleAssets([product.featuredAsset], exportAssetsAs)
@@ -482,7 +484,7 @@ export class ProductExportService {
       )
 
       const variantAssets = this.handleAssets(
-        variant.assets.map(({ asset }) => asset),
+        sortBy(variant.assets, (orderable) => orderable.position).map(({ asset }) => asset),
         exportAssetsAs,
       )
 
