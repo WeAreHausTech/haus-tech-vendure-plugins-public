@@ -1,5 +1,9 @@
 import { CustomFieldConfig, ID, Product, ProductVariant } from '@vendure/core'
+import { chunk } from 'lodash'
 import { Repository } from 'typeorm'
+
+/** Owner ids per query, far below Postgres' 65 535 bind parameter limit. */
+const ID_CHUNK_SIZE = 1000
 
 export interface SelfRelationSplit {
   /** Relation paths safe for findAll / repository relations, e.g. 'customFields.brand'. */
@@ -53,13 +57,16 @@ export async function loadSelfRelationCustomFieldIds(
       Object.fromEntries(fields.map((field) => [field.name, field.list ? [] : null])),
     )
   }
-  for (const field of fields) {
+  for (const [field, idChunk] of fields.flatMap((field) =>
+    chunk(ids, ID_CHUNK_SIZE).map((idChunk) => [field, idChunk] as const),
+  )) {
     const rows = await (repository as Repository<Product | ProductVariant>)
       .createQueryBuilder(alias)
       .select(`${alias}.id`, 'ownerId')
       .addSelect('related.id', 'relatedId')
       .innerJoin(`${alias}.customFields.${field.name}`, 'related')
-      .where(`${alias}.id IN (:...ids)`, { ids })
+      .where(`${alias}.id IN (:...ids)`, { ids: idChunk })
+      // A stable order for list fields; the join table stores no position.
       .orderBy('related.id', 'ASC')
       .getRawMany<{ ownerId: ID; relatedId: ID }>()
     for (const row of rows) {
