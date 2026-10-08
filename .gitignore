@@ -53,10 +53,13 @@ static/*-tmp/**
 .haus-workflow/llms-cache/
 
 # HAUS:BEGIN haus-managed v=1
-# haus machine-local artifacts — must never be committed (see ADR-0025, ADR-0058)
+# haus machine-local artifacts — must never be committed (see ADR-0025, ADR-0058, ADR-0009)
 .haus-workflow/context-map.json
 .haus-workflow/recommendation.json
 .haus-workflow/sources-report.json
 .haus-workflow/deep-context.json
 .haus-workflow/backups/
+.haus-workflow/locks/
+.haus-workflow/logs/
+.haus-workflow/requests/
 # HAUS:END haus-managed

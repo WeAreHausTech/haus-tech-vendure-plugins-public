@@ -11,7 +11,7 @@
 DO: Use `workspace:*` (or `workspace:^`) protocol for all internal package dependencies — DON'T: use a fixed version number for workspace deps (breaks in-repo resolution)
 DO: Pin the package manager version in `package.json#packageManager` and use `corepack` to enforce it — DON'T: rely on globally installed package manager versions that differ per developer
 DO: Commit the lockfile (`yarn.lock` / `pnpm-lock.yaml`) on every dependency change — DON'T: add lockfiles to `.gitignore`
-DO: Use `pnpm catalog:` entries for shared dependency version management in pnpm v9+ workspaces — DON'T: duplicate version strings across multiple `package.json` files
+DO: Keep shared dependency versions aligned from a single source of truth — DON'T: duplicate version strings across multiple `package.json` files. (Note: `pnpm catalog:` entries automate this but require pnpm v9+ — the pnpm 8.9 line this skill pins predates them, so align versions manually or upgrade pnpm first.)
 DO: Run install (`yarn install` / `pnpm install`) after any `package.json` change to keep lockfile in sync — DON'T: edit `package.json` without refreshing the lockfile
 DO: Use `--frozen-lockfile` (pnpm) or `--immutable` (Yarn 4) in all CI install steps — DON'T: allow CI to silently update the lockfile during install
 

@@ -1,6 +1,12 @@
 ---
 name: nx-workspace
-description: "Explore and understand Nx workspaces. USE WHEN answering questions about the workspace, projects, or tasks. ALSO USE WHEN an nx command fails or you need to check available targets/configuration before running a task. EXAMPLES: 'What projects are in this workspace?', 'How is project X configured?', 'What depends on library Y?', 'What targets can I run?', 'Cannot find configuration for task', 'debug nx task failure'."
+description: >-
+  Explore and understand Nx workspaces. USE WHEN answering questions about the workspace,
+  projects, or tasks. ALSO USE WHEN an nx command fails or you need to check available
+  targets/configuration before running a task. EXAMPLES: 'What projects are in this
+  workspace?', 'How is project X configured?', 'What depends on library Y?', 'What targets
+  can I run?', 'Cannot find configuration for task', 'debug nx task failure'. Do not use
+  when a more specific skill or command applies.
 ---
 
 # Nx Workspace Exploration
@@ -188,16 +194,16 @@ Example output:
   "tags": ["type:app", "scope:client"],
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "options": { "outputPath": "dist/apps/my-app" }
+      "command": "vite build",
+      "options": { "cwd": "apps/my-app" }
     },
     "serve": {
-      "executor": "@nx/vite:dev-server",
-      "options": { "buildTarget": "my-app:build" }
+      "command": "vite",
+      "options": { "cwd": "apps/my-app" }
     },
     "test": {
-      "executor": "@nx/vite:test",
-      "options": {}
+      "command": "vitest",
+      "options": { "cwd": "apps/my-app" }
     }
   },
   "implicitDependencies": []

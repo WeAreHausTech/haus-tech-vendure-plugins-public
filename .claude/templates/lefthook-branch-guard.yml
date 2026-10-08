@@ -1,0 +1,27 @@
+# Lefthook branch guard — deterministic backing for the workflow standard's
+# "NEVER work directly on `main`" rule (agentic-workflow-standard.md, NEVER rules).
+#
+# `permissions.deny` in `.claude/settings.json` can only match tool-call patterns;
+# it cannot express "which branch is checked out". This hook can: it fails any
+# commit made while a protected branch is checked out. Copy to the repo root as
+# `lefthook.yml` (or merge into an existing one), then run `lefthook install`.
+#
+# Escape hatches — for repos that intentionally commit straight to main:
+#   - opt out per repo:      git config haus.allowProtectedCommits true
+#   - change the guard list: export HAUS_PROTECTED_BRANCHES="main master release"
+# Detached HEAD (e.g. mid-rebase) is always allowed: those commits are not made
+# "on" any branch, and blocking them would break rebase itself.
+pre-commit:
+  commands:
+    branch-guard:
+      run: |
+        if [ "$(git config --get haus.allowProtectedCommits)" = "true" ]; then exit 0; fi
+        branch="$(git branch --show-current)"
+        [ -z "$branch" ] && exit 0
+        for protected in ${HAUS_PROTECTED_BRANCHES:-main master}; do
+          if [ "$branch" = "$protected" ]; then
+            echo "Refusing to commit directly on protected branch '$branch'."
+            exit 1
+          fi
+        done
+      fail_text: 'Direct commits on this branch are blocked (NEVER work directly on main). Create a branch first: `git checkout -b feat/<slug>`. If this repo intentionally commits to main, opt out once with `git config haus.allowProtectedCommits true`.'

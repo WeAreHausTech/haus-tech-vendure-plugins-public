@@ -1,6 +1,9 @@
 ---
 name: package-manager-yarn4-pnpm89
-description: Package manager router for Yarn 4 and pnpm 8.9 workspaces, constraints, and lockfile behavior.
+description: >-
+  Package manager router for Yarn 4 and pnpm 8.9 workspaces, constraints, and lockfile
+  behavior. Use for lockfile, workspace, and package manager configuration changes. Do not
+  use for feature-only code edits with no dependency/workspace impact.
 ---
 
 # Package Manager Yarn4 Pnpm89

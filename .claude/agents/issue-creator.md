@@ -17,10 +17,18 @@ Modes: `finding` | `deferred` | `idea`.
 
 Before creating anything:
 
-1. Confirm GitHub issues are available:
-   `gh repo view --json nameWithOwner,hasIssuesEnabled`. If this fails or
-   reports `hasIssuesEnabled: false`, abort and report why — the caller
-   creates a background-task chip instead.
+1. Route each item per the skill's Routing section: findings about
+   haus-shipped content (a skill, agent, rule, template, or the workflow
+   standard) file against `WeAreHausTech/haus-workflow-catalog`; findings about
+   the haus CLI itself (a command, a gate, a guard hook, a file the CLI
+   writes, or a skill or agent it ships itself) file against
+   `WeAreHausTech/haus-workflow`; everything else files locally. Then confirm
+   GitHub issues are available on that destination:
+   `gh repo view [<owner>/<repo>] --json nameWithOwner,hasIssuesEnabled`.
+   If this fails for the local repo or reports `hasIssuesEnabled: false`,
+   abort and report why — the caller creates a background-task chip instead.
+   If only the upstream repo is unreachable, fall back per the skill (file
+   locally with the routing marker) and report the fallback.
 2. Detect native support: issue types enabled? Priority/Effort fields pinned?
    The detection query, the capability query and the native-vs-fallback table
    are in the skill's `references/native-metadata.md` — read it rather than

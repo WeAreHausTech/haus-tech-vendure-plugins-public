@@ -1,6 +1,9 @@
 ---
 name: vendure-plugin-patterns
-description: Vendure 3 plugin router. Use for plugin modules, resolvers, services, entities, and migrations.
+description: >-
+  Vendure 3 plugin router. Use for plugin modules, resolvers, services, entities, and
+  migrations. Use for Vendure plugin resolvers, services, entities, and plugin migrations.
+  Do not use for storefront-only UI changes or non-Vendure APIs.
 ---
 
 # Vendure Plugin Patterns
@@ -36,6 +39,7 @@ description: Vendure 3 plugin router. Use for plugin modules, resolvers, service
 
 ## References
 
+- references/conventions.md
 - references/scope.md
 - references/workflow.md
 

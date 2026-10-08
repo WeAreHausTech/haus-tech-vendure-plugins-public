@@ -1,6 +1,12 @@
 ---
 name: vite-patterns
-description: Vite build tool patterns including config, plugins, HMR, env variables, proxy setup, SSR, library mode, dependency pre-bundling, and build optimization. Activate when working with vite.config.ts, Vite plugins, or Vite-based projects.
+description: >-
+  Vite build tool patterns including config, plugins, HMR, env variables, proxy setup, SSR,
+  library mode, dependency pre-bundling, and build optimization. Activate when working with
+  vite.config.ts, Vite plugins, or Vite-based projects. Overlaps with haus.antfu-vite
+  (identical install gate), which installs by default and is the primary pick for Vite
+  config, plugin API, SSR, and Rolldown migration. Use this skill for HMR debugging,
+  env/proxy setup, library mode, dependency pre-bundling, and build-optimization checklists.
 metadata:
   origin: ECC
 ---
