@@ -1,3 +1,10 @@
+## 3.6.6
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** put optionGroups last among the product columns, next to optionValues ([#40](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/40))
+- **product-import-export-plugin:** reference @types/multer in lowercase so the build works on Linux ([#39](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/39))
+
 ## 3.6.5
 
 ### 🩹 Fixes
