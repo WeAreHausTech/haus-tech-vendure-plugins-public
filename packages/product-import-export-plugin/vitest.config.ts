@@ -4,7 +4,7 @@ import swc from 'unplugin-swc'
 export default defineConfig({
   test: {
     dir: 'packages/product-import-export-plugin',
-    include: ['e2e/**/*.e2e-spec.ts'],
+    include: ['e2e/**/*.e2e-spec.ts', 'src/**/*.spec.ts'],
     environment: 'node',
     globals: true,
     hookTimeout: 120_000,
