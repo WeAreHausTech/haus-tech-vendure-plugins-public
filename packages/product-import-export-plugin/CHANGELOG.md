@@ -1,3 +1,13 @@
+## 3.6.4
+
+### 🚀 Features
+
+- **product-import-export-plugin:** merge the 3.3 line's export engine into main ([#30](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/30), [#22](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/22), [#23](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/23), [#26](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/26))
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** export self-referencing relation custom fields without a duplicate table alias ([#31](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/31), [#22](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/22), [#23](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/23), [#26](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/26))
+
 ## 3.6.3
 
 ### 🩹 Fixes
