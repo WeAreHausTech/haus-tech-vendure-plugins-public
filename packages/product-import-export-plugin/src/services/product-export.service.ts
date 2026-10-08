@@ -151,8 +151,9 @@ export class ProductExportService {
     headers.push(
       { id: 'assets', title: 'assets' },
       ...languages.map((lang) => ({ id: `facets:${lang}`, title: `facets:${lang}` })),
-      ...languages.map((lang) => ({ id: `optionGroups:${lang}`, title: `optionGroups:${lang}` })),
       ...productCustomFieldNames.map(toHeader),
+      // optionGroups last among the product columns, next to the optionValues it names.
+      ...languages.map((lang) => ({ id: `optionGroups:${lang}`, title: `optionGroups:${lang}` })),
       ...languages.map((lang) => ({ id: `optionValues:${lang}`, title: `optionValues:${lang}` })),
       { id: 'sku', title: 'sku' },
       { id: 'price', title: 'price' },
