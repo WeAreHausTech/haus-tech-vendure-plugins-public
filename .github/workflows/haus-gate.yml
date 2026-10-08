@@ -1,0 +1,37 @@
+# Written by `haus init`. Yours to edit — haus will not rewrite this file.
+#
+# Runs the checks haus already knows how to run, on every pull request:
+#   - haus doctor          — is this project's setup intact?
+#   - haus decisions check — does a decision-worthy diff carry an ADR?
+#   - haus update --check  — is the project behind the catalog it pins?
+#
+# See `haus ci-gate --help` and docs/cli.md.
+name: haus gate
+
+on:
+  pull_request:
+
+jobs:
+  haus-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `haus decisions check` diffs against the default branch; a shallow
+          # clone does not contain it.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install haus
+        run: npm install -g @haus-tech/haus-workflow@latest
+      # `.haus-workflow/recommendation.json` is machine-local and gitignored
+      # (ADR-0025), so it is absent on every CI clone — and without it `doctor`
+      # cannot tell "the catalog gates this agent out of your stack" from "you are
+      # missing an install", so it keeps the stricter reading and fails the gate over
+      # upstream prose you cannot act on. Computing one first is what makes the
+      # severity rules in ADR-0070/ADR-0095 work here. Writes only gitignored files.
+      - name: Compute a recommendation for this stack
+        run: haus recommend
+      - name: haus ci-gate
+        run: haus ci-gate

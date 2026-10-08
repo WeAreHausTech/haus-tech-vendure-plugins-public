@@ -5,15 +5,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "haus guard file-access --from-hook"
-          }
-        ],
-        "matcher": "Read|Edit|Write"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "haus guard bash --from-hook"
           }
         ],
@@ -27,6 +18,15 @@
           }
         ],
         "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus guard file-access --from-hook"
+          }
+        ],
+        "matcher": "Read|Edit|Write|NotebookEdit"
       }
     ],
     "Stop": [
@@ -58,17 +58,27 @@
           }
         ],
         "matcher": "*"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus workspace worktree autohydrate --from-hook"
+          }
+        ],
+        "matcher": "*"
       }
     ]
   },
   "_haus": {
-    "hooks": [
+    "hookIds": [
       "haus.guard-file",
       "haus.guard-bash",
       "haus.decisions-guard",
       "haus.decisions-suggest",
       "haus.update-check",
-      "hook.workspace.worktree-check"
+      "hook.workspace.worktree-check",
+      "hook.workspace.worktree-autohydrate"
     ],
     "hookCommands": [
       "haus guard file-access --from-hook",
@@ -76,46 +86,48 @@
       "haus decisions guard --from-hook",
       "haus decisions suggest --from-hook",
       "haus update --from-hook",
-      "haus workspace worktree doctor --from-hook"
+      "haus workspace worktree doctor --from-hook",
+      "haus workspace worktree autohydrate --from-hook"
     ],
     "denyRules": [
       "Bash(sudo:*)",
+      "Bash(doas:*)",
+      "Bash(pkexec:*)",
       "Bash(chmod -R 777:*)",
       "Bash(git push --force:*)",
       "Bash(git push --force-with-lease:*)",
       "Bash(git push -f:*)",
-      "Bash(drop database:*)",
-      "Bash(truncate table:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git push --no-verify:*)",
+      "Bash(gh pr merge --admin:*)",
       "Bash(npm publish:*)",
+      "Bash(yarn publish:*)",
       "Bash(yarn npm publish:*)",
       "Bash(pnpm publish:*)",
       "Read(*.pem)",
       "Edit(*.pem)",
-      "Write(*.pem)",
       "Read(*.key)",
       "Edit(*.key)",
-      "Write(*.key)",
       "Read(*.p12)",
       "Edit(*.p12)",
-      "Write(*.p12)",
       "Read(*.pfx)",
       "Edit(*.pfx)",
-      "Write(*.pfx)",
+      "Read(*.ppk)",
+      "Edit(*.ppk)",
       "Read(id_rsa)",
       "Edit(id_rsa)",
-      "Write(id_rsa)",
       "Read(id_ed25519)",
       "Edit(id_ed25519)",
-      "Write(id_ed25519)",
+      "Read(id_ecdsa)",
+      "Edit(id_ecdsa)",
+      "Read(id_dsa)",
+      "Edit(id_dsa)",
       "Read(customer-data/**)",
       "Edit(customer-data/**)",
-      "Write(customer-data/**)",
       "Read(secrets/**)",
       "Edit(secrets/**)",
-      "Write(secrets/**)",
       "Read(certs/**)",
-      "Edit(certs/**)",
-      "Write(certs/**)"
+      "Edit(certs/**)"
     ],
     "allowRules": [
       "Bash(haus init:*)",
@@ -156,79 +168,78 @@
       "Bash(haus workspace link-context:*)",
       "Bash(haus workspace worktree add:*)",
       "Bash(haus workspace worktree hydrate:*)",
+      "Bash(haus workspace worktree autohydrate:*)",
       "Bash(haus workspace worktree list:*)",
-      "Bash(haus workspace worktree doctor:*)"
+      "Bash(haus workspace worktree doctor:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh label list:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh search prs:*)",
+      "Bash(gh search issues:*)",
+      "mcp__ccd_pr__set_auto_merge"
     ],
     "askRules": [
-      "Bash(rm -rf:*)",
-      "Bash(chown -R:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(docker system prune:*)",
+      "Bash(su:*)",
       "Bash(php artisan migrate --force:*)",
       "Edit(.env)",
-      "Write(.env)",
       "Edit(.env.*)",
-      "Write(.env.*)",
-      "Edit(storage/logs/**)",
-      "Write(storage/logs/**)",
-      "Edit(exports/**)",
-      "Write(exports/**)",
       "Read(*.dump)",
-      "Edit(*.dump)",
-      "Write(*.dump)",
       "Read(*.backup)",
-      "Edit(*.backup)",
-      "Write(*.backup)",
       "Read(*.bak)",
-      "Edit(*.bak)",
-      "Write(*.bak)",
       "Read(wp-content/uploads/**)",
-      "Edit(wp-content/uploads/**)",
-      "Write(wp-content/uploads/**)",
-      "Read(uploads/**)",
-      "Edit(uploads/**)",
-      "Write(uploads/**)"
+      "Read(uploads/**)"
     ]
   },
   "permissions": {
     "deny": [
       "Bash(sudo:*)",
+      "Bash(doas:*)",
+      "Bash(pkexec:*)",
       "Bash(chmod -R 777:*)",
       "Bash(git push --force:*)",
       "Bash(git push --force-with-lease:*)",
       "Bash(git push -f:*)",
-      "Bash(drop database:*)",
-      "Bash(truncate table:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git push --no-verify:*)",
+      "Bash(gh pr merge --admin:*)",
       "Bash(npm publish:*)",
+      "Bash(yarn publish:*)",
       "Bash(yarn npm publish:*)",
       "Bash(pnpm publish:*)",
       "Read(*.pem)",
       "Edit(*.pem)",
-      "Write(*.pem)",
       "Read(*.key)",
       "Edit(*.key)",
-      "Write(*.key)",
       "Read(*.p12)",
       "Edit(*.p12)",
-      "Write(*.p12)",
       "Read(*.pfx)",
       "Edit(*.pfx)",
-      "Write(*.pfx)",
+      "Read(*.ppk)",
+      "Edit(*.ppk)",
       "Read(id_rsa)",
       "Edit(id_rsa)",
-      "Write(id_rsa)",
       "Read(id_ed25519)",
       "Edit(id_ed25519)",
-      "Write(id_ed25519)",
+      "Read(id_ecdsa)",
+      "Edit(id_ecdsa)",
+      "Read(id_dsa)",
+      "Edit(id_dsa)",
       "Read(customer-data/**)",
       "Edit(customer-data/**)",
-      "Write(customer-data/**)",
       "Read(secrets/**)",
       "Edit(secrets/**)",
-      "Write(secrets/**)",
       "Read(certs/**)",
-      "Edit(certs/**)",
-      "Write(certs/**)"
+      "Edit(certs/**)"
     ],
     "allow": [
       "Bash(haus init:*)",
@@ -269,38 +280,36 @@
       "Bash(haus workspace link-context:*)",
       "Bash(haus workspace worktree add:*)",
       "Bash(haus workspace worktree hydrate:*)",
+      "Bash(haus workspace worktree autohydrate:*)",
       "Bash(haus workspace worktree list:*)",
-      "Bash(haus workspace worktree doctor:*)"
+      "Bash(haus workspace worktree doctor:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh label list:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh search prs:*)",
+      "Bash(gh search issues:*)",
+      "mcp__ccd_pr__set_auto_merge"
     ],
     "ask": [
-      "Bash(rm -rf:*)",
-      "Bash(chown -R:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(docker system prune:*)",
+      "Bash(su:*)",
       "Bash(php artisan migrate --force:*)",
       "Edit(.env)",
-      "Write(.env)",
       "Edit(.env.*)",
-      "Write(.env.*)",
-      "Edit(storage/logs/**)",
-      "Write(storage/logs/**)",
-      "Edit(exports/**)",
-      "Write(exports/**)",
       "Read(*.dump)",
-      "Edit(*.dump)",
-      "Write(*.dump)",
       "Read(*.backup)",
-      "Edit(*.backup)",
-      "Write(*.backup)",
       "Read(*.bak)",
-      "Edit(*.bak)",
-      "Write(*.bak)",
       "Read(wp-content/uploads/**)",
-      "Edit(wp-content/uploads/**)",
-      "Write(wp-content/uploads/**)",
-      "Read(uploads/**)",
-      "Edit(uploads/**)",
-      "Write(uploads/**)"
+      "Read(uploads/**)"
     ]
   }
 }
