@@ -1,3 +1,7 @@
+## 3.6.1
+
+This was a version bump only for dashboard-locale-plugin to align it with other projects, there were no code changes.
+
 ## 3.6.0
 
 ### 🚀 Features

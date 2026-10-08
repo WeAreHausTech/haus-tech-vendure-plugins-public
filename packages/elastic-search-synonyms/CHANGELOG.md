@@ -1,3 +1,9 @@
+## 1.0.4
+
+### 🩹 Fixes
+
+- **nx:** point plugin test targets at their own vitest config ([#29](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/29))
+
 ## 1.0.3
 
 This was a version bump only for elastic-search-synonyms to align it with other projects, there were no code changes.

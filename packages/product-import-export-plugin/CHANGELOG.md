@@ -1,3 +1,9 @@
+## 3.6.5
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** keep product data on a product's first row ([#34](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/34))
+
 ## 3.6.4
 
 ### 🚀 Features

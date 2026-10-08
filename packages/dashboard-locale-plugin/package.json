@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/dashboard-locale-plugin",
-  "version": "3.6.0",
+  "version": "3.6.1",
   "description": "Vendure plugin that gives every administrator a configured default display language, region and content language in the React Dashboard",
   "author": "Haus Tech",
   "repository": {
