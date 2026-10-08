@@ -78,6 +78,12 @@ jobs:
             yarn nx run-many -t build
           fi
 
+      - name: Drop the repo .npmrc token line
+        # npm 11 stores the OIDC publish token at user level, and the project-level
+        # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` (empty here) outranks it,
+        # which ends in ENEEDAUTH. The line stays in the repo for manual publishing.
+        run: npm config delete "//registry.npmjs.org/:_authToken" --location=project
+
       - name: Publish
         env:
           PROJECTS: ${{ steps.projects.outputs.list }}
