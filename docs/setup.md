@@ -40,7 +40,7 @@ Single project: `npx nx <target> <project>` (e.g. `npx nx test product-import-ex
 
 No `.env.example` exists in this repo and none is needed for library development. Runtime configuration (Elasticsearch connection, object-storage credentials, email transport) belongs to the consuming Vendure app and is passed through each plugin's `init(...)` options.
 
-`NODE_AUTH_TOKEN` is the only credential this repo references — `.npmrc`/`.yarnrc.yml` read it from the environment for registry access. Never commit a value for it.
+`NODE_AUTH_TOKEN` is the only credential this repo references, and it is optional: `.npmrc`/`.yarnrc.yml` read it from the environment only for a manual publish. Installs work without it, and CI publishes through npm trusted publishing (see [deployment.md](deployment.md)). Never commit a value for it.
 
 Releases are run **manually** via `nx release`; there is no publish pipeline in this repo. Publish credentials live with the npm account, not in the repo.
 
