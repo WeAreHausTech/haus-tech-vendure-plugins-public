@@ -2,7 +2,7 @@
 name: badge-plugin
 title: Badge Plugin
 description: Vendure plugin for managing and displaying product badges via the admin UI and shop API.
-version: 4.0.7
+version: 4.0.8
 tags:
   - vendure
   - plugin
