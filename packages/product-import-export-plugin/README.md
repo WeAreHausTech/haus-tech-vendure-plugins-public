@@ -154,7 +154,7 @@ export const config = {
 | `variantAssets`               | Same format as `assets`                                                                                                            | `https://example.com/variant.jpg`                                                          |
 | `variantFacets`               | Same format as `facets`                                                                                                            | `Material:Cotton`                                                                          |
 | `enabled`                     | `true` or `false`                                                                                                                  | `true`                                                                                     |
-| Custom fields                 | Column name = custom field name; value depends on field type                                                                       | Add columns for any Product or ProductVariant custom fields defined in your Vendure config |
+| Custom fields                 | Column name = custom field name; value depends on field type                                                                       | Add columns for any Product or ProductVariant custom fields defined in your Vendure config. Relation custom fields export the related entity's id (`id\|id` for list fields), including fields that relate a product or variant to its own entity type. |
 
 #### Import behavior rules
 
