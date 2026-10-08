@@ -30,6 +30,10 @@ import { existsSync, mkdirSync, promises as fs } from 'fs'
 import { chunk, forEach, groupBy, sortBy, startsWith } from 'lodash'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
+import {
+  loadSelfRelationCustomFieldIds,
+  splitSelfRelationCustomFields,
+} from './self-relation-custom-fields'
 
 interface TranslationMap {
   [key: string]: string
@@ -200,13 +204,18 @@ export class ProductExportService {
       let hasMore = true
       let processedItems = 0
 
-      const productRelationCustomFields = this.configService.customFields.Product.filter(
-        (f) => f.type === 'relation',
-      ).map((f) => `customFields.${f.name}` as const)
-
-      const variantRelationCustomFields = this.configService.customFields.ProductVariant.filter(
-        (f) => f.type === 'relation',
-      ).map((f) => `variants.customFields.${f.name}` as const)
+      // Self-referencing relation custom fields are kept out of the relation lists and loaded per
+      // page with an explicit join alias (see splitSelfRelationCustomFields).
+      const productRelations = splitSelfRelationCustomFields(
+        this.configService.customFields.Product,
+        Product,
+        'customFields.',
+      )
+      const variantRelations = splitSelfRelationCustomFields(
+        this.configService.customFields.ProductVariant,
+        ProductVariant,
+        'customFields.',
+      )
 
       while (hasMore) {
         const { items, totalItems } = await this.productService.findAll(
@@ -226,8 +235,15 @@ export class ProductExportService {
             'facetValues.facet',
             'optionGroups',
             'assets',
-            ...productRelationCustomFields,
+            ...(productRelations.relations as Array<`customFields.${string}`>),
           ],
+        )
+        await this.applySelfRelationCustomFields(
+          ctx,
+          Product,
+          'product',
+          items,
+          productRelations.selfRelationNames,
         )
 
         hasMore = currentPage * pageSize < totalItems
@@ -239,13 +255,14 @@ export class ProductExportService {
         const variantsByProductId = await this.loadVariantsForProducts(
           ctx,
           items.map((product) => product.id),
-          [
-            'assets',
-            'facetValues',
-            'facetValues.facet',
-            'options',
-            ...variantRelationCustomFields.map((relation) => relation.replace(/^variants\./, '')),
-          ],
+          ['assets', 'facetValues', 'facetValues.facet', 'options', ...variantRelations.relations],
+        )
+        await this.applySelfRelationCustomFields(
+          ctx,
+          ProductVariant,
+          'variant',
+          Array.from(variantsByProductId.values()).flat(),
+          variantRelations.selfRelationNames,
         )
         for (const product of items) {
           // The cast only satisfies the `Translated<Product>` typing: ProductService.findAll never
@@ -332,6 +349,42 @@ export class ProductExportService {
       }
 
       throw error
+    }
+  }
+
+  /**
+   * Sets each self-referencing relation custom field on the given entities to `{ id }`,
+   * `[{ id }, …]` or `null`, the shapes {@link serializeRelationCustomFieldIds} reads.
+   */
+  private async applySelfRelationCustomFields(
+    ctx: RequestContext,
+    entity: typeof Product | typeof ProductVariant,
+    alias: 'product' | 'variant',
+    entities: Array<Product | ProductVariant>,
+    fieldNames: string[],
+  ): Promise<void> {
+    if (fieldNames.length === 0 || entities.length === 0) {
+      return
+    }
+    const owner = entity === Product ? 'product' : 'variant'
+    const idsByEntityId = await loadSelfRelationCustomFieldIds(
+      this.connection.getRepository(ctx, entity as typeof Product),
+      alias,
+      entities.map((item) => item.id),
+      fieldNames.map((name) => ({ name, list: this.isCustomFieldList(owner, name) })),
+    )
+    for (const item of entities) {
+      const values = idsByEntityId.get(String(item.id)) ?? {}
+      const customFields = (item.customFields ?? {}) as Record<string, unknown>
+      for (const name of fieldNames) {
+        const value = values[name]
+        customFields[name] = Array.isArray(value)
+          ? value.map((id) => ({ id }))
+          : value == null
+            ? null
+            : { id: value }
+      }
+      item.customFields = customFields as typeof item.customFields
     }
   }
 
