@@ -4277,6 +4277,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@haus-tech/dashboard-locale-plugin@workspace:packages/dashboard-locale-plugin":
+  version: 0.0.0-use.local
+  resolution: "@haus-tech/dashboard-locale-plugin@workspace:packages/dashboard-locale-plugin"
+  peerDependencies:
+    "@vendure/core": ^3.6.0
+    "@vendure/dashboard": ^3.6.0
+  languageName: unknown
+  linkType: soft
+
 "@haus-tech/elastic-search-synonyms@workspace:packages/elastic-search-synonyms":
   version: 0.0.0-use.local
   resolution: "@haus-tech/elastic-search-synonyms@workspace:packages/elastic-search-synonyms"
