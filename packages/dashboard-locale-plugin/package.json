@@ -1,0 +1,33 @@
+{
+  "name": "@haus-tech/dashboard-locale-plugin",
+  "version": "3.6.0",
+  "description": "Vendure plugin that gives every administrator a configured default display language, region and content language in the React Dashboard",
+  "author": "Haus Tech",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "vendure",
+    "plugin",
+    "dashboard",
+    "locale",
+    "language",
+    "i18n"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "@vendure/core": "^3.6.0",
+    "@vendure/dashboard": "^3.6.0"
+  }
+}

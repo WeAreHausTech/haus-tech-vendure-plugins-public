@@ -13,6 +13,7 @@ Each plugin is a class decorated with `@VendurePlugin` (`src/<name>.plugin.ts`) 
 
 - `imports` / `providers` / `controllers` — NestJS DI wiring and HTTP controllers.
 - `entities` — TypeORM entities (`Badge`, `SynonymGroup`).
+- `configuration(config)` may also register settings store fields (dashboard-locale-plugin adds a user-scoped marker field).
 - `adminApiExtensions` / `shopApiExtensions` — GraphQL schema + resolvers added to the Admin API and (badge-plugin only) the Shop API.
 - `configuration(config)` — mutates the host Vendure config (e.g. the import/export plugin pushes an internal `Asset.hash` custom field).
 - `dashboard` / `static ui` — React Dashboard extension and Angular Admin UI extension.
@@ -26,6 +27,7 @@ The public, importable surface of each package is re-exported from `src/index.ts
 | Plugin                       | External system          | Configured by                                                                                                                                                                                              |
 | ---------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | badge-plugin                 | None beyond the host DB  | `BadgePlugin.init({ availablePositions })`. Badges live in the host database and are scoped to channels via Vendure's `ChannelService`; no outbound calls.                                                    |
+| dashboard-locale-plugin      | None beyond the host DB  | `DashboardLocalePlugin.init({ displayLanguage, displayLocale, contentLanguage })`. Requires the host's `DashboardPlugin`; stores a per-user marker in the settings store; no outbound calls. |
 | elastic-search-synonyms      | Elasticsearch (8.x/9.x)  | The host app's Elasticsearch connection; uses the ES **Synonyms API**. Index config helpers in `src/elasticsearch/default-settings.ts`. Syncs at application bootstrap and on every change.                    |
 | product-import-export-plugin | Object storage           | Pluggable storage strategies — `LocalExportStorageStrategy` / `LocalImportJobStorageStrategy` (default, under `process.cwd()/static`) or the S3 strategies; selected via `ProductImportExportPlugin.init({ importOptions, exportOptions })`, including a `storageStrategyFactory` for DI-resolved strategies. |
 | product-import-export-plugin | Email (optional)         | `@vendure/email-plugin` is an **optional** peer; export-complete email template under `src/email-templates/`, entry point exposed at the `./email` subpath export.                                            |
@@ -34,7 +36,7 @@ Connection strings, credentials, and endpoints for these systems are owned by th
 
 ## API surface types
 
-- **GraphQL** — all three plugins extend the Admin API; badge-plugin also extends the Shop API with field resolvers on `Product`, `ProductVariant`, and `SearchResult`.
+- **GraphQL** — all four plugins extend the Admin API; badge-plugin also extends the Shop API with field resolvers on `Product`, `ProductVariant`, and `SearchResult`.
 - **REST** — only `product-import-export-plugin` registers NestJS controllers (`src/api/*.controller.ts`). These are HTTP endpoints on the host app, so their authorization is the plugin's responsibility; `e2e/rest-api-security.e2e-spec.ts` guards it. Treat any change to those controllers as security-relevant.
 
 ## Request / job flow (import/export plugin)

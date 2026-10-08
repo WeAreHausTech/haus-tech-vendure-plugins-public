@@ -8,8 +8,9 @@
 
 Public, open-source **Nx monorepo** of [Vendure](https://www.vendure.io/) (TypeScript) plugins under `packages/`, each developed, built, tested, and **published to npm independently** under the `@haus-tech/` scope. No application/server lives here — these are libraries that consuming Vendure apps depend on.
 
-Plugins (3):
+Plugins (4):
 
+- `packages/dashboard-locale-plugin` — `@haus-tech/dashboard-locale-plugin`: applies a configured display language, region and content language to every administrator in the React Dashboard, once per administrator (per-user marker in the settings store).
 - `packages/badge-plugin` — `@haus-tech/badge-plugin`: image badges (e.g. "New", "Sale") attached to collections and inherited by their products; channel-aware, exposed on `Product`, `ProductVariant`, and `SearchResult` via the Shop API.
 - `packages/elastic-search-synonyms` — `@haus-tech/elastic-search-synonyms`: manage Elasticsearch synonym sets from the Vendure admin UI / Dashboard; synced to Elasticsearch via the Synonyms API.
 - `packages/product-import-export-plugin` — `@haus-tech/product-import-export-plugin`: bulk import/export of products via CSV, with pluggable local/S3 storage strategies.

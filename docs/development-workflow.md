@@ -42,8 +42,8 @@ yarn security:audit # yarn npm audit -A -R --severity high --environment product
 
 ## Tests
 
-- **Unit specs** live next to source as `*.spec.ts` and run per plugin via the Nx `test` target (Vitest + SWC). Coverage today is thin — only `elastic-search-synonyms` has unit specs.
-- **E2E specs** are `*.e2e-spec.ts`, collected by the root `vitest.config.ts` (node environment, `@plugins` alias, 120s hook timeout, `@vendure/testing` inlined). They live in `packages/badge-plugin/e2e/` and `packages/product-import-export-plugin/e2e/`.
+- **Unit specs** live next to source as `*.spec.ts` and run per plugin via the Nx `test` target (Vitest + SWC). Coverage today is thin — only `elastic-search-synonyms` and `dashboard-locale-plugin` have unit specs.
+- **E2E specs** are `*.e2e-spec.ts`, collected by the root `vitest.config.ts` (node environment, `@plugins` alias, 120s hook timeout, `@vendure/testing` inlined). They live in `packages/badge-plugin/e2e/`, `packages/dashboard-locale-plugin/e2e/` and `packages/product-import-export-plugin/e2e/`.
 - Every project sets `passWithNoTests: true`, so a green `yarn test` does **not** prove a plugin is covered. Check that your change actually has a spec.
 - All new code should ship with tests; run the touched plugin's tests and record passing output (see `.haus-workflow/WORKFLOW.md` verification gate).
 
