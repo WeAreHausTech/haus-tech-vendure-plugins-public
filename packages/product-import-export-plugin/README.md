@@ -161,6 +161,7 @@ export const config = {
 - If a column is omitted from the CSV header, that field is left unchanged on existing products/variants.
 - If a column exists in the header but the cell is empty, that field is explicitly cleared.
 - For products with more than one variant, `optionGroups` and `optionValues` are required.
+- Product data (`slug`, `description`, `assets`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
 
 #### Sharing option groups
 
@@ -237,6 +238,7 @@ The Admin UI offers basic import and export. Some features such as the export-al
    - The job reports progress per page; the Dashboard job queue shows it.
    - `productId` is not available as a selectable export field.
    - If `customFields` are not selected, no custom-field columns are written to the CSV.
+   - Product custom-field columns come after the other product columns (`name` through `optionGroups`) and before the variant columns (`optionValues` onwards), and are filled on a product's first row only. Import reads product data from that row, so edit product fields there.
 3. Choose asset format: URL or JSON.
 4. Start the export (it is added to a job queue and runs in the background).
 5. Download the CSV when the export is complete. Your downloaded files will be listed in the export view.

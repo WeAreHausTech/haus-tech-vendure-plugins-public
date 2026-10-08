@@ -250,6 +250,9 @@ export class ImportParser {
     }
     const usedLanguages = usedLanguageCodes(headerRow)
     let line = 1
+    // A product with product data on a variant row is rejected: import reads that data from the
+    // product's first row only, so a value on a later row would be lost without a word.
+    let currentRowRejected = false
     for (const record of rest) {
       line++
       const columnCountError = validateColumnCount(headerRow, record)
@@ -259,7 +262,7 @@ export class ImportParser {
       }
       const r = mapRowToObject(headerRow, record)
       if (getRawMainTranslation(r, 'name', mainLanguage)) {
-        if (currentRow) {
+        if (currentRow && !currentRowRejected) {
           const multiVariantOptionsError = validateMultiVariantOptionRequirements(currentRow)
           if (multiVariantOptionsError) {
             errors.push(multiVariantOptionsError + ` on line ${line - 1}`)
@@ -272,8 +275,17 @@ export class ImportParser {
           product: await this.parseProductFromRecord(r, usedLanguages, mainLanguage),
           variants: [await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)],
         }
+        currentRowRejected = false
       } else {
         if (currentRow) {
+          const productColumn = findFilledProductColumn(r)
+          if (productColumn) {
+            errors.push(
+              `Column '${productColumn}' holds product data and must be empty on variant rows; ` +
+                `enter it on the product's first row (the row with a name) on line ${line}`,
+            )
+            currentRowRejected = true
+          }
           currentRow.variants.push(
             await this.parseVariantFromRecord(r, usedLanguages, mainLanguage),
           )
@@ -284,7 +296,7 @@ export class ImportParser {
         errors.push(optionError + ` on line ${line}`)
       }
     }
-    if (currentRow) {
+    if (currentRow && !currentRowRejected) {
       const multiVariantOptionsError = validateMultiVariantOptionRequirements(currentRow)
       if (multiVariantOptionsError) {
         errors.push(multiVariantOptionsError + ` on line ${line}`)
@@ -760,6 +772,20 @@ function mapRowToObject(columns: string[], row: string[]): { [key: string]: stri
   return row.reduce((obj, val, i) => {
     return { ...obj, [columns[i]]: val }
   }, {})
+}
+
+/** Columns read from a product's first row only (their translated forms too, e.g. `slug:en`). */
+const PRODUCT_COLUMNS = new Set(['name', 'slug', 'description', 'assets', 'facets', 'optionGroups'])
+
+/**
+ * Returns the first filled product column in a variant row (a row without a name), if any.
+ * `id` is not one: the exporter repeats the product id on every row of a product.
+ */
+function findFilledProductColumn(r: { [key: string]: string }): string | undefined {
+  return Object.keys(r).find((key) => {
+    const isProductColumn = key.startsWith('product:') || PRODUCT_COLUMNS.has(key.split(':')[0])
+    return isProductColumn && r[key].trim() !== ''
+  })
 }
 
 function validateOptionValueCount(
