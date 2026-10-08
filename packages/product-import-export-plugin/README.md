@@ -238,7 +238,7 @@ The Admin UI offers basic import and export. Some features such as the export-al
    - The job reports progress per page; the Dashboard job queue shows it.
    - `productId` is not available as a selectable export field.
    - If `customFields` are not selected, no custom-field columns are written to the CSV.
-   - Product custom-field columns come after the other product columns (`name` through `optionGroups`) and before the variant columns (`optionValues` onwards), and are filled on a product's first row only. Import reads product data from that row, so edit product fields there.
+   - Product custom-field columns come after the other product columns (`name` through `facets`) and before `optionGroups`, which is the last product column so it sits next to `optionValues`, the first variant column. Product custom fields are filled on a product's first row only. Import reads product data from that row, so edit product fields there.
 3. Choose asset format: URL or JSON.
 4. Start the export (it is added to a job queue and runs in the background).
 5. Download the CSV when the export is complete. Your downloaded files will be listed in the export view.

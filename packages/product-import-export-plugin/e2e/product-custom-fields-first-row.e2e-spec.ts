@@ -164,10 +164,10 @@ describe('product data on the first row of a product', () => {
     expect(bySku('GT-L')?.[VARIANT_NOTE_COLUMN]).toBe('note L')
   })
 
-  it('puts product custom fields with the product columns, before the variant columns', async () => {
+  it('puts product custom fields with the product columns and optionGroups last, next to optionValues', async () => {
     const { csv } = await runExport()
     const header = parse(csv, { to_line: 1 })[0] as string[]
-    const order = ['optionGroups:en', SIZE_GUIDE_COLUMN, 'optionValues:en', 'sku', VARIANT_NOTE_COLUMN]
+    const order = [SIZE_GUIDE_COLUMN, 'optionGroups:en', 'optionValues:en', 'sku', VARIANT_NOTE_COLUMN]
     const positions = order.map((column) => header.indexOf(column))
 
     expect(positions.every((position) => position >= 0)).toBe(true)
