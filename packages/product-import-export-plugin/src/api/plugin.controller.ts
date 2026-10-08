@@ -22,6 +22,7 @@ export type PublicPluginConfig = {
     defaultExportAssetsAs?: PluginInitOptions['exportOptions']['defaultExportAssetsAs']
     defaultExportFields?: PluginInitOptions['exportOptions']['defaultExportFields']
     requiredExportFields?: PluginInitOptions['exportOptions']['requiredExportFields']
+    customExportColumns?: Array<{ name: string }>
   }
 }
 
@@ -49,6 +50,7 @@ export function toPublicPluginConfig(options: PluginInitOptions): PublicPluginCo
       defaultExportAssetsAs: exportOptions?.defaultExportAssetsAs,
       defaultExportFields: exportOptions?.defaultExportFields,
       requiredExportFields: exportOptions?.requiredExportFields,
+      customExportColumns: exportOptions?.customExportColumns?.map(({ name }) => ({ name })),
     },
   }
 }

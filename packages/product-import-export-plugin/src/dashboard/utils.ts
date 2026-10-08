@@ -13,6 +13,7 @@ export type ValidateReturnType = {
 }
 
 export type ProductFields =
+  | 'id'
   | 'name'
   | 'slug'
   | 'description'
@@ -42,6 +43,7 @@ export interface PluginInitOptions {
     defaultExportAssetsAs?: 'url' | 'json'
     defaultExportFields?: ExportFields
     requiredExportFields?: ExportFields
+    customExportColumns?: Array<{ name: string }>
   }
 }
 

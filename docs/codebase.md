@@ -70,7 +70,7 @@ The only plugin with unit specs today; it has no `e2e/` directory.
 
 ### `packages/product-import-export-plugin` — `@haus-tech/product-import-export-plugin`
 
-Bulk import/export of products via CSV: validation, custom fields, assets, facets, variants; pluggable local/object-storage strategies; Admin UI + Dashboard; optional completion email. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`, `@vendure/email-plugin ^3.6.0` (optional), `csv-parse`, `csv-stringify`, `slug`. Runtime `dependencies`: `@aws-sdk/client-s3`, `axios`, `bottleneck`, `fs-extra`, `lodash`.
+Bulk import/export of products via CSV: validation, custom fields, assets, facets, variants; pluggable local/object-storage strategies; Admin UI + Dashboard; optional completion email. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`, `@vendure/email-plugin ^3.6.0` (optional), `csv-parse`, `csv-stringify`, `slug`. Runtime `dependencies`: `@aws-sdk/client-s3`, `axios`, `fs-extra`, `lodash`.
 
 | Path                                                                         | Purpose                                                                     |
 | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -87,7 +87,7 @@ Bulk import/export of products via CSV: validation, custom fields, assets, facet
 | `src/email.ts` + `src/email-templates/`                                      | Export-complete email entry (subpath export `./email`) + template           |
 | `src/ui/` / `src/dashboard/`                                                 | Angular Admin UI (route `product-importer`) + React Dashboard (with locales) |
 | `assets/`                                                                    | Static assets synced to the public docs site                                |
-| `e2e/`                                                                       | `product-import-export-plugin.e2e-spec.ts`, `rest-api-security.e2e-spec.ts` + fixtures |
+| `e2e/`                                                                       | `product-import-export-plugin.e2e-spec.ts` (main flows), `rest-api-security.e2e-spec.ts`, `custom-export-columns.e2e-spec.ts`, `export-paging-and-large-products.e2e-spec.ts` + fixtures |
 
 This is the only plugin exposing **REST controllers** rather than only GraphQL; `rest-api-security.e2e-spec.ts` guards their authorization.
 

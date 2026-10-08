@@ -1,5 +1,5 @@
 export * from './product-import-export.plugin'
-export type { PluginInitOptions, UpdatingStrategy, JsonAsset } from './types'
+export type { PluginInitOptions, UpdatingStrategy, JsonAsset, CustomExportColumn } from './types'
 
 export * from './services/export-storage/export-storage-strategy'
 export * from './services/export-storage/local-export-storage-strategy'

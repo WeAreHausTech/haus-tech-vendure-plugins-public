@@ -87,6 +87,7 @@ describe('REST API security e2e', () => {
           },
           exportOptions: {
             defaultFileName: 'security-e2e.csv',
+            customExportColumns: [{ name: 'storeUrl', resolve: () => 'https://example.com' }],
             storageStrategy: new S3ExportStorageStrategy({
               storage: {
                 bucket: 'fake-bucket',
@@ -157,6 +158,7 @@ describe('REST API security e2e', () => {
       // returned keys are a subset of the allow-list rather than an exact match.
       const ALLOWED_IMPORT_KEYS = ['defaultOptions', 'visibleOptions']
       const ALLOWED_EXPORT_KEYS = [
+        'customExportColumns',
         'defaultExportAssetsAs',
         'defaultExportFields',
         'defaultFileName',
@@ -171,6 +173,8 @@ describe('REST API security e2e', () => {
       })
       expect(Object.keys(config.exportOptions).sort()).toEqual(ALLOWED_EXPORT_KEYS)
       expect(config.exportOptions.defaultFileName).toBe('security-e2e.csv')
+      // Custom columns are reduced to their names; resolver functions are never exposed.
+      expect(config.exportOptions.customExportColumns).toEqual([{ name: 'storeUrl' }])
     })
   })
 

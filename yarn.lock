@@ -4362,7 +4362,6 @@ __metadata:
     "@types/fs-extra": "npm:^11.0.4"
     "@vendure/email-plugin": "npm:3.6.3"
     axios: "npm:^1.16.1"
-    bottleneck: "npm:^2.19.5"
     csv-parse: "npm:^6.0.0"
     csv-stringify: "npm:^6.6.0"
     fs-extra: "npm:^11.2.0"
@@ -12191,7 +12190,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bottleneck@npm:2.19.5, bottleneck@npm:^2.19.5":
+"bottleneck@npm:2.19.5":
   version: 2.19.5
   resolution: "bottleneck@npm:2.19.5"
   checksum: 10c0/b0f72e45b2e0f56a21ba720183f16bef8e693452fb0495d997fa354e42904353a94bd8fd429868e6751bc85e54b6755190519eed5a0ae0a94a5185209ae7c6d0
