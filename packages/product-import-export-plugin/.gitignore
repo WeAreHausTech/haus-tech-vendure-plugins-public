@@ -1,0 +1,2 @@
+# Per-spec sqljs data dirs (siblings of e2e/__data__)
+__data-*__

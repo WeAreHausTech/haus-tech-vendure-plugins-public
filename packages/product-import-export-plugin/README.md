@@ -87,6 +87,7 @@ Available import storage strategies:
 | `defaultExportAssetsAs` | `'url' \| 'json'`     | `'url'`                 | Default asset export format                                  |
 | `defaultExportFields`   | `string[]`            | See above               | Fields that will be pre-selected in the export UI            |
 | `requiredExportFields`  | `string[]`            | `['name', 'sku']`       | Fields that must always be included                          |
+| `customExportColumns`   | `CustomExportColumn[]`| `undefined`             | Extra CSV columns resolved per variant row. See [Custom export columns](#custom-export-columns) below. |
 | `storageStrategy`       | `'s3' \| 'disk'`      | `'disk'`                | Where exported files are stored                              |
 | `s3Options`             | `object`              | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`) |
 
@@ -96,6 +97,39 @@ The plugin supports configurable storage for exported files:
 
 - **S3** – Stores export files in an S3-compatible bucket
 - **Disk (default)** – Saves files locally on the server
+
+### Custom export columns
+
+Add columns to the exported CSV whose value is computed per variant row, for example a permalink built from the product slug and variant SKU.
+
+```typescript
+export const config = {
+  plugins: [
+    ProductImportExportPlugin.init({
+      importOptions: {},
+      exportOptions: {
+        customExportColumns: [
+          {
+            name: 'permalink',
+            onExportStart: () => {
+              // Optional. Runs once per export job, before the first resolve() call.
+              // Use it to reset any per-export cache or counter.
+            },
+            resolve: (ctx, injector, product, variant) =>
+              `https://shop.example.com/${product.slug}?sku=${variant.sku}`,
+          },
+        ],
+      },
+    }),
+  ],
+}
+```
+
+- **`name`** – Must be non-empty, must not contain `:` (colon-suffixed headers are reserved for translated columns), must not collide with a built-in export field name, and must be unique among `customExportColumns` entries. These rules are validated when the plugin is initialised, so a misconfigured column fails fast at startup rather than mid-export.
+- **`onExportStart`** – Optional. Awaited once per export job, before the first `resolve` call.
+- **`resolve(ctx, injector, product, variant)`** – Called once per exported variant row. Its return value is written to the cell (`String(value)`, or an empty cell for `null`/`undefined`). Use `injector` to pull in Vendure services via DI.
+- A custom column only appears in the export when its `name` is included in the selected export fields, both in the header row and in the request; otherwise it is skipped entirely.
+- **Fail-soft** – If `resolve` throws, the plugin logs a warning and writes an empty cell for that row instead of failing the whole export.
 
 ## CSV Format for Import
 
@@ -198,6 +232,9 @@ The Admin UI offers basic import and export. Some features such as the export-al
 1. In the Admin UI or Dashboard, select products to export (or use bulk export).
 2. Configure export fields (assets, facets, custom fields, etc.).
    - For products with more than one variant, `optionGroups` and `optionValues` must be included.
+   - `id` (the Vendure product id) is available as a selectable export field. It is written after the translated `name`/`slug`/`description` columns, so it is never CSV column 0, since import treats column 0 positionally as a product id for by-id matching.
+   - If `customExportColumns` is configured, only the columns whose `name` is selected are written to the CSV.
+   - The job reports progress per page; the Dashboard job queue shows it.
    - `productId` is not available as a selectable export field.
    - If `customFields` are not selected, no custom-field columns are written to the CSV.
 3. Choose asset format: URL or JSON.
