@@ -70,7 +70,7 @@ The only plugin with unit specs today; it has no `e2e/` directory.
 
 ### `packages/product-import-export-plugin` — `@haus-tech/product-import-export-plugin`
 
-Bulk import/export of products via CSV: validation, custom fields, assets, facets, variants; pluggable local/object-storage strategies; Admin UI + Dashboard; optional completion email. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`, `@vendure/email-plugin ^3.6.0` (optional), `csv-parse`, `csv-stringify`, `slug`. Runtime `dependencies`: `@aws-sdk/client-s3`, `axios`, `bottleneck`, `fs-extra`, `lodash`.
+Bulk import/export of products via CSV: validation, custom fields, assets, facets, variants; pluggable local/object-storage strategies; Admin UI + Dashboard; optional completion email. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`, `@vendure/email-plugin ^3.6.0` (optional), `csv-parse`, `csv-stringify`, `slug`. Runtime `dependencies`: `@aws-sdk/client-s3`, `axios`, `fs-extra`, `lodash`.
 
 | Path                                                                         | Purpose                                                                     |
 | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
