@@ -1,4 +1,5 @@
 import path from 'path'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { Readable } from 'node:stream'
 import { LanguageCode, RequestContextService, mergeConfig } from '@vendure/core'
 import {
@@ -17,7 +18,26 @@ import { ProductImporter } from '../src/providers/import-providers/product-impor
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
 import { initialData } from './fixtures/initial-data'
 
-const sqliteDataDir = path.join(__dirname, '__data__')
+// A sibling of the shared `__data__` dir, not a child of it: the main spec removes `__data__`
+// recursively in its beforeAll on a schema bump, and vitest runs spec files in parallel.
+const sqliteDataDir = path.join(__dirname, '__data-custom-columns__')
+const SQLITE_SCHEMA_VERSION = '3.6'
+
+async function ensureFreshE2eDatabase(): Promise<void> {
+  const versionFile = path.join(sqliteDataDir, '.schema-version')
+  let storedVersion: string | undefined
+  try {
+    storedVersion = (await readFile(versionFile, 'utf8')).trim()
+  } catch {
+    // no version file yet
+  }
+  if (storedVersion !== SQLITE_SCHEMA_VERSION) {
+    await rm(sqliteDataDir, { recursive: true, force: true })
+    await mkdir(sqliteDataDir, { recursive: true })
+    await writeFile(versionFile, SQLITE_SCHEMA_VERSION, 'utf8')
+  }
+}
+
 registerInitializer('sqljs', new SqljsInitializer(sqliteDataDir))
 
 async function streamToString(stream: Readable): Promise<string> {
@@ -61,6 +81,7 @@ describe('customExportColumns e2e', () => {
   )
 
   beforeAll(async () => {
+    await ensureFreshE2eDatabase()
     await server.init({ initialData })
     await adminClient.asSuperAdmin()
 
@@ -84,7 +105,9 @@ describe('customExportColumns e2e', () => {
     if (!hasStandardTax) {
       await adminClient.query(
         gql`
-          mutation CreateStandardTaxCategoryForCustomExportColumnsTests($input: CreateTaxCategoryInput!) {
+          mutation CreateStandardTaxCategoryForCustomExportColumnsTests(
+            $input: CreateTaxCategoryInput!
+          ) {
             createTaxCategory(input: $input) {
               id
               name

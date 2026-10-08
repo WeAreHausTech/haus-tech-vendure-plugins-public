@@ -1047,7 +1047,7 @@ describe('ProductImportExportPlugin e2e', () => {
     const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
     await exportStorageStrategy.deleteExportFile(ctx, fileName)
 
-    // Simulate a configured custom column (e.g. bov's permalink) in the file.
+    // Simulate a configured custom column (e.g. a storefront permalink) in the file.
     const lines = csv.trim().split(/\r?\n/)
     const withExtraColumn = [
       `${lines[0]},permalink`,

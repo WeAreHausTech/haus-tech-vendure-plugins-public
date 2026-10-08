@@ -13,18 +13,21 @@ import {
   RelationCustomFieldConfig,
   RequestContext,
   StockLevel,
-  StockLevelService,
   ChannelService,
   TransactionalConnection,
 } from '@vendure/core'
 import { SortOrder } from '@vendure/common/lib/generated-types'
 import { In, IsNull } from 'typeorm'
-import { EXPORT_STORAGE_STRATEGY, PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS, loggerCtx } from '../constants'
+import {
+  EXPORT_STORAGE_STRATEGY,
+  PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
+  loggerCtx,
+} from '../constants'
 import { CustomExportColumn, PluginInitOptions } from '../types'
 import { createObjectCsvWriter } from 'csv-writer'
 import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
-import { chunk, forEach, sortBy, startsWith } from 'lodash'
+import { chunk, forEach, groupBy, sortBy, startsWith } from 'lodash'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
 
@@ -71,7 +74,6 @@ export class ProductExportService {
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
     @Inject(EXPORT_STORAGE_STRATEGY) private exportStorageStrategy: ExportStorageStrategy,
     private productService: ProductService,
-    private stockLevelService: StockLevelService,
     private channelService: ChannelService,
     private configService: ConfigService,
     private connection: TransactionalConnection,
@@ -159,7 +161,10 @@ export class ProductExportService {
     const configuredCustomColumns = this.options.exportOptions.customExportColumns ?? []
     headers.push(...configuredCustomColumns.map((col) => ({ id: col.name, title: col.name })))
 
-    const selectedExportFieldsArray = selectedExportFields.split(',')
+    const selectedExportFieldsArray = selectedExportFields
+      .split(',')
+      .map((field) => field.trim())
+      .filter(Boolean)
     const selectedExportFieldsSet = new Set(selectedExportFieldsArray)
 
     const selectedCustomColumns = configuredCustomColumns.filter((col) =>
@@ -216,7 +221,13 @@ export class ProductExportService {
             skip: (currentPage - 1) * pageSize,
             take: pageSize,
           },
-          ['facetValues', 'facetValues.facet', 'optionGroups', 'assets', ...productRelationCustomFields],
+          [
+            'facetValues',
+            'facetValues.facet',
+            'optionGroups',
+            'assets',
+            ...productRelationCustomFields,
+          ],
         )
 
         hasMore = currentPage * pageSize < totalItems
@@ -240,7 +251,8 @@ export class ProductExportService {
           // The cast only satisfies the `Translated<Product>` typing: ProductService.findAll never
           // translated variants either, and exportProduct reads `.translations` arrays off variants,
           // options and facet values.
-          product.variants = (variantsByProductId.get(String(product.id)) ?? []) as unknown as typeof product.variants
+          product.variants = (variantsByProductId.get(String(product.id)) ??
+            []) as unknown as typeof product.variants
         }
 
         // Fetch stock on hand for the whole page in a single query. Doing this up front (instead of
@@ -251,7 +263,9 @@ export class ProductExportService {
           ? await this.getStockOnHandMap(
               ctx,
               items.flatMap((product) =>
-                product.variants.filter((variant) => !variant.deletedAt).map((variant) => variant.id),
+                product.variants
+                  .filter((variant) => !variant.deletedAt)
+                  .map((variant) => variant.id),
               ),
             )
           : new Map<string, number>()
@@ -348,7 +362,10 @@ export class ProductExportService {
       order: { id: 'ASC' },
     })
     const idPosition = new Map(idRows.map((row, index) => [String(row.id), index]))
-    for (const ids of chunk(idRows.map((row) => row.id), VARIANT_LOAD_CHUNK_SIZE)) {
+    for (const ids of chunk(
+      idRows.map((row) => row.id),
+      VARIANT_LOAD_CHUNK_SIZE,
+    )) {
       // No `order` here: with relationLoadStrategy 'query', TypeORM propagates the find's order
       // into every relation sub-query via deepValue(order, relation.propertyPath), which throws
       // for an embedded `customFields.<name>` relation path (reads a property off undefined).
@@ -443,7 +460,10 @@ export class ProductExportService {
     )
 
     const convertToHTML = (text: string) => {
-      return text.replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;').replace(/,\s*'/g, ", '")
+      return text
+        .replace(/\n/g, '<br>')
+        .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+        .replace(/,\s*'/g, ", '")
     }
 
     const firstRowProductColumnsByLang = languages.reduce(
@@ -511,7 +531,8 @@ export class ProductExportService {
         record[`slug:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`slug:${lang}`] : ''
         record[`description:${lang}`] =
           variantIndex === 0 ? firstRowProductColumns[`description:${lang}`] : ''
-        record[`facets:${lang}`] = variantIndex === 0 ? firstRowProductColumns[`facets:${lang}`] : ''
+        record[`facets:${lang}`] =
+          variantIndex === 0 ? firstRowProductColumns[`facets:${lang}`] : ''
         record[`optionGroups:${lang}`] =
           variantIndex === 0 ? firstRowProductColumns[`optionGroups:${lang}`] : ''
         record[`optionValues:${lang}`] = variantValues[lang]
@@ -680,32 +701,33 @@ export class ProductExportService {
   }
 
   /**
-   * Fetches the total stock on hand for many variants in a single query, keyed by stringified
-   * variant id. Stock is summed across all stock locations, mirroring the aggregate value returned
-   * by {@link StockLevelService.getAvailableStock} for the common single-location setup.
+   * Fetches stock on hand for many variants, keyed by stringified variant id. Stock levels are
+   * read in chunks of {@link VARIANT_LOAD_CHUNK_SIZE} variants and aggregated per variant by the
+   * configured {@link StockLocationStrategy}, the same aggregation
+   * `StockLevelService.getAvailableStock` applies, without one query per variant.
    */
   private async getStockOnHandMap(
     ctx: RequestContext,
     variantIds: ID[],
   ): Promise<Map<string, number>> {
     const stockOnHandByVariantId = new Map<string, number>()
-    if (variantIds.length === 0) {
-      return stockOnHandByVariantId
+    const { stockLocationStrategy } = this.configService.catalogOptions
+    const repository = this.connection.getRepository(ctx, StockLevel)
+    for (const ids of chunk(variantIds, VARIANT_LOAD_CHUNK_SIZE)) {
+      const stockLevels = await repository.find({
+        where: { productVariantId: In(ids) },
+        loadEagerRelations: false,
+      })
+      const levelsByVariantId = groupBy(stockLevels, (level) => String(level.productVariantId))
+      for (const id of ids) {
+        const available = await stockLocationStrategy.getAvailableStock(
+          ctx,
+          id,
+          levelsByVariantId[String(id)] ?? [],
+        )
+        stockOnHandByVariantId.set(String(id), available.stockOnHand)
+      }
     }
-
-    const rows = await this.connection
-      .getRepository(ctx, StockLevel)
-      .createQueryBuilder('stockLevel')
-      .select('stockLevel.productVariantId', 'variantId')
-      .addSelect('SUM(stockLevel.stockOnHand)', 'stockOnHand')
-      .where('stockLevel.productVariantId IN (:...variantIds)', { variantIds })
-      .groupBy('stockLevel.productVariantId')
-      .getRawMany<{ variantId: ID; stockOnHand: string | number }>()
-
-    for (const row of rows) {
-      stockOnHandByVariantId.set(String(row.variantId), Number(row.stockOnHand) || 0)
-    }
-
     return stockOnHandByVariantId
   }
 
@@ -765,7 +787,9 @@ export class ProductExportService {
         },
         ['variants'],
       )
-      if (items.some((product) => product.variants.filter((variant) => !variant.deletedAt).length > 1)) {
+      if (
+        items.some((product) => product.variants.filter((variant) => !variant.deletedAt).length > 1)
+      ) {
         return true
       }
       skip += pageSize
