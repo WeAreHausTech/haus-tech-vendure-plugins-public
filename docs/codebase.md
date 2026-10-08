@@ -22,7 +22,7 @@ Nx monorepo of independently published Vendure plugin libraries. No application/
 | `vitest.config.ts`       | Root Vitest config — runs `packages/**/*.e2e-spec.ts` (node env, SWC, `@plugins` alias, `@vendure/testing` inlined)                    |
 | `eslint.config.cjs`      | Flat ESLint config (root); each plugin has its own `eslint.config.cjs`                                                                  |
 | `.prettierrc`            | References `@haus-tech/prettier-config`                                                                                                |
-| `.yarnrc.yml` / `.npmrc` | Yarn 4 / registry configuration; hardened mode, checksum enforcement, scripts disabled, package-age gate. Read `NODE_AUTH_TOKEN` from the environment — never print or commit its value |
+| `.yarnrc.yml` / `.npmrc` | Yarn 4 / registry configuration; hardened mode, checksum enforcement, scripts disabled, package-age gate. Read an optional `NODE_AUTH_TOKEN` from the environment — never print or commit its value |
 | `.github/workflows/`     | One workflow (`sync-markdown.yml`) — docs sync only, no quality gate                                                                    |
 
 Runtime dependencies declared at the **root** and relied on by plugin code: `@elastic/elasticsearch`, `@nestjs/graphql`, `bottleneck`. Plugin-level runtime deps are declared per package (see below).

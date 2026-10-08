@@ -1,0 +1,91 @@
+name: Release
+
+# Publishes plugin packages to npm with npm trusted publishing (OIDC): no npm token, no OTP.
+# Versioning stays local: `npx nx release --skip-publish` bumps, writes the changelog,
+# commits, tags `<project>@<version>` and pushes. The pushed tag triggers this workflow.
+# Every package must have this repo and `release.yml` set as its Trusted Publisher on npmjs.com.
+
+on:
+  push:
+    tags:
+      - '*@*'
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: 'Nx projects to publish, comma-separated (empty = all; versions already on npm are skipped)'
+        required: false
+        default: ''
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    # Trusted publishing only works on GitHub-hosted runners.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Ensure npm supports trusted publishing (>= 11.5.1)
+        run: |
+          if ! npx --yes semver@7 --range '>=11.5.1' "$(npm --version)" > /dev/null; then
+            npm install -g npm@11
+          fi
+          npm --version
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable --check-cache
+
+      - name: Resolve projects to publish
+        id: projects
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_PROJECTS: ${{ inputs.projects }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            # Tag pattern is {projectName}@{version}
+            echo "list=${REF_NAME%@*}" >> "$GITHUB_OUTPUT"
+          else
+            echo "list=$INPUT_PROJECTS" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        env:
+          PROJECTS: ${{ steps.projects.outputs.list }}
+        run: |
+          if [ -n "$PROJECTS" ]; then
+            yarn nx run-many -t build --projects="$PROJECTS"
+          else
+            yarn nx run-many -t build
+          fi
+
+      - name: Publish
+        env:
+          PROJECTS: ${{ steps.projects.outputs.list }}
+          # setup-node exports a placeholder token; clear it so the OIDC exchange is the only credential.
+          NODE_AUTH_TOKEN: ''
+        run: |
+          if [ -n "$PROJECTS" ]; then
+            yarn nx release publish --projects="$PROJECTS" --verbose
+          else
+            yarn nx release publish --verbose
+          fi

@@ -21,16 +21,16 @@ Plugin versions track the supported **Vendure major.minor** (e.g. Vendure 3.6.x 
 
 ## Releasing with Nx Release
 
-Releases are **manual / developer-driven — there is no publish workflow in this repo.** Run from the repo root:
+Versioning is developer-driven and runs locally; **publishing runs in GitHub Actions** (`release.yml`) with npm trusted publishing (OIDC), so no npm token or OTP is involved. Run from the repo root:
 
 ```bash
 # preview first
-npx nx release --dry-run
+npx nx release --skip-publish --dry-run
 # or per project
-npx nx release --projects=elastic-search-synonyms --dry-run
+npx nx release --projects=elastic-search-synonyms --skip-publish --dry-run
 
-# then release
-npx nx release
+# then version, commit, tag and push; the pushed tag triggers release.yml
+npx nx release --skip-publish
 ```
 
 What `nx release` does (config in `nx.json` → `release`):
@@ -41,14 +41,17 @@ What `nx release` does (config in `nx.json` → `release`):
 - Per-project changelogs render through `scripts/no-next-changelog-renderer.cjs`, which filters `next` prereleases out of `CHANGELOG.md`.
 - Updates `package.json` versions in both `dist/packages/<name>` and `packages/<name>`, commits, tags, and pushes.
 
-Publish credentials are read from the `NODE_AUTH_TOKEN` environment variable (see `.npmrc` / `.yarnrc.yml`) and live with the npm account — never in the repo.
+`release.yml` then builds the tagged project and runs `nx release publish` for it. Nx publishes through `npm publish` (also with Yarn 4), and npm (>= 11.5.1) exchanges the workflow's OIDC token for a short-lived publish token and adds provenance. Each package needs this repo and `release.yml` registered as its Trusted Publisher on npmjs.com, and a brand-new package must be published once by hand before that setting exists. `release.yml` can also be started manually with a comma-separated `projects` input; versions already on npm are skipped.
+
+`.npmrc` / `.yarnrc.yml` still read an optional `NODE_AUTH_TOKEN` for a manual first publish from a developer machine; it is never stored in the repo.
 
 ## CI workflows
 
-GitHub Actions in this repo handle **docs sync only** — no lint, no build, no test, no audit, no npm publish.
+GitHub Actions in this repo handle docs sync and npm publishing — no lint, no test, no audit.
 
 | Workflow            | Trigger                                                                                                                  | Does                                                                                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `release.yml`       | push of a `<project>@<version>` tag; manual dispatch (optional `projects` input)                                          | Builds the project(s) and runs `nx release publish` with npm trusted publishing (OIDC); needs `id-token: write`                                                         |
 | `sync-markdown.yml` | push to `main` touching `packages/**/*.md` or `packages/**/assets/**`; manual dispatch (with an optional full-sync input) | Installs with `--immutable --check-cache`, runs `yarn update-readmes`, then copies changed plugin markdown and assets into the public docs site repo and commits there |
 
 The workflow prunes docs for plugins and markdown files that no longer exist, so deleting a plugin markdown file here removes it from the docs site on the next run.
