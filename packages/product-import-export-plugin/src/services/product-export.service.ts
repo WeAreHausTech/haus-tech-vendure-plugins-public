@@ -143,10 +143,16 @@ export class ProductExportService {
     // treats column 0 as a Vendure product id and uses it for by-id matching on import.
     headers.push({ id: 'id', title: 'id' })
 
+    // Product columns first, then variant columns, so a product's data sits together on its first row.
+    const toHeader = (field: string) => ({ id: field, title: field })
+    const productCustomFieldNames = filteredCustomFieldNames.filter((f) => f.startsWith('product:'))
+    const variantCustomFieldNames = filteredCustomFieldNames.filter((f) => f.startsWith('variant:'))
+
     headers.push(
       { id: 'assets', title: 'assets' },
       ...languages.map((lang) => ({ id: `facets:${lang}`, title: `facets:${lang}` })),
       ...languages.map((lang) => ({ id: `optionGroups:${lang}`, title: `optionGroups:${lang}` })),
+      ...productCustomFieldNames.map(toHeader),
       ...languages.map((lang) => ({ id: `optionValues:${lang}`, title: `optionValues:${lang}` })),
       { id: 'sku', title: 'sku' },
       { id: 'price', title: 'price' },
@@ -155,10 +161,7 @@ export class ProductExportService {
       { id: 'trackInventory', title: 'trackInventory' },
       { id: 'variantAssets', title: 'variantAssets' },
       ...languages.map((lang) => ({ id: `variantFacets:${lang}`, title: `variantFacets:${lang}` })),
-      ...filteredCustomFieldNames.map((field) => ({
-        id: field,
-        title: field,
-      })),
+      ...variantCustomFieldNames.map(toHeader),
       { id: 'enabled', title: 'enabled' },
     )
 
@@ -613,8 +616,11 @@ export class ProductExportService {
       for (const field of filteredCustomFieldNames) {
         const [owner, fieldName] = field.split(':') as ['product' | 'variant', string, ...string[]]
         if (owner === 'product') {
+          // Import reads product data from the first row only, like name and description.
           record[field] =
-            this.handleCustomFields(customFields, fieldName, exportAssetsAs, 'product') ?? ''
+            variantIndex === 0
+              ? (this.handleCustomFields(customFields, fieldName, exportAssetsAs, 'product') ?? '')
+              : ''
         } else if (owner === 'variant') {
           record[field] =
             this.handleCustomFields(variant.customFields, fieldName, exportAssetsAs, 'variant') ??
