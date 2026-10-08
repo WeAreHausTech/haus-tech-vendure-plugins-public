@@ -2,7 +2,7 @@
 name: elastic-search-synonyms
 title: Elastic Search Synonyms
 description: Vendure plugin for managing Elasticsearch synonyms via the Synonyms API and the admin UI.
-version: 1.0.2
+version: 1.0.3
 tags:
   - vendure
   - plugin

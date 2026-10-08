@@ -89,3 +89,9 @@ jobs:
           else
             yarn nx release publish --verbose
           fi
+
+      - name: Show npm OIDC log lines on failure
+        if: failure()
+        # npm only logs why the OIDC token exchange was skipped or refused at verbose level,
+        # which lands in its debug log file but not in Nx's error output.
+        run: grep -h -i -E "oidc|trusted|provenance" ~/.npm/_logs/*-debug-*.log || echo "no npm OIDC log lines found"
