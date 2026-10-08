@@ -75,7 +75,12 @@ export async function loadSelfRelationCustomFieldIds(
         continue
       }
       const current = entry[field.name]
-      entry[field.name] = Array.isArray(current) ? [...current, row.relatedId] : row.relatedId
+      if (Array.isArray(current)) {
+        // The array was created above for this call only, so appending in place is safe.
+        current.push(row.relatedId)
+      } else {
+        entry[field.name] = row.relatedId
+      }
     }
   }
   return byOwnerId
