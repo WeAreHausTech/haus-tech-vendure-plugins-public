@@ -1,9 +1,13 @@
 ---
 name: writing-documentation
 description: >-
-  Creates or refreshes AI-oriented project documentation (CLAUDE.md, docs/SUMMARY.md,
-  README pointers, setup/workflow/deployment topic files) for app and workspace repos.
-  Use when the user runs /docs or asks to init or sync docs from code for agent context.
+  Creates or refreshes AI-oriented project documentation (CLAUDE.md, docs/SUMMARY.md, README
+  pointers, setup/workflow/deployment topic files) for app and workspace repos. Use when the
+  user runs /docs or asks to init or sync docs from code for agent context. Use when the
+  user runs the docs sync or asks to init/refresh project documentation for agent context,
+  or after setup/commands/env/deploy/integration changes. Do not use for code changes with
+  no documentation impact, or where facts would have to be invented. The glossary and the
+  writing style guide are other skills' jobs.
 ---
 
 # Writing Documentation
@@ -60,9 +64,10 @@ Read existing docs, then discover facts from code/config only (no invented URLs,
 
 1. `CLAUDE.md`, `docs/SUMMARY.md`, existing `docs/`
 2. `README.md`, key config (`package.json`, `composer.json`, CI workflows, `docker-compose.yml`, etc.)
-3. `.env.example` or `.env.sample`
-4. `git log --oneline -20` when updating
-5. Test/lint/build scripts and pre-commit hooks (note explicitly if absent)
+3. `GLOSSARY.md` at the repo root if present (index it; it is written by the interview skills, never by this skill) and `docs/research/` if present (list the folder as dated notes; never lift a note into a rule).
+4. `.env.example` or `.env.sample`
+5. `git log --oneline -20` when updating
+6. Test/lint/build scripts and pre-commit hooks (note explicitly if absent)
 
 **App mode — discover and document**
 

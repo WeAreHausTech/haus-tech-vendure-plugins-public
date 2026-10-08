@@ -1,6 +1,9 @@
 ---
 name: vendure-app-patterns
-description: Vendure app router. Use for app-level config, workers, jobs, and API extensions in a Vendure application.
+description: >-
+  Vendure app router. Use for app-level config, workers, jobs, and API extensions in a
+  Vendure application. Use for Vendure app config, worker, bootstrap, and system wiring
+  updates. Do not use for isolated shared plugin package tasks.
 ---
 
 # Vendure App Patterns
@@ -25,6 +28,7 @@ description: Vendure app router. Use for app-level config, workers, jobs, and AP
 
 ## References
 
+- references/conventions.md
 - references/scope.md
 - references/workflow.md
 

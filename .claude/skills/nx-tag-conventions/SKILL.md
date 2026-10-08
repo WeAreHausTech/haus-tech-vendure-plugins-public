@@ -1,6 +1,11 @@
 ---
 name: nx-tag-conventions
-description: Haus-specific Nx project tag, module-boundary, and generator-placement conventions. Use alongside the official nx-workspace/nx-generate skills, not instead of them.
+description: >-
+  Haus-specific Nx project tag, module-boundary, and generator-placement conventions. Use
+  alongside the official nx-workspace/nx-generate skills, not instead of them. Use alongside
+  haus.nx-nx-workspace / haus.nx-nx-generate when naming tags, placing generators/executors,
+  or enforcing module boundaries. Use haus.nx-nx-workspace or haus.nx-nx-generate for
+  general Nx exploration/generation.
 ---
 
 # Nx Tag Conventions

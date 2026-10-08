@@ -65,9 +65,11 @@ Omit if no deployment docs exist.
 
 Optional. Non-standard docs only (integrations, testing, data-model, security, etc.).
 
-| File               | Description |
-| ------------------ | ----------- |
-| [path.md](path.md) | …           |
+| File                          | Description                                   |
+| ----------------------------- | --------------------------------------------- |
+| [path.md](path.md)            | …                                             |
+| [GLOSSARY.md](../GLOSSARY.md) | Domain terms, written by the interview skills |
+| [research/](research/)        | Dated research notes; evidence, never a rule  |
 ```
 
 ## Regeneration rules

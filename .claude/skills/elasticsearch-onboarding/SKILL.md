@@ -1,11 +1,12 @@
 ---
 name: elasticsearch-onboarding
-description: >
-  Help developers new to Elasticsearch get from zero to a working search experience.
-  Guide them through understanding their intent, mapping their data, and building
-  a search experience with best practices baked in. Use this when the user shows intent
-  to build search-related functionality, asks about Elasticsearch-related concepts
-  for their use case, or expresses the need for help getting started with Elasticsearch.
+description: >-
+  Help developers new to Elasticsearch get from zero to a working search experience. Guide
+  them through understanding their intent, mapping their data, and building a search
+  experience with best practices baked in. Use this when the user shows intent to build
+  search-related functionality, asks about Elasticsearch-related concepts for their use
+  case, or expresses the need for help getting started with Elasticsearch. Do not use when a
+  more specific skill or command applies.
 compatibility: Elasticsearch 9.x
 metadata:
   author: elastic
