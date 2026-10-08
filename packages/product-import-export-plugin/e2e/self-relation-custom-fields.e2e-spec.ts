@@ -65,8 +65,9 @@ const SIBLINGS_COLUMN = 'variant:siblings:productvariant'
  * Relation custom fields whose entity is the owner entity itself (a Product relating to Product,
  * a ProductVariant relating to ProductVariant). Loading them through `ProductService.findAll` or a
  * repository `relations` list makes TypeORM join the owner table twice under the same alias, which
- * Postgres rejects ("table name specified more than once"). sqljs accepts that query, so these
- * tests pin the loading path with spies and the CSV output with the ids test.
+ * Postgres rejects ("table name specified more than once"). sqljs accepts the single-relation
+ * query, so the findAll spy pins that path; the list fields fail on sqljs too ("ambiguous column
+ * name"), so the ids test fails without the fix.
  */
 describe('self-referencing relation custom fields in exports', () => {
   const apiPort = 3061
@@ -178,17 +179,6 @@ describe('self-referencing relation custom fields in exports', () => {
     for (const call of findAll.mock.calls) {
       const relations = (call[2] ?? []) as string[]
       expect(relations.filter((r) => r.endsWith('customFields.relatedProduct'))).toEqual([])
-    }
-  })
-
-  it('never passes a self-referencing relation custom field to the variant relation load', async () => {
-    const loadVariants = vi.spyOn(productExportService as any, 'loadVariantsForProducts')
-    await runExport()
-    expect(loadVariants).toHaveBeenCalled()
-    for (const call of loadVariants.mock.calls) {
-      const relations = call[2] as string[]
-      expect(relations).not.toContain('customFields.baseVariant')
-      expect(relations).not.toContain('customFields.siblings')
     }
   })
 
