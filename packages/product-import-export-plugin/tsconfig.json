@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "../../dist/packages/product-import-export-plugin",
     "rootDir": "./src",
-    "types": ["node", "Multer"],
+    "types": ["node", "multer"],
     "lib": ["es2022", "dom"]
   },
   "exclude": [
