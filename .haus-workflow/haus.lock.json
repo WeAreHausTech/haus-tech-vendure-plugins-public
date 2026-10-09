@@ -4,7 +4,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-93c45e048a2884868749323fe67643b4d94ddc0f9d072af239837ebd45fe7fce",
     "installMode": "copied",
     "paths": [
@@ -16,8 +16,8 @@
     "type": "template",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
-    "hash": "sha256-5f708358c753fbf9ad5ca3f64e4e3daa4420424934ba49ab56dfec7b5f964bbf",
+    "catalogRef": "v6.11.0",
+    "hash": "sha256-0853dfcd1e6caf0ad82e18f1f8060ea2915e1ec99e1f5d866de13ce5f9bdc91f",
     "installMode": "copied",
     "paths": [
       ".claude/templates/agentic-workflow-standard.md"
@@ -28,7 +28,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-66b36043d24fca809bccad9f24d9b6377ba58d196f64f506b42e4c63e9995e7b",
     "installMode": "copied",
     "paths": [
@@ -45,7 +45,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-1e6d35664b22b2b8ea45a093a9ac3f61ab1adff123ef74120c81c6126bf42702",
     "installMode": "copied",
     "paths": [
@@ -62,7 +62,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-d632536f4c7867565151f539578c16f68fc181f970632c89f21fbd92e52a0cfc",
     "installMode": "copied",
     "paths": [
@@ -79,7 +79,7 @@
     "type": "template",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-9d2debf1ae247227fd75d2518178cd03748f2dacae699ff90c7d7d6e610fff92",
     "installMode": "copied",
     "paths": [
@@ -91,7 +91,7 @@
     "type": "agent",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-42d86f657070552b7b9c8dd6a59f0002525ad1b04027d7f408eeb14e2dbd08da",
     "installMode": "copied",
     "paths": [
@@ -108,7 +108,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-f3d7946d89c7010732ed59e68880ef1e44242382d5f9fff8b6772acb5a7d3cd4",
     "installMode": "copied",
     "paths": [
@@ -125,7 +125,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-921d8fb90ef25922133a5cf2a9eefbcbaa289b27f9437715022ea37260521ea4",
     "installMode": "copied",
     "paths": [
@@ -142,7 +142,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-a87c5ceec6d4e971a00950045fdbe9aa4591163ea2230bc007c9432a6788d331",
     "installMode": "copied",
     "paths": [
@@ -159,7 +159,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-3b2eadb1f8dd4e253587f6c065c39cd092e4693bb339b654e35c2bb067c6d3d4",
     "installMode": "copied",
     "paths": [
@@ -176,7 +176,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-d1b2bb7f7ed68bea155e9ef8ba05e58cce087e21453bbd16c670d60bb94f9f63",
     "installMode": "copied",
     "paths": [
@@ -193,7 +193,7 @@
     "type": "agent",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-cb5b44d3785efaafe0bfc5382675eca90717de104b11859a5b6b8f3e923e38c5",
     "installMode": "copied",
     "paths": [
@@ -210,7 +210,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-6a04a7a2719fa8a49fd4c670b07e0ac4ef4dce0741583e136afbbbfe96f98819",
     "installMode": "copied",
     "paths": [
@@ -227,7 +227,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-35a32451262d01d23f331997423b242dd1064177a72c5086a6ad4cb89a66f2d3",
     "installMode": "copied",
     "paths": [
@@ -244,7 +244,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-089d474664e12bfa38afc643732760b7007cd10359e7292c648332c510ee5ce5",
     "installMode": "copied",
     "paths": [
@@ -261,7 +261,7 @@
     "type": "agent",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-0bb9f7e3a14f142b60d6ff29b654ccf83ec9d9b24ceb059560b628eee8e279cc",
     "installMode": "copied",
     "paths": [
@@ -278,7 +278,7 @@
     "type": "rule",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-564d130bf3ba35468f6689151dc2313e5df1e879caf625fb6b4a6adc3ff080c6",
     "installMode": "copied",
     "paths": [
@@ -295,7 +295,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-62bdd2d12931991a49611942dba1f4488691efe54d6f31b496036242ed5ef59f",
     "installMode": "copied",
     "paths": [
@@ -312,7 +312,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-c7ca529846f6291a85f59dbc37e0a91581ab01ffde98d203eff930c664db71f7",
     "installMode": "copied",
     "paths": [
@@ -329,7 +329,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-895a278949d121e2a00696ea4abf6f33975697d0cd97bf91aa8b0513646a33c8",
     "installMode": "copied",
     "paths": [
@@ -346,7 +346,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-96cfbbf1535fc407fc15d6fd27e7a0fb71a60f4818464ea8986f89b6a9a43adf",
     "installMode": "copied",
     "paths": [
@@ -358,7 +358,7 @@
     "type": "agent",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-c95826023683e19156b3661e264ea44a76aa7d8f6fee1a453863d82fb56556dd",
     "installMode": "copied",
     "paths": [
@@ -370,7 +370,7 @@
     "type": "template",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-18f7204043b5ec3e7e689698f1fb933cfbd333af48e70eaad9f85ab0adf5dd81",
     "installMode": "copied",
     "paths": [
@@ -382,7 +382,7 @@
     "type": "template",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-4ebcc6893d83af9dad68df2dd6fc34a7887de2c787a78e41dbf9dbe87363c5b4",
     "installMode": "copied",
     "paths": [
@@ -394,7 +394,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-6e558c7938b4daa02cfd882e36aa3b01faf2ec6e21c8026db15a3ee4ca757b64",
     "installMode": "copied",
     "paths": [
@@ -411,7 +411,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-9acf8a00e03d279e380127f46b7b6fea7d086196b7677e51c2f03b25b94089cc",
     "installMode": "copied",
     "paths": [
@@ -428,7 +428,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-7cab2974429645f245430a0644d25072c1432f7abe75631f396ba067d687ecc4",
     "installMode": "copied",
     "paths": [
@@ -445,7 +445,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-2826e68a7df8b0cfe9bbf5d599840ce293da04a13d99144d5465cf2225be3dde",
     "installMode": "copied",
     "paths": [
@@ -457,7 +457,7 @@
     "type": "agent",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-38efc6af9cb7a68dc82d0d0f08842032989c61b36d51f1ee7cf579d7f5ab0dbf",
     "installMode": "copied",
     "paths": [
@@ -474,7 +474,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-8db81cebf871257943a9c4e96ba45b9685aec1439c9432165f2951f9d9d4147a",
     "installMode": "copied",
     "paths": [
@@ -486,7 +486,7 @@
     "type": "template",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-3276724b2f7108a7e055d7f76a934c4bc03e3e0bfb0691e09a4f28642564f562",
     "installMode": "copied",
     "paths": [
@@ -498,7 +498,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-0cf0bf6b48e9102072d70862ebd4a72fc1b3f2c564e64529a0847467a893f124",
     "installMode": "copied",
     "paths": [
@@ -510,7 +510,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-e72c88cd6b363ff2273f0f3777d4e68127f38f71d98d4daecc58a7ad13c40bb3",
     "installMode": "copied",
     "paths": [
@@ -522,7 +522,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-63e2d48d54cee8372c480395bcf2c64114f4462292a1e06d0b49e39f293c401e",
     "installMode": "copied",
     "paths": [
@@ -534,7 +534,7 @@
     "type": "skill",
     "source": "haus",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-9e218fc4572af271e03f2323dbdd664c96d86bbad93dd418482c93429b9c52b5",
     "installMode": "copied",
     "paths": [
@@ -546,7 +546,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-581e767ab0fa1302289e5079560a78f646cda2526c172e0ce91b9e511959531c",
     "installMode": "copied",
     "paths": [
@@ -563,7 +563,7 @@
     "type": "skill",
     "source": "curated",
     "version": "5.12.1",
-    "catalogRef": "v6.10.0",
+    "catalogRef": "v6.11.0",
     "hash": "sha256-5bfd74d0b3fb973e35a6738eb2e4c7f4cad6fc555b9a4d9e71a3f2c648c4740b",
     "installMode": "copied",
     "paths": [

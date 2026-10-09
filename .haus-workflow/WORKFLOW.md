@@ -1,4 +1,4 @@
-<!-- HAUS-MANAGED id=template.workflow v=1 source=@haus-tech/haus-workflow@5.12.1 hash=sha256-c6381b2a15b7a54e9298e2d9754e07859d235e675c27a89730674d9cb233b181 -->
+<!-- HAUS-MANAGED id=template.workflow v=1 source=@haus-tech/haus-workflow@5.12.1 hash=sha256-d9fb7169eed9a263d1e9352cfe89d99b3f4a26694316230f89ddfc5609fb525d -->
 # Agentic Development Workflow Standard
 
 > Tech-agnostic methodology for AI-assisted software projects.
@@ -95,6 +95,7 @@ Lefthook. `lefthook.yml` holds this project's stages; the `haus.lefthook-securit
 - **Validate at boundaries.** Parse and validate user input, API responses, env vars with a schema library. Trust internal types downstream.
 - **OWASP Top 10 check** before any new public route: injection, broken auth, IDOR, SSRF, misconfiguration.
 - **Dependency audit** on a regular cadence. Block critical findings before release.
+- **No remote scripts in generated reports.** A report or prototype an agent generates about this codebase inlines its assets and loads nothing from a CDN, even when a skill's scaffold does.
 
 ---
 

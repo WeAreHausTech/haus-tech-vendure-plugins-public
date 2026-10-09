@@ -94,6 +94,7 @@ Lefthook. `lefthook.yml` holds this project's stages; the `haus.lefthook-securit
 - **Validate at boundaries.** Parse and validate user input, API responses, env vars with a schema library. Trust internal types downstream.
 - **OWASP Top 10 check** before any new public route: injection, broken auth, IDOR, SSRF, misconfiguration.
 - **Dependency audit** on a regular cadence. Block critical findings before release.
+- **No remote scripts in generated reports.** A report or prototype an agent generates about this codebase inlines its assets and loads nothing from a CDN, even when a skill's scaffold does.
 
 ---
 
