@@ -52,7 +52,17 @@ import { In, IsNull } from 'typeorm'
 import { generateAssetHash } from '../../helpers/generate-asset-hash'
 import { createHash } from 'crypto'
 import { removeUpdatedAtFields } from '../../helpers/remove-update-at-fields'
-import { SKU_LOOKUP, SkuRelationResolver } from '../../services/sku-relation-resolver'
+import {
+  SkuRelationResolver,
+  SkuRelationResult,
+  splitSkuList,
+} from '../../services/sku-relation-resolver'
+import { importCsvLines, normalizeHeader, splitCsvLine } from '../../helpers/import-csv-lines'
+
+/** The relation columns of one import whose values are SKUs, and the variant id behind each SKU. */
+type SkuLookup = Pick<SkuRelationResult, 'fields' | 'variantIdsBySku'>
+
+const NO_SKU_LOOKUP: SkuLookup = { fields: new Set(), variantIdsBySku: new Map() }
 
 @Injectable()
 export class ProductImporter {
@@ -60,9 +70,6 @@ export class ProductImporter {
   private facetMap = new Map<string, Facet>()
   private facetValueMap = new Map<string, FacetValue>()
   private customFieldTypes: Record<string, string> = {}
-  /** `<owner>:<field>` keys of relation columns whose values are SKUs (header `...:sku`). */
-  private skuLookupFields = new Set<string>()
-  private variantIdsBySku = new Map<string, ID>()
   private allAssets: Asset[] = []
   private allAssetsById = new Map<ID, Asset>()
   private facetIdCache = new Map<string, ID>()
@@ -146,39 +153,23 @@ export class ProductImporter {
   ): {
     cleanedCsv: string
     customFieldTypes: Record<string, string>
-    skuLookupFields: Set<string>
   } {
     const customFieldTypes: Record<string, string> = {}
-    const skuLookupFields = new Set<string>()
 
-    const lines = input.split('\n')
+    // Without blank and comma-only lines, as SkuRelationResolver reads the file
+    const filteredLines = importCsvLines(input)
 
-    // Filter out empty lines (lines that are either blank or just commas)
-    const filteredLines = lines.filter((line) => {
-      const trimmed = line.trim()
-      return trimmed !== '' && !/^,+$/.test(trimmed) // Keep lines that are not empty or comma-only
-    })
-
-    const splitLines = (text: string): string[] => {
-      // Split text by commas, but not if comma is inside double quotes
-      const splittedText = text.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-
-      return splittedText
-    }
-
-    const headers = splitLines(filteredLines[0]) // Use splitCsvLine to split headers correctly
+    const headers = splitCsvLine(filteredLines[0])
 
     const cleanedHeaders = headers.map((rawHeader) => {
       const header = normalizeHeader(rawHeader)
       if (header.startsWith('product:') || header.startsWith('variant:')) {
         const parts = header.split(':')
         if (parts.length === 3 || parts.length === 4) {
-          const [prefix, fieldName, type, lookup] = parts
+          // A fourth segment (`:sku`) is read by SkuRelationResolver
+          const [prefix, fieldName, type] = parts
           const fullFieldName = `${prefix}:${fieldName}`
           customFieldTypes[fullFieldName] = type.trim()
-          if (lookup?.trim() === SKU_LOOKUP) {
-            skuLookupFields.add(fullFieldName)
-          }
           return fullFieldName
         }
       }
@@ -197,7 +188,7 @@ export class ProductImporter {
       if (slugIndices.length > 0) {
         filteredLines.forEach((line, index) => {
           if (index === 0) return // Skip header row
-          const columns = splitLines(line) // Use splitCsvLine to split the data line correctly
+          const columns = splitCsvLine(line)
           slugIndices.forEach((slugIndex) => {
             columns[slugIndex] = '' // Clear each slug column
           })
@@ -209,7 +200,6 @@ export class ProductImporter {
     return {
       cleanedCsv: filteredLines.join('\n'), // Join the filtered lines
       customFieldTypes,
-      skuLookupFields,
     }
   }
 
@@ -276,20 +266,16 @@ export class ProductImporter {
       csvContent = await this.streamToString(input)
     }
 
-    // Checked again here, not only on upload: variants can change while the job waits.
+    // Checked again here, not only on upload: variants can change while the job waits. SKUs are
+    // resolved once, here: a variant deleted while the import runs is still linked to.
     const skuRelations = await this.skuRelationResolver.resolve(ctx, csvContent)
     if (skuRelations.errors.length > 0) {
       return { errors: skuRelations.errors, imported: 0, processed: 0 }
     }
-    this.variantIdsBySku = skuRelations.variantIdsBySku
 
     // Preprocess the CSV to extract types and clean headers
-    const { cleanedCsv, customFieldTypes, skuLookupFields } = this.preprocessCsv(
-      csvContent,
-      updateProductSlug,
-    )
+    const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csvContent, updateProductSlug)
     this.customFieldTypes = customFieldTypes
-    this.skuLookupFields = skuLookupFields
 
     const parsed = (await this.importParser.parseProducts(
       cleanedCsv,
@@ -317,6 +303,7 @@ export class ProductImporter {
               processed: parsed.processed,
             })
           },
+          skuRelations,
         )
         return {
           errors: parsed.errors.concat(importErrors),
@@ -362,6 +349,7 @@ export class ProductImporter {
     rows: ParsedProductWithId[],
     updatingStrategy: UpdatingStrategy,
     onProgress: OnProgressFn,
+    skuLookup: SkuLookup = NO_SKU_LOOKUP,
   ): Promise<string[]> {
     let errors: string[] = []
     let imported = 0
@@ -415,6 +403,8 @@ export class ProductImporter {
         product.translations[0].customFields,
         this.configService.customFields.Product,
         ctx,
+        'product',
+        skuLookup,
       )
 
       let checkExistingProduct
@@ -513,6 +503,8 @@ export class ProductImporter {
                 translation.customFields,
                 this.configService.customFields.Product,
                 ctx,
+                'product',
+                skuLookup,
               ),
             }
           }),
@@ -691,6 +683,8 @@ export class ProductImporter {
           variantMainTranslation.customFields,
           this.configService.customFields.ProductVariant,
           ctx,
+          'variant',
+          skuLookup,
         )
 
         const optionIds = shouldUpdateOptions
@@ -772,6 +766,8 @@ export class ProductImporter {
                   translation.customFields,
                   this.configService.customFields.ProductVariant,
                   ctx,
+                  'variant',
+                  skuLookup,
                 ),
               }
             }),
@@ -971,9 +967,13 @@ export class ProductImporter {
   }
 
   /** Swaps SKUs for variant ids; `SkuRelationResolver` has already checked each SKU. */
-  private variantIdsForSkus(value: string, list: boolean): string | string[] {
+  private variantIdsForSkus(
+    variantIdsBySku: Map<string, ID>,
+    value: string,
+    list: boolean,
+  ): string | string[] {
     const idFor = (sku: string): string => {
-      const id = this.variantIdsBySku.get(sku)
+      const id = variantIdsBySku.get(sku)
       if (id === undefined) {
         throw new InternalServerError(`No variant with SKU ${sku}`)
       }
@@ -982,11 +982,7 @@ export class ProductImporter {
     if (!list) {
       return idFor(value.trim())
     }
-    return value
-      .split('|')
-      .map((sku) => sku.trim())
-      .filter((sku) => sku !== '')
-      .map(idFor)
+    return splitSkuList(value).map(idFor)
   }
 
   private isValidRelationIdentifier(value: string): boolean {
@@ -997,6 +993,8 @@ export class ProductImporter {
     customFields: { [field: string]: string },
     config: CustomFieldConfig[],
     ctx: RequestContext,
+    owner: 'product' | 'variant',
+    skuLookup: SkuLookup = NO_SKU_LOOKUP,
   ) {
     function parseBoolean(input?: string): boolean {
       if (input == null) {
@@ -1021,8 +1019,6 @@ export class ProductImporter {
         | Record<string, unknown>
         | Record<string, unknown>[]
     } = {}
-
-    const owner = config === this.configService.customFields.Product ? 'product' : 'variant'
 
     for (const fieldDef of config) {
       let foundCustomFieldType = find(
@@ -1174,8 +1170,12 @@ export class ProductImporter {
           continue
         }
 
-        if (this.skuLookupFields.has(`${owner}:${fieldDef.name}`)) {
-          const variantIds = this.variantIdsForSkus(value, fieldDef.list === true)
+        if (skuLookup.fields.has(`${owner}:${fieldDef.name}`)) {
+          const variantIds = this.variantIdsForSkus(
+            skuLookup.variantIdsBySku,
+            value,
+            fieldDef.list === true,
+          )
           if (relDef.nullable === false && Array.isArray(variantIds) && variantIds.length === 0) {
             throw new InternalServerError(
               `Required relation custom field "${fieldDef.name}" is missing or empty`,
@@ -1502,12 +1502,4 @@ export class ProductImporter {
 
     return product
   }
-}
-
-/** A header cell as the CSV parser reads it: no byte order mark, no surrounding quotes or space. */
-function normalizeHeader(header: string): string {
-  return header
-    .replace(/^\uFEFF/, '')
-    .trim()
-    .replace(/^"(.*)"$/, '$1')
 }

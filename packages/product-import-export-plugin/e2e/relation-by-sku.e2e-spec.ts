@@ -202,6 +202,26 @@ describe('relation custom fields given by SKU', () => {
       expect((await findVariant('SHOP-6'))?.customFields.baseVariant?.id).toBe(ids['BASE-1'])
     })
 
+    it('keeps the SKUs of two imports that run at the same time apart', async () => {
+      const bySku = [
+        `${HEADER},${BASE_BY_SKU}`,
+        'Shop Seven,shop-seven,Shop,SHOP-7,150,Standard Tax,1,BASE-1',
+      ].join('\n')
+      const byId = [
+        `${HEADER},variant:baseVariant:productvariant`,
+        `Shop Eight,shop-eight,Shop,SHOP-8,150,Standard Tax,1,${ids['BASE 2.b']}`,
+      ].join('\n')
+      expect(await Promise.all([runImport(bySku), runImport(byId)])).toEqual([[], []])
+      expect((await findVariant('SHOP-7'))?.customFields.baseVariant?.id).toBe(ids['BASE-1'])
+      expect((await findVariant('SHOP-8'))?.customFields.baseVariant?.id).toBe(ids['BASE 2.b'])
+    })
+
+    it('finds the SKU columns the importer finds, also behind a loose quote', async () => {
+      const csv = [`name,"desc"x,sku,${BASE_BY_SKU}`, 'A,a,X-9,NOPE-1'].join('\n')
+      expect(await validate(csv)).toEqual(['Row 2: no variant with SKU NOPE-1'])
+      expect(await runImport(csv)).toEqual(['Row 2: no variant with SKU NOPE-1'])
+    })
+
     it('still reads a three-segment column as ids', async () => {
       const csv = [
         `${HEADER},variant:baseVariant:productvariant`,
@@ -226,6 +246,27 @@ describe('relation custom fields given by SKU', () => {
         'Row 3: no variant with SKU NOPE-2',
         'Row 4: SKU DUP-A matches 2 variants',
         'Row 5: no variant with SKU GONE-1',
+      ])
+    })
+
+    it('numbers rows as the importer does, without blank and comma-only lines', async () => {
+      const csv = [
+        `${HEADER},${BASE_BY_SKU}`,
+        'A,a,A,X-1,1,Standard Tax,1,BASE-1',
+        '',
+        ',,,,,,,',
+        'B,b,B,X-2,1,Standard Tax,1,NOPE-1',
+      ].join('\n')
+      expect(await validate(csv)).toEqual(['Row 3: no variant with SKU NOPE-1'])
+    })
+
+    it('says so when no custom field has the name in a :sku column', async () => {
+      const csv = [
+        `${HEADER},variant:basevariant:productvariant:sku`,
+        'A,a,A,X-1,1,Standard Tax,1,BASE-1',
+      ].join('\n')
+      expect(await validate(csv)).toEqual([
+        "Column 'variant:basevariant:productvariant:sku': ProductVariant has no custom field named 'basevariant'",
       ])
     })
 

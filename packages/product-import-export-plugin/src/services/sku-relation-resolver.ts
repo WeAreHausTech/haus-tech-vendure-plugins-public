@@ -10,6 +10,7 @@ import {
 } from '@vendure/core'
 import { parse } from 'csv-parse/sync'
 import { In, IsNull } from 'typeorm'
+import { importCsvHeaders, importCsvLines } from '../helpers/import-csv-lines'
 
 /** The fourth header segment that makes a relation column hold SKUs instead of ids. */
 export const SKU_LOOKUP = 'sku'
@@ -22,10 +23,12 @@ export interface SkuRelationResult {
   errors: string[]
   /** The id of the single live variant behind each SKU the file references. */
   variantIdsBySku: Map<string, ID>
+  /** `<owner>:<field>` keys of the relation columns whose values are SKUs. */
+  fields: Set<string>
 }
 
 interface SkuColumn {
-  header: string
+  index: number
   list: boolean
 }
 
@@ -43,34 +46,36 @@ export class SkuRelationResolver {
 
   async resolve(ctx: RequestContext, csv: string): Promise<SkuRelationResult> {
     const variantIdsBySku = new Map<string, ID>()
-    let headers: string[]
-    try {
-      headers = this.readHeaders(csv)
-    } catch {
-      // Not ours to report: without readable headers there are no SKU columns, and the
-      // importer's own parser tells the uploader what is wrong with the file.
-      return { errors: [], variantIdsBySku }
-    }
+    const fields = new Set<string>()
+    // The importer reads the same lines and headers, so both agree on which columns hold SKUs
+    // and on row numbers.
+    const lines = importCsvLines(csv)
+    const headers = importCsvHeaders(lines)
     const lookupHeaders = headers.filter((header) => this.splitHeader(header).length === 4)
     if (lookupHeaders.length === 0) {
-      return { errors: [], variantIdsBySku }
+      return { errors: [], variantIdsBySku, fields }
     }
 
     const headerErrors = lookupHeaders.flatMap((header) => this.checkHeader(header))
     if (headerErrors.length > 0) {
-      return { errors: headerErrors, variantIdsBySku }
+      return { errors: headerErrors, variantIdsBySku, fields }
     }
 
-    const columns: SkuColumn[] = lookupHeaders.map((header) => ({
-      header,
-      list: this.findFieldConfig(header)?.list === true,
-    }))
+    const columns: SkuColumn[] = lookupHeaders.map((header) => {
+      const [owner, fieldName] = this.splitHeader(header)
+      fields.add(`${owner}:${fieldName}`)
+      return { index: headers.indexOf(header), list: this.findFieldConfig(header)?.list === true }
+    })
 
     let rows: Array<{ line: number; skus: string[] }>
     try {
-      rows = this.readSkus(csv, columns)
+      rows = this.readSkus(lines, columns)
     } catch (error) {
-      return { errors: [`Could not read the file: ${(error as Error).message}`], variantIdsBySku }
+      return {
+        errors: [`Could not read the file: ${(error as Error).message}`],
+        variantIdsBySku,
+        fields,
+      }
     }
 
     const matches = await this.findLiveVariants(ctx, uniqueSkus(rows))
@@ -87,12 +92,7 @@ export class SkuRelationResolver {
         }
       }
     }
-    return { errors, variantIdsBySku }
-  }
-
-  private readHeaders(csv: string): string[] {
-    const [headers] = parse(csv, { bom: true, to_line: 1, relax_column_count: true }) as string[][]
-    return (headers ?? []).map((header) => header.trim())
+    return { errors, variantIdsBySku, fields }
   }
 
   private splitHeader(header: string): string[] {
@@ -108,6 +108,11 @@ export class SkuRelationResolver {
       return [`Column '${header}': only ':${SKU_LOOKUP}' is supported as a lookup`]
     }
     const config = this.findFieldConfig(header)
+    if (!config) {
+      const [owner, fieldName] = this.splitHeader(header)
+      const entity = owner === 'product' ? 'Product' : 'ProductVariant'
+      return [`Column '${header}': ${entity} has no custom field named '${fieldName}'`]
+    }
     const isVariantRelation =
       config?.type === 'relation' && (config as RelationCustomFieldConfig).entity === ProductVariant
     if (!isVariantRelation) {
@@ -127,22 +132,22 @@ export class SkuRelationResolver {
     return configs.find((config) => config.name === fieldName)
   }
 
-  /** The SKUs each data row references, with the file line the row ends on (header is line 1). */
-  private readSkus(csv: string, columns: SkuColumn[]): Array<{ line: number; skus: string[] }> {
-    const records = parse(csv, {
+  /**
+   * The SKUs each data row references, with the row's line as the importer numbers it: the
+   * header is line 1 and blank and comma-only lines are not counted.
+   */
+  private readSkus(lines: string[], columns: SkuColumn[]): Array<{ line: number; skus: string[] }> {
+    const [, ...records] = parse(lines.join('\n'), {
       bom: true,
-      columns: (headers: string[]) => headers.map((header) => header.trim()),
-      skip_empty_lines: true,
       // As lenient as the importer's parser, so a file it imports is never rejected here.
       relax_column_count: true,
       relax_quotes: true,
-      info: true,
-    }) as Array<{ record: Record<string, string>; info: { lines: number } }>
+    }) as string[][]
 
     return records
-      .map(({ record, info }) => ({
-        line: info.lines,
-        skus: columns.flatMap(({ header, list }) => splitSkus(record[header], list)),
+      .map((record, index) => ({
+        line: index + 2,
+        skus: columns.flatMap(({ index: column, list }) => splitSkus(record[column], list)),
       }))
       .filter((row) => row.skus.length > 0)
   }
@@ -170,18 +175,20 @@ export class SkuRelationResolver {
   }
 }
 
+/** The SKUs in a list relation cell, written `SKU|SKU`. */
+export function splitSkuList(value: string): string[] {
+  return value
+    .split('|')
+    .map((sku) => sku.trim())
+    .filter((sku) => sku !== '')
+}
+
 function splitSkus(value: string | undefined, list: boolean): string[] {
   const trimmed = value?.trim() ?? ''
   if (trimmed === '') {
     return []
   }
-  if (!list) {
-    return [trimmed]
-  }
-  return trimmed
-    .split('|')
-    .map((sku) => sku.trim())
-    .filter((sku) => sku !== '')
+  return list ? splitSkuList(trimmed) : [trimmed]
 }
 
 function uniqueSkus(rows: Array<{ skus: string[] }>): string[] {
