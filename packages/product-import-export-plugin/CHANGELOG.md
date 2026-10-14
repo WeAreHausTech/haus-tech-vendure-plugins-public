@@ -1,3 +1,9 @@
+## 3.6.8
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** store import job progress as a whole number ([#49](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/49))
+
 ## 3.6.7
 
 ### 🚀 Features
