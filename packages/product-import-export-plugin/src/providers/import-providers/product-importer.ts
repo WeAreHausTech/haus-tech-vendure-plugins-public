@@ -742,7 +742,12 @@ export class ProductImporter {
           // `taxCategory` column was provided; when creating a new variant, always assign one
           // (falling back to the default/first tax category) so it is never left null.
           ...(variant.taxCategory !== undefined || !existingVariant
-            ? { taxCategoryId: this.getMatchingTaxCategoryId(variant.taxCategory, taxCategories.items) }
+            ? {
+                taxCategoryId: this.getMatchingTaxCategoryId(
+                  variant.taxCategory,
+                  taxCategories.items,
+                ),
+              }
             : {}),
           ...(variant.stockOnHand !== undefined ? { stockOnHand: variant.stockOnHand } : {}),
           ...(variant.trackInventory !== undefined
@@ -1302,20 +1307,49 @@ export class ProductImporter {
   ): Promise<Map<string, { groupId: ID; optionIds: Map<string, ID> }>> {
     const sharedGroupMap = new Map<string, { groupId: ID; optionIds: Map<string, ID> }>()
 
-    const codeEntries = new Map<string, (typeof rows)[number]['product']['optionGroups'][number]>()
+    type ParsedOptionGroup = (typeof rows)[number]['product']['optionGroups'][number]
+    type OptionTranslation = { languageCode: LanguageCode; name: string }
+    // A shared group gets every value any product in the file uses, in order of first use.
+    // The group's name comes from the first product that declares the code.
+    const codeEntries = new Map<
+      string,
+      { optionGroup: ParsedOptionGroup; values: Map<string, OptionTranslation[]> }
+    >()
     for (const { product } of rows) {
       for (const optionGroup of product.optionGroups) {
-        if (optionGroup.code && !codeEntries.has(optionGroup.code)) {
-          codeEntries.set(optionGroup.code, optionGroup)
+        if (!optionGroup.code) {
+          continue
         }
+        const entry = codeEntries.get(optionGroup.code) ?? { optionGroup, values: new Map() }
+        codeEntries.set(optionGroup.code, entry)
+        const mainTranslation = this.getTranslationByCodeOrFirst(
+          optionGroup.translations,
+          ctx.languageCode,
+        )
+        mainTranslation.values.forEach((value, index) => {
+          if (entry.values.has(value)) {
+            return
+          }
+          entry.values.set(
+            value,
+            optionGroup.translations
+              .map((translation) => ({
+                languageCode: translation.languageCode,
+                name: translation.values[index],
+              }))
+              .filter((t) => t.name),
+          )
+        })
       }
     }
 
-    for (const [code, optionGroup] of codeEntries) {
-      const ogMainTranslation = this.getTranslationByCodeOrFirst(
-        optionGroup.translations,
-        ctx.languageCode,
-      )
+    for (const [code, { optionGroup, values }] of codeEntries) {
+      const groupTranslations = optionGroup.translations
+        .map((translation) => ({
+          languageCode: translation.languageCode,
+          name: translation.name,
+        }))
+        .filter((t) => t.name)
 
       const existingGroup = await this.connection.getRepository(ctx, ProductOptionGroup).findOne({
         relations: ['channels'],
@@ -1331,29 +1365,17 @@ export class ProductImporter {
         ? await this.fastImporter.updateProductOptionGroup({
             id: existingGroup.id,
             code,
-            options: ogMainTranslation.values.map(() => ({}) as any),
-            translations: optionGroup.translations
-              .map((translation) => ({
-                languageCode: translation.languageCode,
-                name: translation.name,
-              }))
-              .filter((t) => t.name),
+            options: [...values.keys()].map(() => ({}) as any),
+            translations: groupTranslations,
           })
         : await this.fastImporter.createProductOptionGroup({
             code,
-            options: ogMainTranslation.values.map(() => ({}) as any),
-            translations: optionGroup.translations
-              .map((translation) => ({
-                languageCode: translation.languageCode,
-                name: translation.name,
-              }))
-              .filter((t) => t.name),
+            options: [...values.keys()].map(() => ({}) as any),
+            translations: groupTranslations,
           })
 
       const optionIds = new Map<string, ID>()
-      for (const [optionIndex, value] of ogMainTranslation.values.map(
-        (val, index) => [index, val] as const,
-      )) {
+      for (const [value, translations] of values) {
         const optionCode = await this.slugStrategy.generate(ctx, {
           value,
           entityName: 'ProductOption',
@@ -1362,12 +1384,7 @@ export class ProductImporter {
         const createdOptionId = await this.fastImporter.createProductOption({
           productOptionGroupId: groupId,
           code: optionCode,
-          translations: optionGroup.translations
-            .map((translation) => ({
-              languageCode: translation.languageCode,
-              name: translation.values[optionIndex],
-            }))
-            .filter((t) => t.name),
+          translations,
         })
         optionIds.set(value, createdOptionId)
       }
