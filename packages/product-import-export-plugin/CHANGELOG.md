@@ -1,3 +1,10 @@
+## 3.6.10
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** read SKU relation columns once per import ([#53](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/53))
+- **product-import-export-plugin:** list rejected upload rows in the Admin UI ([#52](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/52))
+
 ## 3.6.9
 
 ### 🩹 Fixes
