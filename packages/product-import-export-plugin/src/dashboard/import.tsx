@@ -29,6 +29,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { LanguageCode, Channel } from '@vendure/core'
 import { size, startsWith, endsWith, uniq } from 'lodash-es'
 import { useActiveChannelKey } from './use-active-channel-key'
+import { readUploadErrors, summarizeErrors } from './upload-errors'
 import {
   getServerLocation,
   getChannelHeader,
@@ -527,7 +528,16 @@ export function ProductImportBlock() {
         clearFileHandler()
         toast.success('The file was uploaded and has been added to the import queue.')
       } else {
-        toast.error('An error occurred while uploading the file.')
+        const errors = await readUploadErrors(res)
+        if (errors.length > 0) {
+          toast.error('The file was not imported.', {
+            description: <div className="whitespace-pre-line">{summarizeErrors(errors)}</div>,
+            duration: Infinity,
+            closeButton: true,
+          })
+        } else {
+          toast.error('An error occurred while uploading the file.')
+        }
       }
     } catch (error: unknown) {
       console.error('Upload error:', error)

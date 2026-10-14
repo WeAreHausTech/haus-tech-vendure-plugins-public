@@ -17,6 +17,14 @@ import { UpdatingStrategy } from '../types'
 import { ProductImporter } from '../providers/import-providers/product-importer'
 import { omit } from 'lodash'
 import { ImportJobStorageStrategy } from './import-storage/import-job-storage-strategy'
+import { SkuRelationResolver } from './sku-relation-resolver'
+
+/** The uploaded file cannot be imported as it is; `errors` says why, one line per problem. */
+export class ImportFileInvalidError extends Error {
+  constructor(public readonly errors: string[]) {
+    super(errors.join('\n'))
+  }
+}
 
 @Injectable()
 export class ProductImportService implements OnModuleInit {
@@ -37,6 +45,7 @@ export class ProductImportService implements OnModuleInit {
     private searchService: SearchService,
     private productService: ProductService,
     private eventBus: EventBus,
+    private skuRelationResolver: SkuRelationResolver,
   ) {}
 
   public async onModuleInit(): Promise<void> {
@@ -94,6 +103,12 @@ export class ProductImportService implements OnModuleInit {
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
   ) {
+    // Checked before queueing so the uploader sees a wrong SKU at once, not in the job queue.
+    const { errors } = await this.skuRelationResolver.resolve(ctx, file.buffer.toString('utf8'))
+    if (errors.length > 0) {
+      throw new ImportFileInvalidError(errors)
+    }
+
     const storageKey = await this.importJobStorageStrategy.storeImportFile(ctx, {
       originalname: file.originalname,
       buffer: file.buffer,

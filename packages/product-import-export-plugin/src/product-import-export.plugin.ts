@@ -24,6 +24,7 @@ import { ProductImportService } from './services/product-import.service'
 import { ExtendedFastImporterService } from './services/extended-fast-importer.service'
 import { ProductExportService } from './services/product-export.service'
 import { ProductExportQueueService } from './services/product-export-queue.service'
+import { SkuRelationResolver } from './services/sku-relation-resolver'
 import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
 import { LocalImportJobStorageStrategy } from './services/import-storage/local-import-job-storage-strategy'
 
@@ -108,6 +109,7 @@ function validateCustomExportColumns(columns: CustomExportColumn[] | undefined):
     ExtendedAssetImporter,
     ProductExportService,
     ProductExportQueueService,
+    SkuRelationResolver,
   ],
   controllers: [
     ProductImportController,

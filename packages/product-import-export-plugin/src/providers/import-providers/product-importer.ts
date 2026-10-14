@@ -52,6 +52,7 @@ import { In, IsNull } from 'typeorm'
 import { generateAssetHash } from '../../helpers/generate-asset-hash'
 import { createHash } from 'crypto'
 import { removeUpdatedAtFields } from '../../helpers/remove-update-at-fields'
+import { SKU_LOOKUP, SkuRelationResolver } from '../../services/sku-relation-resolver'
 
 @Injectable()
 export class ProductImporter {
@@ -59,6 +60,9 @@ export class ProductImporter {
   private facetMap = new Map<string, Facet>()
   private facetValueMap = new Map<string, FacetValue>()
   private customFieldTypes: Record<string, string> = {}
+  /** `<owner>:<field>` keys of relation columns whose values are SKUs (header `...:sku`). */
+  private skuLookupFields = new Set<string>()
+  private variantIdsBySku = new Map<string, ID>()
   private allAssets: Asset[] = []
   private allAssetsById = new Map<ID, Asset>()
   private facetIdCache = new Map<string, ID>()
@@ -83,6 +87,7 @@ export class ProductImporter {
     private assetService: AssetService,
     private optionGroupService: ProductOptionGroupService,
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private pluginOptions: PluginInitOptions,
+    private skuRelationResolver: SkuRelationResolver,
   ) {
     this.slugStrategy = this.configService.entityOptions.slugStrategy
   }
@@ -141,8 +146,10 @@ export class ProductImporter {
   ): {
     cleanedCsv: string
     customFieldTypes: Record<string, string>
+    skuLookupFields: Set<string>
   } {
     const customFieldTypes: Record<string, string> = {}
+    const skuLookupFields = new Set<string>()
 
     const lines = input.split('\n')
 
@@ -164,10 +171,13 @@ export class ProductImporter {
     const cleanedHeaders = headers.map((header) => {
       if (header.startsWith('product:') || header.startsWith('variant:')) {
         const parts = header.split(':')
-        if (parts.length === 3) {
-          const [prefix, fieldName, type] = parts
+        if (parts.length === 3 || parts.length === 4) {
+          const [prefix, fieldName, type, lookup] = parts
           const fullFieldName = `${prefix}:${fieldName}`
           customFieldTypes[fullFieldName] = type.trim()
+          if (lookup?.trim() === SKU_LOOKUP) {
+            skuLookupFields.add(fullFieldName)
+          }
           return fullFieldName
         }
       }
@@ -198,6 +208,7 @@ export class ProductImporter {
     return {
       cleanedCsv: filteredLines.join('\n'), // Join the filtered lines
       customFieldTypes,
+      skuLookupFields,
     }
   }
 
@@ -264,9 +275,20 @@ export class ProductImporter {
       csvContent = await this.streamToString(input)
     }
 
+    // Checked again here, not only on upload: variants can change while the job waits.
+    const skuRelations = await this.skuRelationResolver.resolve(ctx, csvContent)
+    if (skuRelations.errors.length > 0) {
+      return { errors: skuRelations.errors, imported: 0, processed: 0 }
+    }
+    this.variantIdsBySku = skuRelations.variantIdsBySku
+
     // Preprocess the CSV to extract types and clean headers
-    const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csvContent, updateProductSlug)
+    const { cleanedCsv, customFieldTypes, skuLookupFields } = this.preprocessCsv(
+      csvContent,
+      updateProductSlug,
+    )
     this.customFieldTypes = customFieldTypes
+    this.skuLookupFields = skuLookupFields
 
     const parsed = (await this.importParser.parseProducts(
       cleanedCsv,
@@ -942,6 +964,25 @@ export class ProductImporter {
     return out
   }
 
+  /** Swaps SKUs for variant ids; `SkuRelationResolver` has already checked each SKU. */
+  private variantIdsForSkus(value: string, list: boolean): string | string[] {
+    const idFor = (sku: string): string => {
+      const id = this.variantIdsBySku.get(sku)
+      if (id === undefined) {
+        throw new InternalServerError(`No variant with SKU ${sku}`)
+      }
+      return String(id)
+    }
+    if (!list) {
+      return idFor(value.trim())
+    }
+    return value
+      .split('|')
+      .map((sku) => sku.trim())
+      .filter((sku) => sku !== '')
+      .map(idFor)
+  }
+
   private isValidRelationIdentifier(value: string): boolean {
     return /^[A-Za-z0-9_-]+$/.test(value)
   }
@@ -974,6 +1015,8 @@ export class ProductImporter {
         | Record<string, unknown>
         | Record<string, unknown>[]
     } = {}
+
+    const owner = config === this.configService.customFields.Product ? 'product' : 'variant'
 
     for (const fieldDef of config) {
       let foundCustomFieldType = find(
@@ -1122,6 +1165,11 @@ export class ProductImporter {
               `Required relation custom field "${fieldDef.name}" must contain valid asset data`,
             )
           }
+          continue
+        }
+
+        if (this.skuLookupFields.has(`${owner}:${fieldDef.name}`)) {
+          processed[inputKey] = this.variantIdsForSkus(value, fieldDef.list === true)
           continue
         }
 
