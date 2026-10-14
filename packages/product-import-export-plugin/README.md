@@ -161,6 +161,7 @@ export const config = {
 - If a column is omitted from the CSV header, that field is left unchanged on existing products/variants.
 - If a column exists in the header but the cell is empty, that field is explicitly cleared.
 - For products with more than one variant, `optionGroups` and `optionValues` are required.
+- The header is checked before the upload is queued. A custom field column the shop does not have, a missing required column or mixed translated and untranslated columns make the upload answer `400` with `{ "errors": ["Invalid custom field: product:clubName"] }`, the Dashboard lists the errors, and nothing is imported.
 - Product data (`slug`, `description`, `assets`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
 
 #### Relations to variants by SKU

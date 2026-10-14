@@ -322,6 +322,40 @@ describe('relation custom fields given by SKU', () => {
       expect(store).not.toHaveBeenCalled()
     })
 
+    it('answers 400 and queues nothing when a column names an unknown custom field', async () => {
+      const storage = server.app.get<ImportJobStorageStrategy>(IMPORT_JOB_STORAGE_STRATEGY)
+      const store = vi.spyOn(storage, 'storeImportFile')
+
+      const response = await upload(
+        [`${HEADER},product:unknownField:string`, 'A,a,A,UP-3,1,Standard Tax,1,x'].join('\n'),
+      )
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({
+        errors: ['Invalid custom field: product:unknownField'],
+      })
+      expect(store).not.toHaveBeenCalled()
+    })
+
+    it('answers 400 and queues nothing when a required column is missing', async () => {
+      const storage = server.app.get<ImportJobStorageStrategy>(IMPORT_JOB_STORAGE_STRATEGY)
+      const store = vi.spyOn(storage, 'storeImportFile')
+
+      const response = await upload(['name,slug,price', 'A,a,1'].join('\n'))
+
+      expect(response.status).toBe(400)
+      const { errors } = (await response.json()) as { errors: string[] }
+      expect(errors).toEqual([expect.stringContaining('missing the following columns')])
+      expect(store).not.toHaveBeenCalled()
+    })
+
+    it('queues a file whose columns are all known', async () => {
+      const response = await upload(
+        [`${HEADER},variant:note:string`, 'A,a,A,UP-5,1,Standard Tax,1,hi'].join('\n'),
+      )
+      expect(response.status).toBe(200)
+    })
+
     it('queues a file whose SKUs all match exactly one variant', async () => {
       const response = await upload(
         [`${HEADER},${BASE_BY_SKU}`, 'A,a,A,UP-2,1,Standard Tax,1,BASE-1'].join('\n'),

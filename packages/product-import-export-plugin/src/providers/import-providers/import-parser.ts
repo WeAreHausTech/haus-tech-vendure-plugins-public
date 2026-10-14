@@ -226,6 +226,25 @@ export class ImportParser {
     })
   }
 
+  /**
+   * @description
+   * Checks the header row alone: unknown custom field columns, mixed or missing translations and
+   * missing required columns. An empty result means the import can read every column. The upload
+   * runs this before queueing, so a wrong header is rejected at once instead of in the job.
+   */
+  validateHeader(headerRow: string[]): string[] {
+    const customFieldErrors = this.validateCustomFields(headerRow)
+    if (customFieldErrors.length > 0) {
+      return customFieldErrors
+    }
+    const translationError = this.validateHeaderTranslations(headerRow)
+    if (translationError) {
+      return [translationError]
+    }
+    const columnError = validateRequiredColumns(headerRow)
+    return columnError ? [columnError] : []
+  }
+
   private async processRawRecords(
     records: string[][],
     mainLanguage: LanguageCode,
@@ -236,17 +255,9 @@ export class ImportParser {
     const headerRow = records[0]
     const rest = records.slice(1)
     const totalProducts = rest.map((row) => row[0]).filter((name) => name.trim() !== '').length
-    const customFieldErrors = this.validateCustomFields(headerRow)
-    if (customFieldErrors.length > 0) {
-      return { results: [], errors: customFieldErrors, processed: 0 }
-    }
-    const translationError = this.validateHeaderTranslations(headerRow)
-    if (translationError) {
-      return { results: [], errors: [translationError], processed: 0 }
-    }
-    const columnError = validateRequiredColumns(headerRow)
-    if (columnError) {
-      return { results: [], errors: [columnError], processed: 0 }
+    const headerErrors = this.validateHeader(headerRow)
+    if (headerErrors.length > 0) {
+      return { results: [], errors: headerErrors, processed: 0 }
     }
     const usedLanguages = usedLanguageCodes(headerRow)
     let line = 1

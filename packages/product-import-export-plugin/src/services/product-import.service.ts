@@ -101,8 +101,14 @@ export class ProductImportService implements OnModuleInit {
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
   ) {
-    // Checked before queueing so the uploader sees a wrong SKU at once, not in the job queue.
-    const { errors } = await this.skuRelationResolver.resolve(ctx, file.buffer.toString('utf8'))
+    // Checked before queueing so the uploader sees a wrong header or SKU at once, not as a
+    // finished job that imported nothing.
+    const csv = file.buffer.toString('utf8')
+    const headerErrors = this.productImporter.validateHeader(csv)
+    if (headerErrors.length > 0) {
+      throw new ImportFileInvalidError(headerErrors)
+    }
+    const { errors } = await this.skuRelationResolver.resolve(ctx, csv)
     if (errors.length > 0) {
       throw new ImportFileInvalidError(errors)
     }
