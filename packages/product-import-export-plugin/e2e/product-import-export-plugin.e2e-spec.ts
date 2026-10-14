@@ -181,10 +181,9 @@ describe('ProductImportExportPlugin e2e', () => {
   })
 
   it('returns plugin config defaults from HTTP endpoint', async () => {
-    const response = await fetch(
-      `http://localhost:${apiPort}/product-import-export/config`,
-      { headers: authHeaders() },
-    )
+    const response = await fetch(`http://localhost:${apiPort}/product-import-export/config`, {
+      headers: authHeaders(),
+    })
     expect(response.status).toBe(200)
 
     const config = await response.json()
@@ -200,10 +199,9 @@ describe('ProductImportExportPlugin e2e', () => {
   })
 
   it('returns active channel from HTTP endpoint', async () => {
-    const response = await fetch(
-      `http://localhost:${apiPort}/product-import-export/channel`,
-      { headers: authHeaders() },
-    )
+    const response = await fetch(`http://localhost:${apiPort}/product-import-export/channel`, {
+      headers: authHeaders(),
+    })
     expect(response.status).toBe(200)
 
     const channel = await response.json()
@@ -212,17 +210,14 @@ describe('ProductImportExportPlugin e2e', () => {
   })
 
   it('returns exportable custom fields from HTTP endpoint', async () => {
-    const response = await fetch(
-      `http://localhost:${apiPort}/product-export/custom-fields`,
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          ...authHeaders(),
-        },
-        body: JSON.stringify([]),
+    const response = await fetch(`http://localhost:${apiPort}/product-export/custom-fields`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...authHeaders(),
       },
-    )
+      body: JSON.stringify([]),
+    })
 
     expect([200, 201]).toContain(response.status)
     const customFields = await response.json()
@@ -261,9 +256,7 @@ describe('ProductImportExportPlugin e2e', () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
     const productExportService = server.app.get(ProductExportService)
-    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(
-      EXPORT_STORAGE_STRATEGY,
-    )
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
 
     const ctx = await requestContextService.create({
       apiType: 'admin',
@@ -284,19 +277,17 @@ describe('ProductImportExportPlugin e2e', () => {
       | undefined
 
     await new Promise<void>((resolve, reject) => {
-      productImporter
-        .parseAndImport(importCsv, ctx, true, LanguageCode.en, 'replace')
-        .subscribe({
-          next: (result) => {
-            importResult = {
-              imported: result.imported,
-              processed: result.processed,
-              errors: result.errors ?? [],
-            }
-          },
-          complete: () => resolve(),
-          error: (error) => reject(error),
-        })
+      productImporter.parseAndImport(importCsv, ctx, true, LanguageCode.en, 'replace').subscribe({
+        next: (result) => {
+          importResult = {
+            imported: result.imported,
+            processed: result.processed,
+            errors: result.errors ?? [],
+          }
+        },
+        complete: () => resolve(),
+        error: (error) => reject(error),
+      })
     })
 
     const productIds = await productExportService.getAllProductIds(ctx)
@@ -327,9 +318,7 @@ describe('ProductImportExportPlugin e2e', () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
     const productExportService = server.app.get(ProductExportService)
-    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(
-      EXPORT_STORAGE_STRATEGY,
-    )
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
 
     const ctx = await requestContextService.create({
       apiType: 'admin',
@@ -343,12 +332,10 @@ describe('ProductImportExportPlugin e2e', () => {
     ].join('\n')
 
     await new Promise<void>((resolve, reject) => {
-      productImporter
-        .parseAndImport(importCsv, ctx, true, LanguageCode.en, 'replace')
-        .subscribe({
-          complete: () => resolve(),
-          error: (error) => reject(error),
-        })
+      productImporter.parseAndImport(importCsv, ctx, true, LanguageCode.en, 'replace').subscribe({
+        complete: () => resolve(),
+        error: (error) => reject(error),
+      })
     })
 
     const productIds = await productExportService.getAllProductIds(ctx)
@@ -390,13 +377,47 @@ describe('ProductImportExportPlugin e2e', () => {
     await exportStorageStrategy.deleteExportFile(ctx, fileName)
   })
 
+  it('collects shared option group values from every product, not only the first', async () => {
+    const requestContextService = server.app.get(RequestContextService)
+    const productImporter = server.app.get(ProductImporter)
+    const connection = server.app.get(TransactionalConnection)
+    const ctx = await requestContextService.create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+
+    // The first product declaring "tee-colour" uses two colours; the second adds a third.
+    const importCsv = [
+      'name,slug,description,optionGroups,sku,optionValues,price,taxCategory,stockOnHand',
+      'Colour tee A,colour-tee-a,Tee A,colour:tee-colour,TEE-A-BLACK,Black,100,Standard Tax,1',
+      ',,,,TEE-A-NAVY,Navy,100,Standard Tax,1',
+      'Colour tee B,colour-tee-b,Tee B,colour:tee-colour,TEE-B-BLACK,Black,100,Standard Tax,1',
+      ',,,,TEE-B-GREY,Grey Melange,100,Standard Tax,1',
+    ].join('\n')
+
+    const importResult = await runImport(productImporter, ctx, importCsv)
+    expect(importResult.errors).toEqual([])
+    expect(importResult.imported).toBe(2)
+
+    const sharedGroup = await connection.getRepository(ctx, ProductOptionGroup).findOne({
+      where: { code: 'tee-colour' },
+      relations: ['options'],
+    })
+    const optionCodes = (sharedGroup?.options ?? []).map((o) => o.code).sort()
+    expect(optionCodes).toEqual(['black', 'grey-melange', 'navy'])
+
+    const greyVariant = await connection.getRepository(ctx, ProductVariant).findOne({
+      where: { sku: 'TEE-B-GREY' },
+      relations: ['options'],
+    })
+    expect(greyVariant?.options.map((o) => o.code)).toEqual(['grey-melange'])
+  })
+
   it('shares an option group across products that use the name:code syntax', async () => {
     const requestContextService = server.app.get(RequestContextService)
     const productImporter = server.app.get(ProductImporter)
     const productExportService = server.app.get(ProductExportService)
-    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(
-      EXPORT_STORAGE_STRATEGY,
-    )
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
     const connection = server.app.get(TransactionalConnection)
 
     const ctx = await requestContextService.create({
@@ -406,9 +427,7 @@ describe('ProductImportExportPlugin e2e', () => {
 
     // Two shoe products share the "shoe-size" code; the third product uses a
     // plain "size" name and must end up with its own per-product group.
-    // The first occurrence of the shared code (Shared shoe A) defines the full
-    // option set for the shared group; subsequent products reference a subset
-    // of those values, mirroring Vendure core's shared-group semantics.
+    // The shared group gets every value the products use (Small/Medium/Large).
     const importCsv = [
       'name,slug,description,optionGroups,sku,optionValues,price,taxCategory,stockOnHand',
       'Shared shoe A,shared-shoe-a,Shoe A description,size:shoe-size,SHOE-A-S,Small,100,Standard Tax,1',
@@ -452,9 +471,8 @@ describe('ProductImportExportPlugin e2e', () => {
     expect(phone?.optionGroups[0].id).not.toEqual(shoeA?.optionGroups[0].id)
     expect(phone?.optionGroups[0].code).not.toBe('shoe-size')
 
-    // The shared group is linked to exactly the two shoe products and owns the
-    // canonical set of options (Small/Medium/Large) declared by the first
-    // occurrence.
+    // The shared group is linked to exactly the two shoe products and owns
+    // every option they use (Small/Medium/Large).
     const sharedGroup = await groupRepo.findOne({
       where: { code: 'shoe-size' },
       relations: ['products', 'options'],
@@ -515,19 +533,17 @@ describe('ProductImportExportPlugin e2e', () => {
       | undefined
 
     await new Promise<void>((resolve, reject) => {
-      productImporter
-        .parseAndImport(importCsv, ctx, true, LanguageCode.en, 'replace')
-        .subscribe({
-          next: (result) => {
-            importResult = {
-              imported: result.imported,
-              processed: result.processed,
-              errors: result.errors ?? [],
-            }
-          },
-          complete: () => resolve(),
-          error: (error) => reject(error),
-        })
+      productImporter.parseAndImport(importCsv, ctx, true, LanguageCode.en, 'replace').subscribe({
+        next: (result) => {
+          importResult = {
+            imported: result.imported,
+            processed: result.processed,
+            errors: result.errors ?? [],
+          }
+        },
+        complete: () => resolve(),
+        error: (error) => reject(error),
+      })
     })
 
     expect(importResult?.errors).toEqual(
@@ -542,9 +558,7 @@ describe('ProductImportExportPlugin e2e', () => {
   it('filters exported columns based on selectedExportFields', async () => {
     const requestContextService = server.app.get(RequestContextService)
     const productExportService = server.app.get(ProductExportService)
-    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(
-      EXPORT_STORAGE_STRATEGY,
-    )
+    const exportStorageStrategy = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
 
     const ctx = await requestContextService.create({
       apiType: 'admin',
@@ -682,9 +696,7 @@ describe('ProductImportExportPlugin e2e', () => {
     )
     const csv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
     await exportStorageStrategy.deleteExportFile(ctx, fileName)
-    const line = csv
-      .split(/\r?\n/)
-      .find((row) => row.includes('EMPTCLR-001'))
+    const line = csv.split(/\r?\n/).find((row) => row.includes('EMPTCLR-001'))
     expect(line).toBeDefined()
     expect(line?.endsWith('EMPTCLR-001')).toBe(true)
   })
@@ -722,7 +734,9 @@ describe('ProductImportExportPlugin e2e', () => {
       'url',
       'sku,stockOnHand',
     )
-    const exportedCsv = await streamToString(await exportStorageStrategy.getExportFileStream(ctx, fileName))
+    const exportedCsv = await streamToString(
+      await exportStorageStrategy.getExportFileStream(ctx, fileName),
+    )
     await exportStorageStrategy.deleteExportFile(ctx, fileName)
     const line = exportedCsv.split(/\r?\n/).find((row) => row.startsWith(`${sku},`))
     expect(line).toBe(`${sku},9`)
@@ -919,7 +933,9 @@ describe('ProductImportExportPlugin e2e', () => {
     }
     expect(await fileExists(tempFilePath)).toBe(true)
 
-    await waitFor(async () => (await productExportService.getAllProductIds(ctx)).length > baselineCount)
+    await waitFor(
+      async () => (await productExportService.getAllProductIds(ctx)).length > baselineCount,
+    )
     await waitFor(async () => !(await fileExists(tempFilePath)))
   })
 
@@ -938,17 +954,16 @@ describe('ProductImportExportPlugin e2e', () => {
       const idx = i + 1
       return `Bulk product ${idx},${uniquePrefix}-${idx},Bulk description ${idx},BULK-${uniquePrefix}-${idx},100,Standard Tax,1`
     })
-    const csv = [
-      'name,slug,description,sku,price,taxCategory,stockOnHand',
-      ...rows,
-    ].join('\n')
+    const csv = ['name,slug,description,sku,price,taxCategory,stockOnHand', ...rows].join('\n')
     const file = {
       originalname: 'bulk-import.csv',
       buffer: Buffer.from(csv, 'utf8'),
     } as Express.Multer.File
 
     await productImportService.processFile(ctx, file, true, LanguageCode.en, 'replace')
-    await waitFor(async () => (await productExportService.getAllProductIds(ctx)).length >= baselineCount + 300)
+    await waitFor(
+      async () => (await productExportService.getAllProductIds(ctx)).length >= baselineCount + 300,
+    )
   })
 
   it('exports product id on every variant row when id is selected', async () => {
