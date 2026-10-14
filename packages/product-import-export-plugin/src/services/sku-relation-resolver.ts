@@ -14,6 +14,9 @@ import { In, IsNull } from 'typeorm'
 /** The fourth header segment that makes a relation column hold SKUs instead of ids. */
 export const SKU_LOOKUP = 'sku'
 
+/** SKUs per database query, well below every driver's bind parameter limit. */
+const SKU_QUERY_CHUNK_SIZE = 1000
+
 export interface SkuRelationResult {
   /** One line per problem, ready to show to the person who uploaded the file. */
   errors: string[]
@@ -40,7 +43,14 @@ export class SkuRelationResolver {
 
   async resolve(ctx: RequestContext, csv: string): Promise<SkuRelationResult> {
     const variantIdsBySku = new Map<string, ID>()
-    const headers = this.readHeaders(csv)
+    let headers: string[]
+    try {
+      headers = this.readHeaders(csv)
+    } catch {
+      // Not ours to report: without readable headers there are no SKU columns, and the
+      // importer's own parser tells the uploader what is wrong with the file.
+      return { errors: [], variantIdsBySku }
+    }
     const lookupHeaders = headers.filter((header) => this.splitHeader(header).length === 4)
     if (lookupHeaders.length === 0) {
       return { errors: [], variantIdsBySku }
@@ -123,6 +133,9 @@ export class SkuRelationResolver {
       bom: true,
       columns: (headers: string[]) => headers.map((header) => header.trim()),
       skip_empty_lines: true,
+      // As lenient as the importer's parser, so a file it imports is never rejected here.
+      relax_column_count: true,
+      relax_quotes: true,
       info: true,
     }) as Array<{ record: Record<string, string>; info: { lines: number } }>
 
@@ -139,10 +152,17 @@ export class SkuRelationResolver {
     if (skus.length === 0) {
       return matches
     }
-    const variants = await this.connection.getRepository(ctx, ProductVariant).find({
-      select: ['id', 'sku'],
-      where: { sku: In(skus), deletedAt: IsNull() },
-    })
+    const repository = this.connection.getRepository(ctx, ProductVariant)
+    const variants: ProductVariant[] = []
+    for (let start = 0; start < skus.length; start += SKU_QUERY_CHUNK_SIZE) {
+      const chunk = skus.slice(start, start + SKU_QUERY_CHUNK_SIZE)
+      variants.push(
+        ...(await repository.find({
+          select: ['id', 'sku'],
+          where: { sku: In(chunk), deletedAt: IsNull() },
+        })),
+      )
+    }
     for (const variant of variants) {
       matches.set(variant.sku, [...(matches.get(variant.sku) ?? []), variant.id])
     }

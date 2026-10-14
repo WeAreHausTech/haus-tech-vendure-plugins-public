@@ -193,6 +193,15 @@ describe('relation custom fields given by SKU', () => {
       expect(await findVariant('SHOP-3')).toBeNull()
     })
 
+    it('reads a quoted SKU column header', async () => {
+      const csv = [
+        `${HEADER},"${BASE_BY_SKU}"`,
+        'Shop Six,shop-six,Shop,SHOP-6,150,Standard Tax,1,BASE-1',
+      ].join('\n')
+      expect(await runImport(csv)).toEqual([])
+      expect((await findVariant('SHOP-6'))?.customFields.baseVariant?.id).toBe(ids['BASE-1'])
+    })
+
     it('still reads a three-segment column as ids', async () => {
       const csv = [
         `${HEADER},variant:baseVariant:productvariant`,
@@ -243,6 +252,18 @@ describe('relation custom fields given by SKU', () => {
 
     it('has nothing to say about a file without SKU columns', async () => {
       expect(await validate(`${HEADER}\nA,a,A,X-1,1,Standard Tax,1`)).toEqual([])
+    })
+
+    it('leaves a file it cannot read to the importer when it has no SKU columns', async () => {
+      expect(await validate('name,desc"x,sku\nA,a,X-1')).toEqual([])
+    })
+
+    it('accepts rows with fewer cells than the header, as the importer does', async () => {
+      const csv = [
+        `${HEADER},${BASE_BY_SKU},variant:note:string`,
+        'A,a,A,X-1,1,Standard Tax,1,BASE-1',
+      ].join('\n')
+      expect(await validate(csv)).toEqual([])
     })
   })
 

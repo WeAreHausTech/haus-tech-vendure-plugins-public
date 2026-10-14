@@ -168,7 +168,8 @@ export class ProductImporter {
 
     const headers = splitLines(filteredLines[0]) // Use splitCsvLine to split headers correctly
 
-    const cleanedHeaders = headers.map((header) => {
+    const cleanedHeaders = headers.map((rawHeader) => {
+      const header = normalizeHeader(rawHeader)
       if (header.startsWith('product:') || header.startsWith('variant:')) {
         const parts = header.split(':')
         if (parts.length === 3 || parts.length === 4) {
@@ -181,7 +182,7 @@ export class ProductImporter {
           return fullFieldName
         }
       }
-      return header
+      return rawHeader
     })
 
     // Recreate the CSV with cleaned headers
@@ -1169,7 +1170,13 @@ export class ProductImporter {
         }
 
         if (this.skuLookupFields.has(`${owner}:${fieldDef.name}`)) {
-          processed[inputKey] = this.variantIdsForSkus(value, fieldDef.list === true)
+          const variantIds = this.variantIdsForSkus(value, fieldDef.list === true)
+          if (relDef.nullable === false && Array.isArray(variantIds) && variantIds.length === 0) {
+            throw new InternalServerError(
+              `Required relation custom field "${fieldDef.name}" is missing or empty`,
+            )
+          }
+          processed[inputKey] = variantIds
           continue
         }
 
@@ -1477,4 +1484,12 @@ export class ProductImporter {
 
     return product
   }
+}
+
+/** A header cell as the CSV parser reads it: no byte order mark, no surrounding quotes or space. */
+function normalizeHeader(header: string): string {
+  return header
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .replace(/^"(.*)"$/, '$1')
 }
