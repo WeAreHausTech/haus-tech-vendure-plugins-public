@@ -18,6 +18,7 @@ import { ProductImporter } from '../providers/import-providers/product-importer'
 import { omit } from 'lodash'
 import { ImportJobStorageStrategy } from './import-storage/import-job-storage-strategy'
 import { SkuRelationResolver } from './sku-relation-resolver'
+import { importProgressPercent } from './import-progress'
 
 /** The uploaded file cannot be imported as it is; `errors` says why, one line per problem. */
 export class ImportFileInvalidError extends Error {
@@ -70,10 +71,7 @@ export class ProductImportService implements OnModuleInit {
               )
               .subscribe({
                 next: (result) => {
-                  const processedCount = result.processed || 1
-                  const importedCount = result.imported || 0
-                  const percentage = (importedCount / processedCount) * 100
-                  job.setProgress(percentage)
+                  job.setProgress(importProgressPercent(result))
                   jobResult = result
                 },
                 complete: () => {
