@@ -1,3 +1,9 @@
+## 3.6.9
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** give a shared option group every value the file uses ([#50](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/50))
+
 ## 3.6.8
 
 ### 🩹 Fixes
