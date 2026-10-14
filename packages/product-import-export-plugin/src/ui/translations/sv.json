@@ -19,6 +19,7 @@
       "invalid-file-structure": "Felaktig filstruktur. Vänligen ladda upp en korrekt CSV-fil.",
       "upload-success": "Filen laddades upp och har lagts till i kön för import.",
       "upload-error": "Ett fel uppstod vid uppladdning av filen.",
+      "upload-rejected-rows": "Filen importerades inte. Rätta de här raderna och ladda upp den igen:",
       "no-file-selected": "Ingen fil vald.",
       "mismatched-values": "Det saknas språkspecifikationer för vissa fält. Vänligen fyll i alla språk: ",
       "missing-base-columns": "Vissa kolumner saknas: ",
