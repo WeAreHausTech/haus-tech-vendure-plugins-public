@@ -1,3 +1,9 @@
+## 3.6.7
+
+### 🚀 Features
+
+- **product-import-export-plugin:** link ProductVariant relation fields by SKU on import ([#48](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/48))
+
 ## 3.6.6
 
 ### 🩹 Fixes
