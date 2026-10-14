@@ -57,12 +57,35 @@ import {
   SkuRelationResult,
   splitSkuList,
 } from '../../services/sku-relation-resolver'
-import { importCsvLines, normalizeHeader, splitCsvLine } from '../../helpers/import-csv-lines'
+import {
+  importCsvHeaders,
+  importCsvLines,
+  normalizeHeader,
+  splitCsvLine,
+} from '../../helpers/import-csv-lines'
 
 /** The relation columns of one import whose values are SKUs, and the variant id behind each SKU. */
 type SkuLookup = Pick<SkuRelationResult, 'fields' | 'variantIdsBySku'>
 
 const NO_SKU_LOOKUP: SkuLookup = { fields: new Set(), variantIdsBySku: new Map() }
+
+/**
+ * Splits a typed custom field header (`product:field:type`, or with a fourth `:sku` segment that
+ * SkuRelationResolver reads) into the `<owner>:<field>` key the parser checks and the type.
+ */
+function splitTypedCustomFieldHeader(
+  header: string,
+): { fullFieldName: string; type: string } | undefined {
+  if (!header.startsWith('product:') && !header.startsWith('variant:')) {
+    return undefined
+  }
+  const parts = header.split(':')
+  if (parts.length !== 3 && parts.length !== 4) {
+    return undefined
+  }
+  const [prefix, fieldName, type] = parts
+  return { fullFieldName: `${prefix}:${fieldName}`, type: type.trim() }
+}
 
 @Injectable()
 export class ProductImporter {
@@ -147,6 +170,17 @@ export class ProductImporter {
     return productIds
   }
 
+  /**
+   * The problems in the file's header row, checked the way the import job checks it. Empty when
+   * the job can read every column; the upload runs this so a wrong header never gets queued.
+   */
+  validateHeader(csv: string): string[] {
+    const headers = importCsvHeaders(importCsvLines(csv)).map(
+      (header) => splitTypedCustomFieldHeader(header)?.fullFieldName ?? header,
+    )
+    return this.importParser.validateHeader(headers)
+  }
+
   private preprocessCsv(
     input: string,
     updateProductSlug: boolean,
@@ -162,18 +196,12 @@ export class ProductImporter {
     const headers = splitCsvLine(filteredLines[0])
 
     const cleanedHeaders = headers.map((rawHeader) => {
-      const header = normalizeHeader(rawHeader)
-      if (header.startsWith('product:') || header.startsWith('variant:')) {
-        const parts = header.split(':')
-        if (parts.length === 3 || parts.length === 4) {
-          // A fourth segment (`:sku`) is read by SkuRelationResolver
-          const [prefix, fieldName, type] = parts
-          const fullFieldName = `${prefix}:${fieldName}`
-          customFieldTypes[fullFieldName] = type.trim()
-          return fullFieldName
-        }
+      const typed = splitTypedCustomFieldHeader(normalizeHeader(rawHeader))
+      if (!typed) {
+        return rawHeader
       }
-      return rawHeader
+      customFieldTypes[typed.fullFieldName] = typed.type
+      return typed.fullFieldName
     })
 
     // Recreate the CSV with cleaned headers
