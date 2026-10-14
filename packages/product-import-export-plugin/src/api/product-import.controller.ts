@@ -12,7 +12,7 @@ import { Response } from 'express'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../constants'
 import { PluginInitOptions, UpdatingStrategy } from '../types'
-import { ProductImportService } from '../services/product-import.service'
+import { ImportFileInvalidError, ProductImportService } from '../services/product-import.service'
 
 @Controller('product-import')
 export class ProductImportController {
@@ -53,6 +53,9 @@ export class ProductImportController {
       )
       return res.status(200).send('File uploaded successfully')
     } catch (error: unknown) {
+      if (error instanceof ImportFileInvalidError) {
+        return res.status(400).json({ errors: error.errors })
+      }
       return res.status(500).send((error as Error)?.message || 'Internal Server Error')
     }
   }

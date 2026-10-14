@@ -163,6 +163,20 @@ export const config = {
 - For products with more than one variant, `optionGroups` and `optionValues` are required.
 - Product data (`slug`, `description`, `assets`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
 
+#### Relations to variants by SKU
+
+A relation custom field to `ProductVariant` can name the related variant by SKU instead of id. Add `:sku` to the column header after the type:
+
+```csv
+name,sku,price,variant:baseVariant:productvariant:sku
+Club Tee,CLUB-TEE-M,299,BASE-TEE-M
+```
+
+- Each SKU must match exactly one variant that is not deleted, in any channel. A list field takes `SKU|SKU`.
+- The upload is checked before it is queued. If a SKU matches no variant or more than one, the upload answers `400` with `{ "errors": ["Row 2: no variant with SKU BASE-TEE-M"] }`, the Dashboard lists the rows, and nothing is imported. The import job checks again when it runs.
+- The related variants must exist before the upload, so import them in an earlier file.
+- `:sku` is the only lookup, and it works only on relation fields to `ProductVariant`. Columns without it still take ids.
+
 #### Sharing option groups
 
 By default, each product gets its own option groups. To **share an option group** across
