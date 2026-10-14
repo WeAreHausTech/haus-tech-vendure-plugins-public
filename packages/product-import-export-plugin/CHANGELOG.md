@@ -1,3 +1,9 @@
+## 3.6.11
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** reject an upload with an unknown column before it is queued ([#54](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/54))
+
 ## 3.6.10
 
 ### 🩹 Fixes
