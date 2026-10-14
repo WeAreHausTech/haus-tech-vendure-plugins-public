@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { endsWith, startsWith, size, uniq } from 'lodash'
 import { AdminUiConfig } from '@vendure/common/lib/shared-types'
 import { Channel, LanguageCode } from '@vendure/core'
+import { readUploadErrors } from '../upload-errors'
 
 type UpdatingStrategy = 'replace' | 'merge'
 
@@ -37,6 +38,7 @@ export class ProductImportComponent implements OnInit {
   selectedMainLanguage: LanguageCode | undefined
   availableLanguages: LanguageCode[] = []
   updatingStrategy: UpdatingStrategy = 'merge'
+  uploadErrors: string[] = []
 
   @ViewChild('fileUpload', { static: false }) fileUploadElement: ElementRef<HTMLInputElement>
 
@@ -99,6 +101,7 @@ export class ProductImportComponent implements OnInit {
     const input = event.target as HTMLInputElement
     if (input.files && input.files.length > 0) {
       const file = input.files[0]
+      this.uploadErrors = []
       if (file.type !== 'text/csv') {
         this.notificationService.error(
           this.translate.instant('product-import.notifications.invalid-file-type'),
@@ -435,15 +438,22 @@ export class ProductImportComponent implements OnInit {
         })
 
         if (res.ok) {
+          this.uploadErrors = []
           this.clearFile()
           this.notificationService.success(
             this.translate.instant('product-import.notifications.upload-success'),
           )
           this.cd.detectChanges()
         } else {
+          this.uploadErrors = await readUploadErrors(res)
           this.notificationService.error(
-            this.translate.instant('product-import.notifications.upload-error'),
+            this.translate.instant(
+              this.uploadErrors.length
+                ? 'product-import.notifications.upload-rejected-rows'
+                : 'product-import.notifications.upload-error',
+            ),
           )
+          this.cd.detectChanges()
         }
       } catch (error) {
         this.notificationService.error(

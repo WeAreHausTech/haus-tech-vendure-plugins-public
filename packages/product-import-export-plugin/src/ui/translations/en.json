@@ -19,6 +19,7 @@
       "invalid-file-structure": "Invalid file structure. Please upload a correct CSV file.",
       "upload-success": "The file was uploaded and has been added to the import queue.",
       "upload-error": "An error occurred while uploading the file.",
+      "upload-rejected-rows": "The file was not imported. Fix these rows and upload it again:",
       "no-file-selected": "No file selected.",
       "mismatched-values": "Some fields are missing language specifications. Please fill in all languages: ",
       "missing-base-columns": "Some columns are missing: ",

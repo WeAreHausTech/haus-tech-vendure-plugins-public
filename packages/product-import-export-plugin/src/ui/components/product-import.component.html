@@ -104,6 +104,18 @@
           {{ 'product-import.card.button-upload' | translate }}
         </button>
       </div>
+
+      <div
+        *ngIf="uploadErrors.length"
+        class="upload-errors"
+        role="alert"
+        style="margin-top: 16px; color: red"
+      >
+        <p>{{ 'product-import.notifications.upload-rejected-rows' | translate }}</p>
+        <ul>
+          <li *ngFor="let error of uploadErrors">{{ error }}</li>
+        </ul>
+      </div>
     </div>
   </vdr-card>
 </vdr-page-block>
