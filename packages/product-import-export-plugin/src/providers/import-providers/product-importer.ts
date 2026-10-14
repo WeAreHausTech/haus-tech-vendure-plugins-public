@@ -1361,16 +1361,17 @@ export class ProductImporter {
         },
       })
 
+      // The fast importer ignores `options` here; the loop below upserts each option.
       const groupId = existingGroup
         ? await this.fastImporter.updateProductOptionGroup({
             id: existingGroup.id,
             code,
-            options: [...values.keys()].map(() => ({}) as any),
+            options: [],
             translations: groupTranslations,
           })
         : await this.fastImporter.createProductOptionGroup({
             code,
-            options: [...values.keys()].map(() => ({}) as any),
+            options: [],
             translations: groupTranslations,
           })
 
