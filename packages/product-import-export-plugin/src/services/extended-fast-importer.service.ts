@@ -207,9 +207,7 @@ export class ExtendedFastImporterService {
     const groupExists = await this.connection
       .getRepository(this.importCtx, ProductOptionGroup)
       .findOne({
-        where: channelId
-          ? { code: input.code, channels: { id: channelId } }
-          : { code: input.code },
+        where: channelId ? { code: input.code, channels: { id: channelId } } : { code: input.code },
         relations: ['channels'],
       })
 
@@ -437,8 +435,21 @@ export class ExtendedFastImporterService {
     }
   }
 
+  /**
+   * Runs in one transaction, so the variant row never shows without its prices: Vendure's
+   * `ProductVariant.price` resolver throws for a variant that has no price in the channel.
+   */
   async updateProductVariant(input: CreateProductVariantInput & { id: ID }): Promise<ID> {
     this.ensureInitialized()
+    return this.connection.withTransaction(this.importCtx, (ctx) =>
+      this.updateProductVariantInTransaction(ctx, input),
+    )
+  }
+
+  private async updateProductVariantInTransaction(
+    ctx: RequestContext,
+    input: CreateProductVariantInput & { id: ID },
+  ): Promise<ID> {
     if (!input.optionIds) {
       input.optionIds = []
     }
@@ -449,16 +460,13 @@ export class ExtendedFastImporterService {
     delete inputWithoutPrice.price
 
     const updatedVariant = await this.translatableSaver.update({
-      ctx: this.importCtx,
+      ctx: ctx,
       input: inputWithoutPrice,
       entityType: ProductVariant,
       translationType: ProductVariantTranslation,
       beforeSave: async (variant) => {
-        await this.entityHydrator.hydrate(this.importCtx, variant, { relations: ['channels'] })
-        variant.channels = unique(
-          [...variant.channels, this.defaultChannel, this.importCtx.channel],
-          'id',
-        )
+        await this.entityHydrator.hydrate(ctx, variant, { relations: ['channels'] })
+        variant.channels = unique([...variant.channels, this.defaultChannel, ctx.channel], 'id')
         const { optionIds } = input
         if (optionIds && optionIds.length) {
           variant.options = optionIds.map((id) => ({ id }) as any)
@@ -475,18 +483,16 @@ export class ExtendedFastImporterService {
     })
 
     await this.customFieldRelationService.updateRelations(
-      this.importCtx,
+      ctx,
       ProductVariant,
       input,
       updatedVariant,
     )
 
     if (input.assetIds) {
-      const existingAssets = await this.connection
-        .getRepository(this.importCtx, ProductVariantAsset)
-        .find({
-          where: { productVariantId: input.id },
-        })
+      const existingAssets = await this.connection.getRepository(ctx, ProductVariantAsset).find({
+        where: { productVariantId: input.id },
+      })
 
       const newAssets = input.assetIds
         .filter((id) => !existingAssets.some((asset) => asset.assetId === id))
@@ -500,48 +506,43 @@ export class ExtendedFastImporterService {
         )
 
       await this.connection
-        .getRepository(this.importCtx, ProductVariantAsset)
+        .getRepository(ctx, ProductVariantAsset)
         .save(newAssets, { reload: false })
     }
 
     if (input.stockOnHand !== undefined) {
-      await this.setProductVariantStockOnHandDirectly(updatedVariant.id, input.stockOnHand)
+      await this.setProductVariantStockOnHandDirectly(ctx, updatedVariant.id, input.stockOnHand)
     }
-    const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
-      (c) => c.id,
-    )
+    const assignedChannelIds = unique([this.defaultChannel, ctx.channel], 'id').map((c) => c.id)
 
     for (const channelId of assignedChannelIds) {
-      const allPrices = await this.connection
-        .getRepository(this.importCtx, ProductVariantPrice)
-        .find({
-          where: {
-            variant: { id: updatedVariant.id },
-          },
-        })
+      const allPrices = await this.connection.getRepository(ctx, ProductVariantPrice).find({
+        where: {
+          variant: { id: updatedVariant.id },
+        },
+      })
       const existingVariantPrice = allPrices.find(
         (p) =>
-          idsAreEqual(p.channelId, channelId) &&
-          p.currencyCode === this.importCtx.channel.defaultCurrencyCode,
+          idsAreEqual(p.channelId, channelId) && p.currencyCode === ctx.channel.defaultCurrencyCode,
       )
 
       if (!existingVariantPrice) {
         const variantPrice = new ProductVariantPrice({
           price: isNumber(input.price) ? input.price : 0,
           channelId,
-          currencyCode: this.importCtx.channel.defaultCurrencyCode,
+          currencyCode: ctx.channel.defaultCurrencyCode,
         })
         variantPrice.variant = updatedVariant
-        await this.connection.rawConnection
-          .getRepository(ProductVariantPrice)
+        await this.connection
+          .getRepository(ctx, ProductVariantPrice)
           .save(variantPrice, { reload: false })
       } else {
         if (isUndefined(input.price)) {
           input.price = existingVariantPrice.price
         }
         existingVariantPrice.price = input.price
-        await this.connection.rawConnection
-          .getRepository(ProductVariantPrice)
+        await this.connection
+          .getRepository(ctx, ProductVariantPrice)
           .save(existingVariantPrice, { reload: false })
       }
     }
@@ -549,8 +550,18 @@ export class ExtendedFastImporterService {
     return updatedVariant.id
   }
 
+  /** Runs in one transaction, for the reason given on `updateProductVariant`. */
   async createProductVariant(input: CreateProductVariantInput): Promise<ID> {
     this.ensureInitialized()
+    return this.connection.withTransaction(this.importCtx, (ctx) =>
+      this.createProductVariantInTransaction(ctx, input),
+    )
+  }
+
+  private async createProductVariantInTransaction(
+    ctx: RequestContext,
+    input: CreateProductVariantInput,
+  ): Promise<ID> {
     if (!input.optionIds) {
       input.optionIds = []
     }
@@ -564,12 +575,12 @@ export class ExtendedFastImporterService {
     delete inputWithoutPrice.price
 
     const createdVariant = await this.translatableSaver.create({
-      ctx: this.importCtx,
+      ctx: ctx,
       input: inputWithoutPrice,
       entityType: ProductVariant,
       translationType: ProductVariantTranslation,
       beforeSave: async (variant) => {
-        variant.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+        variant.channels = unique([this.defaultChannel, ctx.channel], 'id')
         const { optionIds } = input
         if (optionIds && optionIds.length) {
           variant.options = optionIds.map((id) => ({ id }) as any)
@@ -586,7 +597,7 @@ export class ExtendedFastImporterService {
     })
 
     await this.customFieldRelationService.updateRelations(
-      this.importCtx,
+      ctx,
       ProductVariant,
       input,
       createdVariant,
@@ -602,23 +613,21 @@ export class ExtendedFastImporterService {
           }),
       )
       await this.connection
-        .getRepository(this.importCtx, ProductVariantAsset)
+        .getRepository(ctx, ProductVariantAsset)
         .save(variantAssets, { reload: false })
     }
-    await this.setProductVariantStockOnHandDirectly(createdVariant.id, input.stockOnHand ?? 0)
-    const assignedChannelIds = unique([this.defaultChannel, this.importCtx.channel], 'id').map(
-      (c) => c.id,
-    )
+    await this.setProductVariantStockOnHandDirectly(ctx, createdVariant.id, input.stockOnHand ?? 0)
+    const assignedChannelIds = unique([this.defaultChannel, ctx.channel], 'id').map((c) => c.id)
 
     for (const channelId of assignedChannelIds) {
       const variantPrice = new ProductVariantPrice({
         price: isNumber(input.price) ? input.price : 0,
         channelId,
-        currencyCode: this.importCtx.channel.defaultCurrencyCode,
+        currencyCode: ctx.channel.defaultCurrencyCode,
       })
       variantPrice.variant = createdVariant
-      await this.connection.rawConnection
-        .getRepository(ProductVariantPrice)
+      await this.connection
+        .getRepository(ctx, ProductVariantPrice)
         .save(variantPrice, { reload: false })
     }
 
@@ -634,14 +643,13 @@ export class ExtendedFastImporterService {
   }
 
   private async setProductVariantStockOnHandDirectly(
+    ctx: RequestContext,
     productVariantId: ID,
     targetStockOnHand: number,
   ): Promise<void> {
-    const defaultStockLocation = await this.stockLocationService.defaultStockLocation(
-      this.importCtx,
-    )
+    const defaultStockLocation = await this.stockLocationService.defaultStockLocation(ctx)
     const stockLevel = await this.stockLevelService.getStockLevel(
-      this.importCtx,
+      ctx,
       productVariantId,
       defaultStockLocation.id,
     )
@@ -650,7 +658,7 @@ export class ExtendedFastImporterService {
       return
     }
     await this.stockLevelService.updateStockOnHandForLocation(
-      this.importCtx,
+      ctx,
       productVariantId,
       defaultStockLocation.id,
       delta,
