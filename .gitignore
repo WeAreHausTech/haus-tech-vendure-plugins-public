@@ -63,3 +63,7 @@ static/*-tmp/**
 .haus-workflow/logs/
 .haus-workflow/requests/
 # HAUS:END haus-managed
+
+# Typecheck output of tsconfig.dashboard.json (composite), written next to the sources
+packages/*/src/dashboard/**/*.d.ts
+packages/product-import-export-plugin/tsconfig.dashboard.tsbuildinfo
