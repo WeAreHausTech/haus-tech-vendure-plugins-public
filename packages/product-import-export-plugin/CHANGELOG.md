@@ -1,3 +1,9 @@
+## 3.6.12
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** write an imported variant and its prices in one transaction ([#55](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/55))
+
 ## 3.6.11
 
 ### 🩹 Fixes
