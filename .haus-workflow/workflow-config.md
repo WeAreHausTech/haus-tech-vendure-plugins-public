@@ -71,3 +71,20 @@
   > CONFIRM-WITH-TEAM: whether to adopt Lefthook here and whether to add a CI
   > workflow running lint/build/test — today nothing prevents a red commit reaching
   > `main`.
+
+<!-- HAUS:BEGIN deploy-targets -->
+
+## Deploy targets
+
+Source: `.haus-workflow/deploy.json`. `haus guard` reads that file, not this list; `haus apply` rewrites this list from it.
+
+- `main`: none, local check `yarn lint && yarn test`
+  - a change to `packages/**/*.md`: customer-visible
+  - a change to `packages/**/assets/**`: customer-visible
+- tag `*@*`: production
+- workflow `.github/workflows/release.yml` (gh workflow run): production
+- workflow `.github/workflows/sync-markdown.yml` (gh workflow run): production
+- every merge needs a recorded local run (requireLocalRun: always)
+
+Confirmed by: Tim Cifuentes Vargas
+<!-- HAUS:END deploy-targets -->

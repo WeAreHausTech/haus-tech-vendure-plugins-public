@@ -1,0 +1,21 @@
+# Written by `haus init`. Yours to edit, haus will not rewrite this file.
+#
+# Runs the haus gate before every push (ADR-0161):
+#   - haus doctor: is this project's haus setup intact?
+#   - haus decisions check: does a decision-worthy change carry an ADR?
+# The catalog check (haus update --check) is left out because it needs the network.
+# The Claude Code session hook reports catalog updates instead.
+#
+# Git runs this only after `npx lefthook install` (or `brew install lefthook`, then
+# `lefthook install`). An [adr-skip] line in a commit body waives a non-security trigger.
+pre-push:
+  commands:
+    haus-gate:
+      run: |
+        if ! command -v haus >/dev/null 2>&1; then
+          echo "haus gate skipped: haus is not installed (npm install -g @haus-tech/haus-workflow)."
+          exit 0
+        fi
+        if [ ! -f .haus-workflow/recommendation.json ]; then haus recommend >/dev/null; fi
+        haus ci-gate --no-update
+      fail_text: 'The haus gate failed; the lines above say which check. A setup finding: run haus doctor and follow its fix. A decision finding: run haus decisions suggest and add the ADR under docs/decisions/, or put [adr-skip] on its own line in a commit body for a non-security change. If haus says unknown option --no-update, update it: npm install -g @haus-tech/haus-workflow.'

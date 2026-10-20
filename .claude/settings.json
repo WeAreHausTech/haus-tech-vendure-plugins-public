@@ -27,6 +27,15 @@
           }
         ],
         "matcher": "Read|Edit|Write|NotebookEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus guard auto-merge --from-hook"
+          }
+        ],
+        "matcher": "mcp__ccd_pr__set_auto_merge"
       }
     ],
     "Stop": [
@@ -68,6 +77,17 @@
         ],
         "matcher": "*"
       }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus pr after-merge --from-hook"
+          }
+        ],
+        "matcher": "Bash"
+      }
     ]
   },
   "_haus": {
@@ -78,7 +98,9 @@
       "haus.decisions-suggest",
       "haus.update-check",
       "hook.workspace.worktree-check",
-      "hook.workspace.worktree-autohydrate"
+      "hook.workspace.worktree-autohydrate",
+      "haus.guard-auto-merge",
+      "haus.pr-after-merge"
     ],
     "hookCommands": [
       "haus guard file-access --from-hook",
@@ -87,7 +109,9 @@
       "haus decisions suggest --from-hook",
       "haus update --from-hook",
       "haus workspace worktree doctor --from-hook",
-      "haus workspace worktree autohydrate --from-hook"
+      "haus workspace worktree autohydrate --from-hook",
+      "haus guard auto-merge --from-hook",
+      "haus pr after-merge --from-hook"
     ],
     "denyRules": [
       "Bash(sudo:*)",
@@ -149,6 +173,9 @@
       "Bash(haus backups list:*)",
       "Bash(haus guard file-access:*)",
       "Bash(haus guard bash:*)",
+      "Bash(haus guard auto-merge:*)",
+      "Bash(haus deploy freeze:*)",
+      "Bash(haus deploy status:*)",
       "Bash(haus catalog bundle export:*)",
       "Bash(haus catalog bundle import:*)",
       "Bash(haus decisions check:*)",
@@ -171,7 +198,9 @@
       "Bash(haus workspace worktree autohydrate:*)",
       "Bash(haus workspace worktree list:*)",
       "Bash(haus workspace worktree doctor:*)",
+      "Bash(haus pr wait:*)",
       "Bash(gh pr merge:*)",
+      "Bash(gh pr update-branch:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr diff:*)",
@@ -298,7 +327,12 @@
       "Bash(gh auth status:*)",
       "Bash(gh search prs:*)",
       "Bash(gh search issues:*)",
-      "mcp__ccd_pr__set_auto_merge"
+      "mcp__ccd_pr__set_auto_merge",
+      "Bash(haus guard auto-merge:*)",
+      "Bash(haus deploy freeze:*)",
+      "Bash(haus deploy status:*)",
+      "Bash(haus pr wait:*)",
+      "Bash(gh pr update-branch:*)"
     ],
     "ask": [
       "Bash(su:*)",

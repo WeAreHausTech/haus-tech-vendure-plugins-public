@@ -1,4 +1,4 @@
-<!-- HAUS-MANAGED id=template.workflow v=1 source=@haus-tech/haus-workflow@5.12.1 hash=sha256-d9fb7169eed9a263d1e9352cfe89d99b3f4a26694316230f89ddfc5609fb525d -->
+<!-- HAUS-MANAGED id=template.workflow v=1 source=@haus-tech/haus-workflow@6.6.0 hash=sha256-794feed98443a5ff2bc487f6b750eeb18ab78d8a13a1ca3f76fd19ac0b217cdc -->
 # Agentic Development Workflow Standard
 
 > Tech-agnostic methodology for AI-assisted software projects.
@@ -18,8 +18,9 @@
 | Glossary      | `GLOSSARY.md` at the repo root (domain terms; no open questions)      |
 | Research      | `docs/research/YYYY-MM-DD-<slug>.md` (dated; evidence, never a rule)  |
 | Failure modes | `docs/runbook.md`                                                     |
+| Issue tracker | `.claude/skills/issue-authoring/references/issue-tracker.md`          |
 
-When the user or an installed skill says "spec", "design", "ux", "plan", "mockup", "ADR" or "decision": resolve to the rows above. These paths override the defaults inside any installed skill (`docs/superpowers/specs/`, `docs/superpowers/plans/`, `docs/adr/`).
+When the user or an installed skill says "spec", "design", "ux", "plan", "mockup", "ADR", "decision" or "issue tracker": resolve to the rows above. These paths override the defaults inside any installed skill (`docs/superpowers/specs/`, `docs/superpowers/plans/`, `docs/adr/`).
 
 ---
 
