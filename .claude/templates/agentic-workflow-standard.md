@@ -17,8 +17,9 @@
 | Glossary      | `GLOSSARY.md` at the repo root (domain terms; no open questions)      |
 | Research      | `docs/research/YYYY-MM-DD-<slug>.md` (dated; evidence, never a rule)  |
 | Failure modes | `docs/runbook.md`                                                     |
+| Issue tracker | `.claude/skills/issue-authoring/references/issue-tracker.md`          |
 
-When the user or an installed skill says "spec", "design", "ux", "plan", "mockup", "ADR" or "decision": resolve to the rows above. These paths override the defaults inside any installed skill (`docs/superpowers/specs/`, `docs/superpowers/plans/`, `docs/adr/`).
+When the user or an installed skill says "spec", "design", "ux", "plan", "mockup", "ADR", "decision" or "issue tracker": resolve to the rows above. These paths override the defaults inside any installed skill (`docs/superpowers/specs/`, `docs/superpowers/plans/`, `docs/adr/`).
 
 ---
 

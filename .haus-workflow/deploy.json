@@ -1,0 +1,22 @@
+{
+  "branches": {
+    "main": {
+      "deploys": "none",
+      "localCheck": "yarn lint && yarn test",
+      "frozen": false,
+      "pathDeploys": {
+        "packages/**/*.md": "customer-visible",
+        "packages/**/assets/**": "customer-visible"
+      }
+    }
+  },
+  "tags": {
+    "*@*": "production"
+  },
+  "dispatchDeploys": [
+    ".github/workflows/release.yml",
+    ".github/workflows/sync-markdown.yml"
+  ],
+  "requireLocalRun": "always",
+  "confirmedBy": "Tim Cifuentes Vargas"
+}

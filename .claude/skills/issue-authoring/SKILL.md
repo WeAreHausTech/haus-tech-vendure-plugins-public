@@ -18,6 +18,10 @@ approval.
 **Every issue is a proposal, not a work order. Nothing filed may be implemented
 before a human signs off.**
 
+Exception to the format, not to the rule above: issues labelled `wayfinder:` are planning artifacts a human asked for
+by typing `/wayfinder`. They skip the two-audience format and `needs-triage`;
+file them as `references/issue-tracker.md` ("Wayfinding operations") says.
+
 ## Automation asymmetry
 
 - `finding` / `deferred`: may be filed automatically — bounded by real work.

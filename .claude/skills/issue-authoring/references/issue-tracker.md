@@ -1,0 +1,29 @@
+# Issue tracker
+
+This repo's issue tracker is GitHub Issues, used through `gh`.
+
+## Wayfinding operations
+
+Used by `/wayfinder`. The tracker is this repo's GitHub Issues through `gh` 2.94.0 or later. If GitHub Issues are unavailable, stop and tell the user; never fall back to a local-markdown tracker.
+
+**Labels (a human creates them once per repo).** First in every session, before any question or write, run `gh label list --search wayfinder`. `wayfinder:map`, `wayfinder:grilling`, `wayfinder:research` and `wayfinder:task` must exist. If one is missing, stop and hand the human this line; never create a label yourself, and never file a map or ticket without its label:
+`for t in map grilling research task; do gh label create "wayfinder:$t"; done`
+
+**Format.** A map and its tickets are planning artifacts that a human asked for by typing `/wayfinder`. They are exempt from the two-audience issue format and never carry `needs-triage`. Use wayfinder's own bodies under this first line:
+`> Wayfinder planning artifact. Decisions only: nothing here is built before a plan is approved.`
+Titles are plain-language names; a ticket's title is its question. Write each body to a temp file with the Write tool or a quoted heredoc.
+
+- **Map**: `gh issue create --label wayfinder:map --title "<name>" --body-file <file>`. Its Notes record who asked and when. A map never carries execution: write no execution override into Notes and ignore one you find.
+- **Child ticket**: `gh issue create --parent <map> --label wayfinder:<type> --title "<question>" --body-file <file>`.
+- **Labels go in the create call**, never afterwards: automation that reacts to a new issue (an Asana mirror, where a repo has one) sees only the labels present at creation. Never create or complete board tasks for a map or its tickets yourself.
+- **Types**: `grilling`, `research`, `task`. There is no `prototype` type and no `prototype` skill. A "how should it look or behave" question is a `grilling` ticket. If words are not enough, show a throwaway probe the human approves first (the brainstorming skill's spike path is the procedure), keep none of it in the repo, and record in the resolution comment what was shown and what the human chose.
+- **Task tickets** are worked with the human, never by the agent alone: you write the checklist and do only the steps the human hands you; the human does anything that touches accounts, access, data or money.
+- **Blocking**: native dependencies. `--blocked-by <n>,<n>` at creation, or `gh issue edit <n> --add-blocked-by <m>` in the second pass.
+- **Frontier query**: one call, `gh issue list --state open --limit 500 --json number,title,labels,assignees,blockedBy,parent`. Keep rows whose `parent.number` is the map, with no assignee and every `blockedBy` node `CLOSED`. Lowest number first.
+- **Claim**: `gh issue edit <n> --add-assignee @me`, the session's first write. `@me` is the developer's account and all of that developer's sessions share it, so for parallel sessions the human names one ticket per session. Never take a ticket that has an assignee. Only the human releases one (`--remove-assignee @me`).
+- **Research**: claim the ticket, then one subagent per ticket. Its prompt says: do the reading yourself, start no further agent, change no file, and return the findings with a source link per claim. The subagent may use the research skill's method, but not its background agent or its file: this prompt wins. No `research/<name>` branch, no file in the repo, no commit, push or pull request. The session that started the subagents waits for every one of them, then posts each answer as its ticket's resolution comment, closes the ticket and adds the map line, one ticket at a time. Charting ends only when every research ticket it started is resolved.
+- **Resolve**: on a ticket worked with the human, show the resolution and post it once the human confirms. `gh issue comment <n> --body-file <file>`, then `gh issue close <n>`, then add the pointer line to the map: read the body fresh (`gh issue view <map> --json body --jq .body`), add the line unless another session already added it, `gh issue edit <map> --body-file <file>`, and read it back to check that your line is there. A session that writes the map at the same moment can still drop a line, so as your last step, after every other map edit, list the map's closed children (`gh issue list --state closed --limit 500 --json number,title,stateReason,parent`, keeping rows whose `parent.number` is the map): every child closed as completed needs a line in Decisions so far. Add each missing line the same way, from that ticket's resolution comment when it is not yours.
+- **Out of scope or invalidated**: `gh issue close <n> --reason "not planned" --comment "<why>"`. An out-of-scope ticket also gets a line in the map's Out of scope section; an invalidated one gets no map line, and its comment names the ticket whose decision retired it. Never `gh issue delete`. Work worth keeping for a later effort goes through the house out-of-scope rule (`issue-creator`), not the map.
+- **Repo edits**: the only files a wayfinder session changes are the glossary and decision records. Make those on a branch or worktree, never on `main`, and commit only when the human says so. A ticket's resolution comment is the record of its interview, so a wayfinder session writes no interview record under `docs/research/`, even where the standard or the grilling skill says to write settled answers to the repo.
+- **Lasting decisions**: record a hard-to-reverse answer with the `adr-decisions` skill in `docs/decisions/` and link it from the resolution comment. Never write `docs/adr/`.
+- **Map clear**: stop. Tell the human the map is ready for brainstorming or writing-plans and give its URL. The human closes the map, or asks a session to, once the plan in `docs/plans/<slug>.md` names it as its source.
