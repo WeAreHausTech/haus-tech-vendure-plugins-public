@@ -37,6 +37,7 @@ import {
   ProductAsset,
 } from '@vendure/core'
 import { Stream } from 'stream'
+import { parse as parseCsv } from 'csv-parse/sync'
 import { Observable } from 'rxjs'
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils'
 import { ImportInfo } from '@vendure/common/lib/generated-types'
@@ -180,29 +181,27 @@ export class ProductImporter {
     })
   }
 
-  /** Column 0 of every data line as a product id, null when empty: index 0 is line 2. */
+  /**
+   * Column 0 of every data record as a product id, null when empty or not a number. Index 0 is
+   * line 2, counted in records as the parser counts them, so a quoted cell that spans several
+   * physical lines does not shift the ids.
+   */
   private extractProductIdsFromCSV(csvString: string): (number | null)[] {
-    // Split the CSV string into lines
-    const lines = csvString.split('\n')
-
-    // Initialize an array to hold the product IDs
-    const productIds: (number | null)[] = []
-
-    // Loop through each line in the CSV
-    lines.forEach((line, index) => {
-      if (index === 0) return // Skip header row
-
-      const columns = line.split(',')
-      const productId = columns[0].trim()
-
-      if (productId) {
-        productIds.push(parseInt(productId, 10))
-      } else {
-        productIds.push(null) // Push null or undefined if productId is missing
-      }
+    let records: string[][]
+    try {
+      records = parseCsv(csvString, {
+        trim: true,
+        relax_column_count: true,
+        relax_quotes: true,
+      }) as string[][]
+    } catch {
+      // The parser cannot read the file either, so there are no products to give ids to.
+      return []
+    }
+    return records.slice(1).map((record) => {
+      const productId = parseInt(record[0] ?? '', 10)
+      return Number.isNaN(productId) ? null : productId
     })
-
-    return productIds
   }
 
   /**
@@ -234,9 +233,9 @@ export class ProductImporter {
     if (!relationLookups.rowsChecked) {
       return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
     }
-    const validatesRows = !(
-      this.rowValidationStrategy instanceof DefaultImportRowValidationStrategy
-    )
+    // Only the default itself is skipped: a subclass of it has rules of its own.
+    const validatesRows =
+      this.rowValidationStrategy.constructor !== DefaultImportRowValidationStrategy
     if (!validatesRows && !parse) {
       return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
     }
@@ -250,7 +249,7 @@ export class ProductImporter {
     for (const result of parsed.results) {
       // The id on the product's own first row, not on the line with the product's index.
       const productId = result.product.line ? productIds[result.product.line - 2] : null
-      if (productId != null && !Number.isNaN(productId)) {
+      if (productId != null) {
         result.product.productId = productId
       }
     }

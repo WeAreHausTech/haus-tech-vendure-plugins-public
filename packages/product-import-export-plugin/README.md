@@ -106,7 +106,7 @@ The plugin supports configurable storage for exported files:
 1. At upload, before the file is stored. If it returns errors, the upload answers `400` with `{ "errors": [...] }` and nothing is queued.
 2. When the import job starts, before anything is written, since data can change while the job waits. If it returns errors, the job fails with the same list and nothing is imported.
 
-Each error is shown as `Row <line>: <message>`, in one list with the [relation lookup](#relations-by-sku-or-another-column) errors, ordered by row. Line 1 is the header; blank and comma-only lines are not counted. Lines are physical lines of the file, so a quoted cell that spans several lines shifts the numbers of the rows after it.
+Each error is shown as `Row <line>: <message>`, in one list with the [relation lookup](#relations-by-sku-or-another-column) errors, ordered by row. Line 1 is the header; blank and comma-only lines are not counted. Numbers count CSV records, so a quoted cell that spans several lines is still one row.
 
 A job that fails this way ends in the `FAILED` state with the list as its error, instead of `COMPLETED` with the errors in its result. The same holds when a relation lookup no longer matches when the job runs.
 
@@ -119,7 +119,7 @@ import {
 import { Injector, RequestContext, TransactionalConnection } from '@vendure/core'
 
 class NoLabelOnSampleStrategy implements ImportRowValidationStrategy {
-  private connection: TransactionalConnection
+  private connection!: TransactionalConnection
 
   init(injector: Injector) {
     this.connection = injector.get(TransactionalConnection)
@@ -143,10 +143,15 @@ Each `ImportRowGroup` is one product: its first row (`line`, `product`) and ever
 
 - Relation custom fields are keyed by their Admin API input name (`labelId`, `labelsIds`) and hold id strings, also when the file names the related rows by a lookup column such as `:sku` or `:code`. An empty cell, and a value a lookup could not resolve, is left out.
 - An `Asset` relation keeps its cell text under the field name, since assets are created only when the row is written. Other custom fields keep their cell text under the field name.
+- `product.productId` is set when the product's first row has a product id in the first column, that is when the row updates an existing product by id. Without it, the importer matches existing products by variant SKU.
 - `product.customFields` holds the custom fields of the product's first translation, which include every non-localised field; each entry of `product.translations` has its own.
 - The groups are copies: changing them does not change what is imported.
 
-`init(injector)` and `destroy()` are called when the application starts and stops. The default strategy accepts every row. The strategy does not run when a lookup header is wrong, since no row is read then.
+`init(injector)` and `destroy()` are called when the application starts and stops. The default strategy accepts every row.
+
+If `validate` throws, the upload answers `500` and nothing is queued, and a running job fails with the thrown error. Return errors instead to show them by row.
+
+Lookup columns must be plain text columns of the related entity, so a translated field (for example a collection's `name`, which lives on its translation entity) cannot be one. The strategy does not run when a lookup header is wrong, since no row is read then.
 
 ### Custom export columns
 

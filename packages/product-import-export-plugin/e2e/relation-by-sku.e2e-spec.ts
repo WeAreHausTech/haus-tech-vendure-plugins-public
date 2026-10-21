@@ -31,6 +31,7 @@ import { ProductImporter } from '../src/providers/import-providers/product-impor
 import { RelationLookupResolver } from '../src/services/relation-lookup-resolver'
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
 import {
+  DefaultImportRowValidationStrategy,
   ImportRowError,
   ImportRowGroup,
   ImportRowValidationStrategy,
@@ -96,8 +97,14 @@ class TestTag extends VendureEntity {
 })
 class TestTagPlugin {}
 
-/** Rejects a product that has a tag while its first variant's SKU starts with `NO-`. */
-class NoTagOnNoSkuStrategy implements ImportRowValidationStrategy {
+/**
+ * Rejects a product that has a tag while its first variant's SKU starts with `NO-`. A subclass of
+ * the default strategy, which must still be called.
+ */
+class NoTagOnNoSkuStrategy
+  extends DefaultImportRowValidationStrategy
+  implements ImportRowValidationStrategy
+{
   connection: TransactionalConnection | undefined
   destroyed = false
 
@@ -109,7 +116,7 @@ class NoTagOnNoSkuStrategy implements ImportRowValidationStrategy {
     this.destroyed = true
   }
 
-  async validate(_ctx: RequestContext, rows: ImportRowGroup[]): Promise<ImportRowError[]> {
+  override async validate(_ctx: RequestContext, rows: ImportRowGroup[]): Promise<ImportRowError[]> {
     return rows.flatMap((row) => {
       const first = row.variants[0]
       const tagged = row.product.customFields.tagId !== undefined
@@ -795,6 +802,45 @@ describe('relation custom fields given by SKU', () => {
       ])
       expect((await findProductBySku('EX2-L'))?.id).toBe(existingId)
       expect((await findProductBySku('NEW1-S'))?.id).not.toBe(existingId)
+    })
+
+    it('maps product ids by record when a quoted cell spans several lines', async () => {
+      const existingCsv = [
+        `${HEADER},optionGroups,optionValues`,
+        'Exist Three,exist-three,E,EX3-S,1,Standard Tax,1,size,S',
+      ].join('\n')
+      expect(await runImport(existingCsv)).toEqual([])
+      const existing = await findProductBySku('EX3-S')
+      expect(existing).not.toBeNull()
+      const existingId = existing?.id
+      const validate = vi.spyOn(rowValidation, 'validate')
+      const csv = [
+        `id,${HEADER},optionGroups,optionValues`,
+        ',Multi Line,multi-line,"first line',
+        'second line",ML-1,1,Standard Tax,1,size,S',
+        `${existingId},Exist Three,exist-three,E,EX3-L,1,Standard Tax,1,size,L`,
+      ].join('\n')
+
+      // Without clearing slugs: that step splits physical lines, which a multi-line cell breaks.
+      const importer = server.app.get(ProductImporter)
+      let errors: string[] = []
+      await new Promise<void>((resolve, reject) => {
+        importer.parseAndImport(csv, ctx, false, LanguageCode.en, 'merge').subscribe({
+          next: (result) => {
+            errors = result.errors ?? []
+          },
+          complete: () => resolve(),
+          error: (error) => reject(error),
+        })
+      })
+
+      expect(errors).toEqual([])
+      const [, rows] = validate.mock.calls[0]
+      expect(rows.map((row) => [row.line, row.product.productId])).toEqual([
+        [2, undefined],
+        [3, Number(existingId)],
+      ])
+      expect((await findProductBySku('EX3-L'))?.id).toBe(existingId)
     })
 
     it('cannot change what is imported by changing the rows it gets', async () => {
