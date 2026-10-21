@@ -44,6 +44,11 @@ export interface RelationLookup {
 export interface RelationLookupResult {
   /** One line per problem, ready to show to the person who uploaded the file. */
   errors: string[]
+  /**
+   * False when a lookup header is wrong or the file cannot be read, so no row was checked and
+   * `fields` may be incomplete. The errors are then about the file, not about rows.
+   */
+  rowsChecked: boolean
   /** The id of the single live row behind each value, keyed by `relationLookupKey`. */
   idsByLookup: Map<string, ID>
   /** The lookup of each `<owner>:<field>` relation column whose values are not ids. */
@@ -89,7 +94,7 @@ export class RelationLookupResolver {
     const headers = importCsvHeaders(lines)
     const lookupHeaders = headers.filter((header) => this.splitHeader(header).length === 4)
     if (lookupHeaders.length === 0) {
-      return { errors: [], idsByLookup, fields }
+      return { errors: [], rowsChecked: true, idsByLookup, fields }
     }
 
     const headerErrors = [
@@ -97,7 +102,7 @@ export class RelationLookupResolver {
       ...duplicateFieldErrors(lookupHeaders.map((header) => this.splitHeader(header))),
     ]
     if (headerErrors.length > 0) {
-      return { errors: headerErrors, idsByLookup, fields }
+      return { errors: headerErrors, rowsChecked: false, idsByLookup, fields }
     }
 
     const columns: LookupColumn[] = lookupHeaders.map((header) => {
@@ -119,6 +124,7 @@ export class RelationLookupResolver {
     } catch (error) {
       return {
         errors: [`Could not read the file: ${(error as Error).message}`],
+        rowsChecked: false,
         idsByLookup,
         fields,
       }
@@ -137,7 +143,7 @@ export class RelationLookupResolver {
         }
       }
     }
-    return { errors, idsByLookup, fields }
+    return { errors, rowsChecked: true, idsByLookup, fields }
   }
 
   private splitHeader(header: string): string[] {

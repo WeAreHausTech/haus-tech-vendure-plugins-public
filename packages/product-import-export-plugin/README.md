@@ -72,6 +72,7 @@ export const config = {
 | `storageStrategy`        | `ImportJobStorageStrategy`                         | local disk  | Strategy instance for queued import file storage and retrieval.                                                            |
 | `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                |
 | `importJobStorage`       | `'local' \| 's3'`                                  | `'local'`   | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                        |
+| `rowValidationStrategy`  | `ImportRowValidationStrategy`                      | accepts all | Checks the rows of a file before anything is written. See [Row validation](#row-validation).                               |
 
 Available import storage strategies:
 
@@ -97,6 +98,53 @@ The plugin supports configurable storage for exported files:
 
 - **S3** – Stores export files in an S3-compatible bucket
 - **Disk (default)** – Saves files locally on the server
+
+### Row validation
+
+`importOptions.rowValidationStrategy` lets you reject rows by your own rules. It runs on the parsed file twice:
+
+1. At upload, before the file is stored. If it returns errors, the upload answers `400` with `{ "errors": [...] }` and nothing is queued.
+2. When the import job starts, before anything is written, since data can change while the job waits. If it returns errors, the job fails with the same list and nothing is imported.
+
+Each error is shown as `Row <line>: <message>`, in one list with the [relation lookup](#relations-by-sku-or-another-column) errors, ordered by row. Line 1 is the header; blank and comma-only lines are not counted.
+
+```typescript
+import {
+  ImportRowError,
+  ImportRowGroup,
+  ImportRowValidationStrategy,
+} from '@haus-tech/product-import-export-plugin'
+import { Injector, RequestContext, TransactionalConnection } from '@vendure/core'
+
+class NoLabelOnSampleStrategy implements ImportRowValidationStrategy {
+  private connection: TransactionalConnection
+
+  init(injector: Injector) {
+    this.connection = injector.get(TransactionalConnection)
+  }
+
+  async validate(ctx: RequestContext, rows: ImportRowGroup[]): Promise<ImportRowError[]> {
+    return rows
+      .filter((row) => row.product.customFields.labelId !== undefined)
+      .filter((row) => row.variants.some(({ variant }) => variant.sku.startsWith('SAMPLE-')))
+      .map((row) => ({ line: row.line, message: 'a sample product cannot have a label' }))
+  }
+}
+
+ProductImportExportPlugin.init({
+  importOptions: { rowValidationStrategy: new NoLabelOnSampleStrategy() },
+  exportOptions: {},
+})
+```
+
+Each `ImportRowGroup` is one product: its first row (`line`, `product`) and every variant row under it (`variants[].line`, `variants[].variant`).
+
+- Relation custom fields are keyed by their Admin API input name (`labelId`, `labelsIds`) and hold id strings, also when the file names the related rows by a lookup column such as `:sku` or `:code`. An empty cell, and a value a lookup could not resolve, is left out.
+- An `Asset` relation keeps its cell text under the field name, since assets are created only when the row is written. Other custom fields keep their cell text under the field name.
+- `product.customFields` holds the custom fields of the product's first translation, which include every non-localised field; each entry of `product.translations` has its own.
+- The groups are copies: changing them does not change what is imported.
+
+`init(injector)` and `destroy()` are called when the application starts and stops. The default strategy accepts every row. The strategy does not run when a lookup header is wrong, since no row is read then.
 
 ### Custom export columns
 

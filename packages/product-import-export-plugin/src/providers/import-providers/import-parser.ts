@@ -88,6 +88,8 @@ export interface ParsedAsset {
  * @docsPage ImportParser
  */
 export interface ParsedProductVariant {
+  /** The file line of the variant's row (the header is line 1, blank lines are not counted). */
+  line?: number
   sku: string
   price: number | undefined
   taxCategory?: string
@@ -116,6 +118,8 @@ export interface ParsedProductVariant {
  * @docsPage ImportParser
  */
 export interface ParsedProduct {
+  /** The file line of the product's first row (the header is line 1, blank lines are not counted). */
+  line?: number
   assetPaths: string[]
   assetsJson?: ParsedAsset[]
   optionGroups: ParsedOptionGroup[]
@@ -283,8 +287,10 @@ export class ImportParser {
           }
         }
         currentRow = {
-          product: await this.parseProductFromRecord(r, usedLanguages, mainLanguage),
-          variants: [await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)],
+          product: { line, ...(await this.parseProductFromRecord(r, usedLanguages, mainLanguage)) },
+          variants: [
+            { line, ...(await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)) },
+          ],
         }
         currentRowRejected = false
       } else {
@@ -297,9 +303,10 @@ export class ImportParser {
             )
             currentRowRejected = true
           }
-          currentRow.variants.push(
-            await this.parseVariantFromRecord(r, usedLanguages, mainLanguage),
-          )
+          currentRow.variants.push({
+            line,
+            ...(await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)),
+          })
         }
       }
       const optionError = validateOptionValueCount(r, currentRow, mainLanguage)

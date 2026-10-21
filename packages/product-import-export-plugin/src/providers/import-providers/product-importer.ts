@@ -44,7 +44,10 @@ import { AssetType } from '@vendure/common/lib/generated-types'
 import { ExtendedFastImporterService } from '../../services/extended-fast-importer.service'
 import { compact, find, isUndefined, startsWith } from 'lodash'
 import { JsonAsset, ParsedProductWithId, UpdatingStrategy } from '../../types'
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../../constants'
+import {
+  IMPORT_ROW_VALIDATION_STRATEGY,
+  PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
+} from '../../constants'
 import { PluginInitOptions } from '../../types'
 import { ImportParser } from './import-parser'
 import { ExtendedAssetImporter } from './asset-importer'
@@ -59,6 +62,8 @@ import {
   relationLookupKey,
   splitLookupList,
 } from '../../services/relation-lookup-resolver'
+import { ImportRowValidationStrategy } from '../../strategies/import-row-validation-strategy'
+import { toImportRowGroups } from '../../services/import-row-groups'
 import {
   importCsvHeaders,
   importCsvLines,
@@ -70,6 +75,25 @@ import {
 type RelationLookups = Pick<RelationLookupResult, 'fields' | 'idsByLookup'>
 
 const NO_RELATION_LOOKUPS: RelationLookups = { fields: new Map(), idsByLookup: new Map() }
+
+/** The outcome of an import. `rejected` is set when the file was checked and nothing was written. */
+export type ImportResult = ImportInfo & { rejected?: boolean }
+
+/** What the checks before any write find in an import file. */
+export interface CheckedImportFile {
+  /** Lookup and row validation errors, ordered by row. Any error stops the whole import. */
+  errors: string[]
+  relationLookups: RelationLookups
+  /** The parsed file; missing when a lookup header was wrong, so no row was read. */
+  parsed?: ParseResult<ParsedProductWithId>
+  customFieldTypes: Record<string, string>
+}
+
+/** The row an error names (`Row 12: ...`), 0 for an error about the whole file. */
+function errorRow(error: string): number {
+  const match = /^Row (\d+):/.exec(error)
+  return match ? Number(match[1]) : 0
+}
 
 /**
  * Splits a typed custom field header (`product:field:type`, or with a fourth lookup segment that
@@ -120,6 +144,8 @@ export class ProductImporter {
     private optionGroupService: ProductOptionGroupService,
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private pluginOptions: PluginInitOptions,
     private relationLookupResolver: RelationLookupResolver,
+    @Inject(IMPORT_ROW_VALIDATION_STRATEGY)
+    private rowValidationStrategy: ImportRowValidationStrategy,
   ) {
     this.slugStrategy = this.configService.entityOptions.slugStrategy
   }
@@ -130,7 +156,7 @@ export class ProductImporter {
     updateProductSlug = true,
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
-  ): Observable<ImportProgress> {
+  ): Observable<ImportProgress & { rejected?: boolean }> {
     return new Observable((subscriber) => {
       const p = this.doParseAndImport(
         input,
@@ -141,10 +167,13 @@ export class ProductImporter {
         (progress) => {
           subscriber.next(progress)
         },
-      ).then((value) => {
-        subscriber.next({ ...value, currentProduct: 'Complete' })
-        subscriber.complete()
-      })
+      ).then(
+        (value) => {
+          subscriber.next({ ...value, currentProduct: 'Complete' })
+          subscriber.complete()
+        },
+        (error) => subscriber.error(error),
+      )
     })
   }
 
@@ -181,6 +210,46 @@ export class ProductImporter {
       (header) => splitTypedCustomFieldHeader(header)?.fullFieldName ?? header,
     )
     return this.importParser.validateHeader(headers)
+  }
+
+  /**
+   * Everything that is checked before an import writes anything: relation lookups, then the parsed
+   * rows through the row validation strategy. The upload runs this before the file is stored, and
+   * the import job runs it again before its first write, since data can change while the job waits.
+   */
+  async checkFile(
+    ctx: RequestContext,
+    csv: string,
+    mainLanguage: LanguageCode,
+    updateProductSlug: boolean,
+  ): Promise<CheckedImportFile> {
+    const relationLookups = await this.relationLookupResolver.resolve(ctx, csv)
+    if (!relationLookups.rowsChecked) {
+      return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
+    }
+
+    const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csv, updateProductSlug)
+    const parsed = (await this.importParser.parseProducts(
+      cleanedCsv,
+      mainLanguage,
+    )) as ParseResult<ParsedProductWithId>
+    const productIds = this.extractProductIdsFromCSV(cleanedCsv)
+    parsed.results.forEach((result, index) => {
+      const productId = productIds[index]
+      if (productId !== null) {
+        result.product.productId = productId
+      }
+    })
+
+    const rowErrors = await this.rowValidationStrategy.validate(
+      ctx,
+      toImportRowGroups(parsed.results, relationLookups, this.configService.customFields),
+    )
+    const errors = [
+      ...relationLookups.errors,
+      ...rowErrors.map(({ line, message }) => `Row ${line}: ${message}`),
+    ].sort((a, b) => errorRow(a) - errorRow(b))
+    return { errors, relationLookups, parsed, customFieldTypes }
   }
 
   private preprocessCsv(
@@ -279,13 +348,12 @@ export class ProductImporter {
     updatingStrategy: UpdatingStrategy,
     reqCtx: RequestContext,
     onProgress: OnProgressFn,
-  ): Promise<ImportInfo> {
+  ): Promise<ImportResult> {
     // Per-import caches to avoid stale cross-job state.
     this.facetIdCache.clear()
     this.facetValueIdCache.clear()
 
     const ctx = await this.getRequestContext(reqCtx, mainLanguage)
-    await this.setMissingAssetHashes(ctx)
 
     let csvContent: string
 
@@ -296,32 +364,23 @@ export class ProductImporter {
       csvContent = await this.streamToString(input)
     }
 
-    // Checked again here, not only on upload: related rows can change while the job waits. Values
-    // are resolved once, here: a row deleted while the import runs is still linked to.
-    const relationLookups = await this.relationLookupResolver.resolve(ctx, csvContent)
-    if (relationLookups.errors.length > 0) {
-      return { errors: relationLookups.errors, imported: 0, processed: 0 }
+    // Checked again here, before the first write, not only on upload: data can change while the
+    // job waits. Lookup values are resolved once, here: a row deleted while the import runs is
+    // still linked to.
+    const { errors, relationLookups, parsed, customFieldTypes } = await this.checkFile(
+      ctx,
+      csvContent,
+      mainLanguage,
+      updateProductSlug,
+    )
+    if (errors.length > 0 || !parsed) {
+      return { errors, imported: 0, processed: 0, rejected: true }
     }
 
-    // Preprocess the CSV to extract types and clean headers
-    const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csvContent, updateProductSlug)
+    await this.setMissingAssetHashes(ctx)
     this.customFieldTypes = customFieldTypes
 
-    const parsed = (await this.importParser.parseProducts(
-      cleanedCsv,
-      ctx.languageCode,
-    )) as ParseResult<ParsedProductWithId>
-
-    const productIds = this.extractProductIdsFromCSV(cleanedCsv)
-    parsed.results.forEach((result, index) => {
-      const productId = productIds[index]
-      if (productId !== null) {
-        result.product.productId = productId
-      }
-      // Handle the case where productId is null if necessary
-    })
-
-    if (parsed && parsed.results.length) {
+    if (parsed.results.length) {
       try {
         const importErrors = await this.importProducts(
           ctx,

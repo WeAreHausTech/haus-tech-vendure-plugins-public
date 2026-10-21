@@ -3,10 +3,12 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import {
   DeepPartial,
   ID,
+  Injector,
   LanguageCode,
   PluginCommonModule,
   Product,
   ProductVariant,
+  RequestContext,
   RequestContextService,
   TransactionalConnection,
   VendureEntity,
@@ -28,6 +30,11 @@ import { ImportJobStorageStrategy } from '../src/services/import-storage/import-
 import { ProductImporter } from '../src/providers/import-providers/product-importer'
 import { RelationLookupResolver } from '../src/services/relation-lookup-resolver'
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
+import {
+  ImportRowError,
+  ImportRowGroup,
+  ImportRowValidationStrategy,
+} from '../src/strategies/import-row-validation-strategy'
 import { initialData } from './fixtures/initial-data'
 
 // Own data dir (a sibling of `__data__`), because vitest runs spec files in parallel and this
@@ -89,6 +96,30 @@ class TestTag extends VendureEntity {
 })
 class TestTagPlugin {}
 
+/** Rejects a product that has a tag while its first variant's SKU starts with `NO-`. */
+class NoTagOnNoSkuStrategy implements ImportRowValidationStrategy {
+  connection: TransactionalConnection | undefined
+  destroyed = false
+
+  init(injector: Injector): void {
+    this.connection = injector.get(TransactionalConnection)
+  }
+
+  destroy(): void {
+    this.destroyed = true
+  }
+
+  async validate(_ctx: RequestContext, rows: ImportRowGroup[]): Promise<ImportRowError[]> {
+    return rows.flatMap((row) => {
+      const first = row.variants[0]
+      const tagged = row.product.customFields.tagId !== undefined
+      return tagged && first?.variant.sku.startsWith('NO-')
+        ? [{ line: first.line, message: `SKU ${first.variant.sku} cannot have a tag` }]
+        : []
+    })
+  }
+}
+
 /**
  * A ProductVariant relation custom field can name the related variant by SKU: the column header
  * gets a fourth segment, `:sku`. Any relation custom field can name its rows by another text
@@ -97,6 +128,7 @@ class TestTagPlugin {}
  * upload and run.
  */
 describe('relation custom fields given by SKU', () => {
+  const rowValidation = new NoTagOnNoSkuStrategy()
   const apiPort = 3064
   const baseUrl = `http://localhost:${apiPort}`
   const { server, adminClient } = createTestEnvironment(
@@ -116,7 +148,10 @@ describe('relation custom fields given by SKU', () => {
       },
       plugins: [
         TestTagPlugin,
-        ProductImportExportPlugin.init({ importOptions: {}, exportOptions: {} }),
+        ProductImportExportPlugin.init({
+          importOptions: { rowValidationStrategy: rowValidation },
+          exportOptions: {},
+        }),
       ],
     }),
   )
@@ -222,6 +257,7 @@ describe('relation custom fields given by SKU', () => {
 
   afterAll(async () => {
     await server.destroy()
+    expect(rowValidation.destroyed).toBe(true)
   })
 
   describe('import', () => {
@@ -551,6 +587,178 @@ describe('relation custom fields given by SKU', () => {
       expect(response.status).toBe(400)
       expect(await response.json()).toEqual({ errors: ['Invalid lookup column "nope" on TestTag'] })
       expect(store).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('row validation strategy', () => {
+    const TAGGED_HEADER = `${HEADER},${TAG_BY_CODE}`
+
+    async function waitForFailedImportJob(message: string): Promise<{ error: string }> {
+      const deadline = Date.now() + 20_000
+      while (Date.now() < deadline) {
+        const { jobs } = await adminClient.query<{
+          jobs: { items: Array<{ state: string; error: string | null }> }
+        }>(gql`
+          query {
+            jobs(options: { filter: { queueName: { eq: "product-import" } } }) {
+              items {
+                state
+                error
+              }
+            }
+          }
+        `)
+        const failed = jobs.items.find(
+          (job) => job.state === 'FAILED' && job.error?.includes(message),
+        )
+        if (failed) {
+          return failed as { error: string }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200))
+      }
+      throw new Error(`No failed import job with "${message}"`)
+    }
+
+    it('is initialised with an injector', () => {
+      expect(rowValidation.connection).toBeInstanceOf(TransactionalConnection)
+    })
+
+    it('answers 400 with the row and queues nothing when the strategy rejects it', async () => {
+      const storage = server.app.get<ImportJobStorageStrategy>(IMPORT_JOB_STORAGE_STRATEGY)
+      const store = vi.spyOn(storage, 'storeImportFile')
+
+      const response = await upload(
+        [TAGGED_HEADER, 'A,a,A,X-1,1,Standard Tax,1,T-1', 'B,b,B,NO-1,1,Standard Tax,1,T-1'].join(
+          '\n',
+        ),
+      )
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ errors: ['Row 3: SKU NO-1 cannot have a tag'] })
+      expect(store).not.toHaveBeenCalled()
+    })
+
+    it('gets the resolved ids and the line of every row of a product', async () => {
+      const validate = vi
+        .spyOn(rowValidation, 'validate')
+        .mockResolvedValue([{ line: 3, message: 'stop here' }])
+      const csv = [
+        `${HEADER},optionGroups,optionValues,${TAG_BY_CODE},${TAGS_BY_CODE},${BASE_BY_SKU},variant:siblings:productvariant`,
+        `Three,three,Three,THREE-S,1,Standard Tax,1,size,S,T-1,T-1|T 2.b,BASE-1,`,
+        '',
+        `,,,THREE-M,1,Standard Tax,1,,M,,,BASE 2.b,${ids['BASE-1']}|${ids['BASE 2.b']}`,
+        ',,,THREE-L,1,Standard Tax,1,,L,,,,',
+      ].join('\n')
+
+      const response = await upload(csv)
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ errors: ['Row 3: stop here'] })
+      const [ctxArg, rows] = validate.mock.calls[0]
+      expect(ctxArg).toBeInstanceOf(RequestContext)
+      expect(rows).toHaveLength(1)
+      const [group] = rows
+      expect(group.line).toBe(2)
+      expect(group.product.customFields).toEqual(
+        expect.objectContaining({
+          tagId: String(ids['T-1']),
+          tagsIds: [String(ids['T-1']), String(ids['T 2.b'])],
+        }),
+      )
+      expect(group.variants.map(({ line, variant }) => [line, variant.sku])).toEqual([
+        [2, 'THREE-S'],
+        [3, 'THREE-M'],
+        [4, 'THREE-L'],
+      ])
+      expect(group.variants[0].variant.customFields).toEqual({
+        baseVariantId: String(ids['BASE-1']),
+      })
+      expect(group.variants[1].variant.customFields).toEqual({
+        baseVariantId: String(ids['BASE 2.b']),
+        siblingsIds: [String(ids['BASE-1']), String(ids['BASE 2.b'])],
+      })
+      expect(group.variants[2].variant.customFields).toEqual({})
+    })
+
+    it('reports lookup and strategy errors in one list, by row', async () => {
+      const response = await upload(
+        [
+          TAGGED_HEADER,
+          'A,a,A,X-1,1,Standard Tax,1,NOPE',
+          'B,b,B,NO-2,1,Standard Tax,1,T-1',
+          'C,c,C,X-3,1,Standard Tax,1,T-OLD',
+        ].join('\n'),
+      )
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({
+        errors: [
+          'Row 2: no TestTag with code NOPE',
+          'Row 3: SKU NO-2 cannot have a tag',
+          'Row 4: no TestTag with code T-OLD',
+        ],
+      })
+    })
+
+    it('does not run on a file whose lookup header is wrong', async () => {
+      const validate = vi.spyOn(rowValidation, 'validate')
+
+      const response = await upload(
+        [`${HEADER},product:tag:testtag:nope`, 'A,a,A,NO-5,1,Standard Tax,1,T-1'].join('\n'),
+      )
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ errors: ['Invalid lookup column "nope" on TestTag'] })
+      expect(validate).not.toHaveBeenCalled()
+    })
+
+    it('rejects the rows again when the job runs, before anything is written', async () => {
+      const importer = server.app.get(ProductImporter)
+      const hashes = vi.spyOn(importer, 'setMissingAssetHashes')
+
+      const errors = await runImport(
+        [
+          TAGGED_HEADER,
+          'Run One,run-one,Run,RUN-1,1,Standard Tax,1,T-1',
+          'Run No,run-no,Run,NO-3,1,Standard Tax,1,T-1',
+        ].join('\n'),
+      )
+
+      expect(errors).toEqual(['Row 3: SKU NO-3 cannot have a tag'])
+      expect(hashes).not.toHaveBeenCalled()
+      expect(await findProductBySku('RUN-1')).toBeNull()
+      expect(await findProductBySku('NO-3')).toBeNull()
+    })
+
+    it('fails the import job with the errors when the rows changed after upload', async () => {
+      vi.spyOn(rowValidation, 'validate')
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ line: 2, message: 'changed after upload' }])
+
+      const response = await upload(
+        [TAGGED_HEADER, 'Late,late,Late,LATE-1,1,Standard Tax,1,T-1'].join('\n'),
+      )
+
+      expect(response.status).toBe(200)
+      const job = await waitForFailedImportJob('changed after upload')
+      expect(job.error).toContain('Row 2: changed after upload')
+      expect(await findProductBySku('LATE-1')).toBeNull()
+    })
+
+    it('cannot change what is imported by changing the rows it gets', async () => {
+      vi.spyOn(rowValidation, 'validate').mockImplementation(async (_ctx, rows) => {
+        rows[0].product.customFields.tagId = '999'
+        rows[0].variants[0].variant.sku = 'CHANGED'
+        rows.pop()
+        return []
+      })
+
+      const errors = await runImport(
+        [TAGGED_HEADER, 'Copy,copy,Copy,COPY-1,1,Standard Tax,1,T-1'].join('\n'),
+      )
+
+      expect(errors).toEqual([])
+      expect((await findProductBySku('COPY-1'))?.customFields.tag?.id).toBe(ids['T-1'])
     })
   })
 })

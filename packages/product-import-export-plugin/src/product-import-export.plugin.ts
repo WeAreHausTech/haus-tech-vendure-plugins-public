@@ -1,3 +1,4 @@
+import { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common'
 import { Injector, PluginCommonModule, Type, VendurePlugin } from '@vendure/core'
 import { AdminUiExtension } from '@vendure/ui-devkit/compiler'
 import { ModuleRef } from '@nestjs/core'
@@ -7,6 +8,7 @@ import { uniq } from 'lodash'
 import {
   EXPORT_STORAGE_STRATEGY,
   IMPORT_JOB_STORAGE_STRATEGY,
+  IMPORT_ROW_VALIDATION_STRATEGY,
   PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
 } from './constants'
 
@@ -27,6 +29,10 @@ import { ProductExportQueueService } from './services/product-export-queue.servi
 import { RelationLookupResolver } from './services/relation-lookup-resolver'
 import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
 import { LocalImportJobStorageStrategy } from './services/import-storage/local-import-job-storage-strategy'
+import {
+  DefaultImportRowValidationStrategy,
+  ImportRowValidationStrategy,
+} from './strategies/import-row-validation-strategy'
 
 const RESERVED_EXPORT_COLUMN_NAMES = new Set([
   'id', 'name', 'slug', 'description', 'assets', 'facets', 'optionGroups', 'optionValues',
@@ -102,6 +108,12 @@ function validateCustomExportColumns(columns: CustomExportColumn[] | undefined):
       },
       inject: [ModuleRef],
     },
+    {
+      provide: IMPORT_ROW_VALIDATION_STRATEGY,
+      useFactory: () =>
+        ProductImportExportPlugin.options?.importOptions?.rowValidationStrategy ??
+        new DefaultImportRowValidationStrategy(),
+    },
     ProductImportService,
     ProductImporter,
     ExtendedFastImporterService,
@@ -154,8 +166,24 @@ function validateCustomExportColumns(columns: CustomExportColumn[] | undefined):
  *
  * @category Plugin
  */
-export class ProductImportExportPlugin {
+export class ProductImportExportPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
   static options: PluginInitOptions
+
+  constructor(private moduleRef: ModuleRef) {}
+
+  /** @internal */
+  async onApplicationBootstrap(): Promise<void> {
+    await this.rowValidationStrategy().init?.(new Injector(this.moduleRef))
+  }
+
+  /** @internal */
+  async onApplicationShutdown(): Promise<void> {
+    await this.rowValidationStrategy().destroy?.()
+  }
+
+  private rowValidationStrategy(): ImportRowValidationStrategy {
+    return this.moduleRef.get(IMPORT_ROW_VALIDATION_STRATEGY, { strict: false })
+  }
 
   /**
    * @description
