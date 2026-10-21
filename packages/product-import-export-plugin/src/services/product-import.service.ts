@@ -17,7 +17,6 @@ import { UpdatingStrategy } from '../types'
 import { ProductImporter } from '../providers/import-providers/product-importer'
 import { omit } from 'lodash'
 import { ImportJobStorageStrategy } from './import-storage/import-job-storage-strategy'
-import { SkuRelationResolver } from './sku-relation-resolver'
 import { importProgressPercent } from './import-progress'
 
 /** The uploaded file cannot be imported as it is; `errors` says why, one line per problem. */
@@ -46,7 +45,6 @@ export class ProductImportService implements OnModuleInit {
     private searchService: SearchService,
     private productService: ProductService,
     private eventBus: EventBus,
-    private skuRelationResolver: SkuRelationResolver,
   ) {}
 
   public async onModuleInit(): Promise<void> {
@@ -54,7 +52,7 @@ export class ProductImportService implements OnModuleInit {
       name: 'product-import',
       process: async (job) => {
         const ctx = RequestContext.deserialize(job.data.ctx)
-        let jobResult: ImportProgress | undefined
+        let jobResult: (ImportProgress & { rejected?: boolean }) | undefined
         try {
           const fileContent = await this.importJobStorageStrategy.getImportFileContent(
             ctx,
@@ -84,6 +82,11 @@ export class ProductImportService implements OnModuleInit {
                 },
               })
           }).then(async (result) => {
+            if (jobResult?.rejected) {
+              // The rows were checked again before the first write and nothing was imported.
+              const errors = result.errors?.length ? result.errors : ['The import was rejected']
+              throw new ImportFileInvalidError(errors)
+            }
             await this.runPostImportTasks(ctx, result)
             return omit(result, 'currentProduct') as ImportProgress
           })
@@ -101,14 +104,19 @@ export class ProductImportService implements OnModuleInit {
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
   ) {
-    // Checked before queueing so the uploader sees a wrong header or SKU at once, not as a
-    // finished job that imported nothing.
+    // Checked before queueing so the uploader sees a wrong header, lookup value or row at once, not
+    // as a finished job that imported nothing.
     const csv = file.buffer.toString('utf8')
     const headerErrors = this.productImporter.validateHeader(csv)
     if (headerErrors.length > 0) {
       throw new ImportFileInvalidError(headerErrors)
     }
-    const { errors } = await this.skuRelationResolver.resolve(ctx, csv)
+    const { errors } = await this.productImporter.checkFile(
+      ctx,
+      csv,
+      mainLanguage,
+      updateProductSlug,
+    )
     if (errors.length > 0) {
       throw new ImportFileInvalidError(errors)
     }

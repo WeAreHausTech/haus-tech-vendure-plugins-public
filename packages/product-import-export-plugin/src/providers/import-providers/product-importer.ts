@@ -37,6 +37,7 @@ import {
   ProductAsset,
 } from '@vendure/core'
 import { Stream } from 'stream'
+import { parse as parseCsv } from 'csv-parse/sync'
 import { Observable } from 'rxjs'
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils'
 import { ImportInfo } from '@vendure/common/lib/generated-types'
@@ -44,7 +45,10 @@ import { AssetType } from '@vendure/common/lib/generated-types'
 import { ExtendedFastImporterService } from '../../services/extended-fast-importer.service'
 import { compact, find, isUndefined, startsWith } from 'lodash'
 import { JsonAsset, ParsedProductWithId, UpdatingStrategy } from '../../types'
-import { PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS } from '../../constants'
+import {
+  IMPORT_ROW_VALIDATION_STRATEGY,
+  PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS,
+} from '../../constants'
 import { PluginInitOptions } from '../../types'
 import { ImportParser } from './import-parser'
 import { ExtendedAssetImporter } from './asset-importer'
@@ -53,10 +57,17 @@ import { generateAssetHash } from '../../helpers/generate-asset-hash'
 import { createHash } from 'crypto'
 import { removeUpdatedAtFields } from '../../helpers/remove-update-at-fields'
 import {
-  SkuRelationResolver,
-  SkuRelationResult,
-  splitSkuList,
-} from '../../services/sku-relation-resolver'
+  RelationLookup,
+  RelationLookupResolver,
+  RelationLookupResult,
+  relationLookupKey,
+  splitLookupList,
+} from '../../services/relation-lookup-resolver'
+import {
+  DefaultImportRowValidationStrategy,
+  ImportRowValidationStrategy,
+} from '../../strategies/import-row-validation-strategy'
+import { toImportRowGroups } from '../../services/import-row-groups'
 import {
   importCsvHeaders,
   importCsvLines,
@@ -64,14 +75,33 @@ import {
   splitCsvLine,
 } from '../../helpers/import-csv-lines'
 
-/** The relation columns of one import whose values are SKUs, and the variant id behind each SKU. */
-type SkuLookup = Pick<SkuRelationResult, 'fields' | 'variantIdsBySku'>
+/** The relation columns of one import whose values are not ids, and the id behind each value. */
+type RelationLookups = Pick<RelationLookupResult, 'fields' | 'idsByLookup'>
 
-const NO_SKU_LOOKUP: SkuLookup = { fields: new Set(), variantIdsBySku: new Map() }
+const NO_RELATION_LOOKUPS: RelationLookups = { fields: new Map(), idsByLookup: new Map() }
+
+/** The outcome of an import. `rejected` is set when the file was checked and nothing was written. */
+export type ImportResult = ImportInfo & { rejected?: boolean }
+
+/** What the checks before any write find in an import file. */
+export interface CheckedImportFile {
+  /** Lookup and row validation errors, ordered by row. Any error stops the whole import. */
+  errors: string[]
+  relationLookups: RelationLookups
+  /** The parsed file; missing when a lookup header was wrong, so no row was read. */
+  parsed?: ParseResult<ParsedProductWithId>
+  customFieldTypes: Record<string, string>
+}
+
+/** The row an error names (`Row 12: ...`), 0 for an error about the whole file. */
+function errorRow(error: string): number {
+  const match = /^Row (\d+):/.exec(error)
+  return match ? Number(match[1]) : 0
+}
 
 /**
- * Splits a typed custom field header (`product:field:type`, or with a fourth `:sku` segment that
- * SkuRelationResolver reads) into the `<owner>:<field>` key the parser checks and the type.
+ * Splits a typed custom field header (`product:field:type`, or with a fourth lookup segment that
+ * RelationLookupResolver reads) into the `<owner>:<field>` key the parser checks and the type.
  */
 function splitTypedCustomFieldHeader(
   header: string,
@@ -117,7 +147,9 @@ export class ProductImporter {
     private assetService: AssetService,
     private optionGroupService: ProductOptionGroupService,
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private pluginOptions: PluginInitOptions,
-    private skuRelationResolver: SkuRelationResolver,
+    private relationLookupResolver: RelationLookupResolver,
+    @Inject(IMPORT_ROW_VALIDATION_STRATEGY)
+    private rowValidationStrategy: ImportRowValidationStrategy,
   ) {
     this.slugStrategy = this.configService.entityOptions.slugStrategy
   }
@@ -128,7 +160,7 @@ export class ProductImporter {
     updateProductSlug = true,
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
-  ): Observable<ImportProgress> {
+  ): Observable<ImportProgress & { rejected?: boolean }> {
     return new Observable((subscriber) => {
       const p = this.doParseAndImport(
         input,
@@ -139,35 +171,37 @@ export class ProductImporter {
         (progress) => {
           subscriber.next(progress)
         },
-      ).then((value) => {
-        subscriber.next({ ...value, currentProduct: 'Complete' })
-        subscriber.complete()
-      })
+      ).then(
+        (value) => {
+          subscriber.next({ ...value, currentProduct: 'Complete' })
+          subscriber.complete()
+        },
+        (error) => subscriber.error(error),
+      )
     })
   }
 
+  /**
+   * Column 0 of every data record as a product id, null when empty or not a number. Index 0 is
+   * line 2, counted in records as the parser counts them, so a quoted cell that spans several
+   * physical lines does not shift the ids.
+   */
   private extractProductIdsFromCSV(csvString: string): (number | null)[] {
-    // Split the CSV string into lines
-    const lines = csvString.split('\n')
-
-    // Initialize an array to hold the product IDs
-    const productIds: (number | null)[] = []
-
-    // Loop through each line in the CSV
-    lines.forEach((line, index) => {
-      if (index === 0) return // Skip header row
-
-      const columns = line.split(',')
-      const productId = columns[0].trim()
-
-      if (productId) {
-        productIds.push(parseInt(productId, 10))
-      } else {
-        productIds.push(null) // Push null or undefined if productId is missing
-      }
+    let records: string[][]
+    try {
+      records = parseCsv(csvString, {
+        trim: true,
+        relax_column_count: true,
+        relax_quotes: true,
+      }) as string[][]
+    } catch {
+      // The parser cannot read the file either, so there are no products to give ids to.
+      return []
+    }
+    return records.slice(1).map((record) => {
+      const productId = parseInt(record[0] ?? '', 10)
+      return Number.isNaN(productId) ? null : productId
     })
-
-    return productIds
   }
 
   /**
@@ -181,6 +215,58 @@ export class ProductImporter {
     return this.importParser.validateHeader(headers)
   }
 
+  /**
+   * Everything that is checked before an import writes anything: relation lookups, then the parsed
+   * rows through the row validation strategy. The upload runs this before the file is stored, and
+   * the import job runs it again before its first write, since data can change while the job waits.
+   * With the default strategy the file is parsed only when `parse` asks for it (the job does), so
+   * an upload without a strategy costs no more than the lookups.
+   */
+  async checkFile(
+    ctx: RequestContext,
+    csv: string,
+    mainLanguage: LanguageCode,
+    updateProductSlug: boolean,
+    { parse = false }: { parse?: boolean } = {},
+  ): Promise<CheckedImportFile> {
+    const relationLookups = await this.relationLookupResolver.resolve(ctx, csv)
+    if (!relationLookups.rowsChecked) {
+      return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
+    }
+    // Only the default itself is skipped: a subclass of it has rules of its own.
+    const validatesRows =
+      this.rowValidationStrategy.constructor !== DefaultImportRowValidationStrategy
+    if (!validatesRows && !parse) {
+      return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
+    }
+
+    const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csv, updateProductSlug)
+    const parsed = (await this.importParser.parseProducts(
+      cleanedCsv,
+      mainLanguage,
+    )) as ParseResult<ParsedProductWithId>
+    const productIds = this.extractProductIdsFromCSV(cleanedCsv)
+    for (const result of parsed.results) {
+      // The id on the product's own first row, not on the line with the product's index.
+      const productId = result.product.line ? productIds[result.product.line - 2] : null
+      if (productId != null) {
+        result.product.productId = productId
+      }
+    }
+
+    const rowErrors = validatesRows
+      ? await this.rowValidationStrategy.validate(
+          ctx,
+          toImportRowGroups(parsed.results, relationLookups, this.configService.customFields),
+        )
+      : []
+    const errors = [
+      ...relationLookups.errors,
+      ...rowErrors.map(({ line, message }) => `Row ${line}: ${message}`),
+    ].sort((a, b) => errorRow(a) - errorRow(b))
+    return { errors, relationLookups, parsed, customFieldTypes }
+  }
+
   private preprocessCsv(
     input: string,
     updateProductSlug: boolean,
@@ -190,7 +276,7 @@ export class ProductImporter {
   } {
     const customFieldTypes: Record<string, string> = {}
 
-    // Without blank and comma-only lines, as SkuRelationResolver reads the file
+    // Without blank and comma-only lines, as RelationLookupResolver reads the file
     const filteredLines = importCsvLines(input)
 
     const headers = splitCsvLine(filteredLines[0])
@@ -277,13 +363,12 @@ export class ProductImporter {
     updatingStrategy: UpdatingStrategy,
     reqCtx: RequestContext,
     onProgress: OnProgressFn,
-  ): Promise<ImportInfo> {
+  ): Promise<ImportResult> {
     // Per-import caches to avoid stale cross-job state.
     this.facetIdCache.clear()
     this.facetValueIdCache.clear()
 
     const ctx = await this.getRequestContext(reqCtx, mainLanguage)
-    await this.setMissingAssetHashes(ctx)
 
     let csvContent: string
 
@@ -294,32 +379,26 @@ export class ProductImporter {
       csvContent = await this.streamToString(input)
     }
 
-    // Checked again here, not only on upload: variants can change while the job waits. SKUs are
-    // resolved once, here: a variant deleted while the import runs is still linked to.
-    const skuRelations = await this.skuRelationResolver.resolve(ctx, csvContent)
-    if (skuRelations.errors.length > 0) {
-      return { errors: skuRelations.errors, imported: 0, processed: 0 }
+    // Checked again here, before the first write, not only on upload: data can change while the
+    // job waits. Lookup values are resolved once, here: a row deleted while the import runs is
+    // still linked to.
+    const { errors, relationLookups, parsed, customFieldTypes } = await this.checkFile(
+      ctx,
+      csvContent,
+      mainLanguage,
+      updateProductSlug,
+      { parse: true },
+    )
+    if (errors.length > 0 || !parsed) {
+      // Never fail a job without saying why.
+      const reasons = errors.length > 0 ? errors : ['The import file could not be read']
+      return { errors: reasons, imported: 0, processed: 0, rejected: true }
     }
 
-    // Preprocess the CSV to extract types and clean headers
-    const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csvContent, updateProductSlug)
+    await this.setMissingAssetHashes(ctx)
     this.customFieldTypes = customFieldTypes
 
-    const parsed = (await this.importParser.parseProducts(
-      cleanedCsv,
-      ctx.languageCode,
-    )) as ParseResult<ParsedProductWithId>
-
-    const productIds = this.extractProductIdsFromCSV(cleanedCsv)
-    parsed.results.forEach((result, index) => {
-      const productId = productIds[index]
-      if (productId !== null) {
-        result.product.productId = productId
-      }
-      // Handle the case where productId is null if necessary
-    })
-
-    if (parsed && parsed.results.length) {
+    if (parsed.results.length) {
       try {
         const importErrors = await this.importProducts(
           ctx,
@@ -331,7 +410,7 @@ export class ProductImporter {
               processed: parsed.processed,
             })
           },
-          skuRelations,
+          relationLookups,
         )
         return {
           errors: parsed.errors.concat(importErrors),
@@ -377,7 +456,7 @@ export class ProductImporter {
     rows: ParsedProductWithId[],
     updatingStrategy: UpdatingStrategy,
     onProgress: OnProgressFn,
-    skuLookup: SkuLookup = NO_SKU_LOOKUP,
+    relationLookups: RelationLookups = NO_RELATION_LOOKUPS,
   ): Promise<string[]> {
     let errors: string[] = []
     let imported = 0
@@ -432,7 +511,7 @@ export class ProductImporter {
         this.configService.customFields.Product,
         ctx,
         'product',
-        skuLookup,
+        relationLookups,
       )
 
       let checkExistingProduct
@@ -532,7 +611,7 @@ export class ProductImporter {
                 this.configService.customFields.Product,
                 ctx,
                 'product',
-                skuLookup,
+                relationLookups,
               ),
             }
           }),
@@ -712,7 +791,7 @@ export class ProductImporter {
           this.configService.customFields.ProductVariant,
           ctx,
           'variant',
-          skuLookup,
+          relationLookups,
         )
 
         const optionIds = shouldUpdateOptions
@@ -795,7 +874,7 @@ export class ProductImporter {
                   this.configService.customFields.ProductVariant,
                   ctx,
                   'variant',
-                  skuLookup,
+                  relationLookups,
                 ),
               }
             }),
@@ -994,23 +1073,26 @@ export class ProductImporter {
     return out
   }
 
-  /** Swaps SKUs for variant ids; `SkuRelationResolver` has already checked each SKU. */
-  private variantIdsForSkus(
-    variantIdsBySku: Map<string, ID>,
+  /** Swaps lookup values for ids; `RelationLookupResolver` has already checked each value. */
+  private idsForLookupValues(
+    idsByLookup: Map<string, ID>,
+    lookup: RelationLookup,
     value: string,
     list: boolean,
   ): string | string[] {
-    const idFor = (sku: string): string => {
-      const id = variantIdsBySku.get(sku)
+    const idFor = (lookupValue: string): string => {
+      const id = idsByLookup.get(relationLookupKey(lookup, lookupValue))
       if (id === undefined) {
-        throw new InternalServerError(`No variant with SKU ${sku}`)
+        throw new InternalServerError(
+          `No ${lookup.entityName} with ${lookup.column} ${lookupValue}`,
+        )
       }
       return String(id)
     }
     if (!list) {
       return idFor(value.trim())
     }
-    return splitSkuList(value).map(idFor)
+    return splitLookupList(value).map(idFor)
   }
 
   private isValidRelationIdentifier(value: string): boolean {
@@ -1022,7 +1104,7 @@ export class ProductImporter {
     config: CustomFieldConfig[],
     ctx: RequestContext,
     owner: 'product' | 'variant',
-    skuLookup: SkuLookup = NO_SKU_LOOKUP,
+    relationLookups: RelationLookups = NO_RELATION_LOOKUPS,
   ) {
     function parseBoolean(input?: string): boolean {
       if (input == null) {
@@ -1133,6 +1215,23 @@ export class ProductImporter {
       if (fieldDef.type === 'relation') {
         const inputKey = getGraphQlInputName(fieldDef)
         const relDef = fieldDef as RelationCustomFieldConfig
+        const lookup = relationLookups.fields.get(`${owner}:${fieldDef.name}`)
+        if (lookup) {
+          const ids = this.idsForLookupValues(
+            relationLookups.idsByLookup,
+            lookup,
+            value,
+            fieldDef.list === true,
+          )
+          if (relDef.nullable === false && Array.isArray(ids) && ids.length === 0) {
+            throw new InternalServerError(
+              `Required relation custom field "${fieldDef.name}" is missing or empty`,
+            )
+          }
+          processed[inputKey] = ids
+          continue
+        }
+
         if (relDef.entity === Asset) {
           let resolvedAssetRelation: string | string[] | undefined
           if (startsWith(value, '{') || startsWith(value, '[')) {
@@ -1195,21 +1294,6 @@ export class ProductImporter {
               `Required relation custom field "${fieldDef.name}" must contain valid asset data`,
             )
           }
-          continue
-        }
-
-        if (skuLookup.fields.has(`${owner}:${fieldDef.name}`)) {
-          const variantIds = this.variantIdsForSkus(
-            skuLookup.variantIdsBySku,
-            value,
-            fieldDef.list === true,
-          )
-          if (relDef.nullable === false && Array.isArray(variantIds) && variantIds.length === 0) {
-            throw new InternalServerError(
-              `Required relation custom field "${fieldDef.name}" is missing or empty`,
-            )
-          }
-          processed[inputKey] = variantIds
           continue
         }
 

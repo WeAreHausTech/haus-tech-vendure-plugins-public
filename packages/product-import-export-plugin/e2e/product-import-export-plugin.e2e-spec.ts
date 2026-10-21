@@ -22,9 +22,11 @@ import {
   testConfig,
 } from '@vendure/testing'
 import gql from 'graphql-tag'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { EXPORT_STORAGE_STRATEGY } from '../src/constants'
+import { EXPORT_STORAGE_STRATEGY, IMPORT_JOB_STORAGE_STRATEGY } from '../src/constants'
+import { ImportJobStorageStrategy } from '../src/services/import-storage/import-job-storage-strategy'
+import { ImportParser } from '../src/providers/import-providers/import-parser'
 import { ExportStorageStrategy } from '../src/services/export-storage/export-storage-strategy'
 import { ProductExportService } from '../src/services/product-export.service'
 import { ProductImporter } from '../src/providers/import-providers/product-importer'
@@ -902,6 +904,42 @@ describe('ProductImportExportPlugin e2e', () => {
       )
     } finally {
       configService.customFields.Product = originalProductCustomFields
+    }
+  })
+
+  it('does not parse the file at upload without lookup columns or a row validation strategy', async () => {
+    const ctx = await server.app.get(RequestContextService).create({
+      apiType: 'admin',
+      channelOrToken: E2E_DEFAULT_CHANNEL_TOKEN,
+    })
+    const storage = server.app.get<ImportJobStorageStrategy>(IMPORT_JOB_STORAGE_STRATEGY)
+    const store = vi.spyOn(storage, 'storeImportFile').mockRejectedValue(new Error('not stored'))
+    const parse = vi.spyOn(server.app.get(ImportParser), 'parseProducts')
+    const file = {
+      originalname: 'no-parse.csv',
+      buffer: Buffer.from('name,sku,price\nNo Parse,NO-PARSE-1,1', 'utf8'),
+    } as Express.Multer.File
+
+    try {
+      await expect(
+        server.app.get(ProductImportService).processFile(ctx, file, true, LanguageCode.en, 'merge'),
+      ).rejects.toThrow('not stored')
+      expect(parse).not.toHaveBeenCalled()
+    } finally {
+      store.mockRestore()
+      parse.mockRestore()
+    }
+  })
+
+  it('rejects instead of hanging when reading the parsed records throws', async () => {
+    const parser = server.app.get(ImportParser)
+    const processRecords = vi
+      .spyOn(parser as unknown as { processRawRecords: () => Promise<never> }, 'processRawRecords')
+      .mockRejectedValue(new Error('boom'))
+    try {
+      await expect(parser.parseProducts('name,sku\nA,B')).rejects.toThrow('boom')
+    } finally {
+      processRecords.mockRestore()
     }
   })
 

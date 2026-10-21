@@ -6,6 +6,7 @@ import {
 import type { Injector, Product, ProductVariant, RequestContext } from '@vendure/core'
 import { ExportStorageStrategy } from './services/export-storage/export-storage-strategy'
 import { ImportJobStorageStrategy } from './services/import-storage/import-job-storage-strategy'
+import { ImportRowValidationStrategy } from './strategies/import-row-validation-strategy'
 
 /**
  * @description
@@ -56,6 +57,13 @@ export interface PluginInitOptions {
     storageStrategy?: ImportOptions['storageStrategy']
     storageStrategyFactory?: ImportOptions['storageStrategyFactory']
     importJobStorage?: ImportOptions['importJobStorage']
+    /**
+     * @description
+     * Checks the rows of an import file before anything is written: at upload, before the file is
+     * stored, and again when the import job starts. Defaults to
+     * {@link DefaultImportRowValidationStrategy}, which accepts every row.
+     */
+    rowValidationStrategy?: ImportRowValidationStrategy
   }
   exportOptions: {
     defaultFileName?: string

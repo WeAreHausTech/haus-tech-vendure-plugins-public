@@ -72,6 +72,7 @@ export const config = {
 | `storageStrategy`        | `ImportJobStorageStrategy`                         | local disk  | Strategy instance for queued import file storage and retrieval.                                                            |
 | `storageStrategyFactory` | `(injector: Injector) => ImportJobStorageStrategy` | `undefined` | Factory for DI-aware strategy creation (recommended for S3/remote storage).                                                |
 | `importJobStorage`       | `'local' \| 's3'`                                  | `'local'`   | Deprecated compatibility flag. Prefer `storageStrategy` / `storageStrategyFactory`.                                        |
+| `rowValidationStrategy`  | `ImportRowValidationStrategy`                      | accepts all | Checks the rows of a file before anything is written. See [Row validation](#row-validation).                               |
 
 Available import storage strategies:
 
@@ -97,6 +98,60 @@ The plugin supports configurable storage for exported files:
 
 - **S3** – Stores export files in an S3-compatible bucket
 - **Disk (default)** – Saves files locally on the server
+
+### Row validation
+
+`importOptions.rowValidationStrategy` lets you reject rows by your own rules. It runs on the parsed file twice:
+
+1. At upload, before the file is stored. If it returns errors, the upload answers `400` with `{ "errors": [...] }` and nothing is queued.
+2. When the import job starts, before anything is written, since data can change while the job waits. If it returns errors, the job fails with the same list and nothing is imported.
+
+Each error is shown as `Row <line>: <message>`, in one list with the [relation lookup](#relations-by-sku-or-another-column) errors, ordered by row. Line 1 is the header; blank and comma-only lines are not counted. Numbers count CSV records, so a quoted cell that spans several lines is still one row.
+
+A job that fails this way ends in the `FAILED` state with the list as its error, instead of `COMPLETED` with the errors in its result. The same holds when a relation lookup no longer matches when the job runs.
+
+```typescript
+import {
+  ImportRowError,
+  ImportRowGroup,
+  ImportRowValidationStrategy,
+} from '@haus-tech/product-import-export-plugin'
+import { Injector, RequestContext, TransactionalConnection } from '@vendure/core'
+
+class NoLabelOnSampleStrategy implements ImportRowValidationStrategy {
+  private connection!: TransactionalConnection
+
+  init(injector: Injector) {
+    this.connection = injector.get(TransactionalConnection)
+  }
+
+  async validate(ctx: RequestContext, rows: ImportRowGroup[]): Promise<ImportRowError[]> {
+    return rows
+      .filter((row) => row.product.customFields.labelId !== undefined)
+      .filter((row) => row.variants.some(({ variant }) => variant.sku.startsWith('SAMPLE-')))
+      .map((row) => ({ line: row.line, message: 'a sample product cannot have a label' }))
+  }
+}
+
+ProductImportExportPlugin.init({
+  importOptions: { rowValidationStrategy: new NoLabelOnSampleStrategy() },
+  exportOptions: {},
+})
+```
+
+Each `ImportRowGroup` is one product: its first row (`line`, `product`) and every variant row under it (`variants[].line`, `variants[].variant`).
+
+- Relation custom fields are keyed by their Admin API input name (`labelId`, `labelsIds`) and hold id strings, also when the file names the related rows by a lookup column such as `:sku` or `:code`. An empty cell, and a value a lookup could not resolve, is left out.
+- An `Asset` relation keeps its cell text under the field name, since assets are created only when the row is written. Other custom fields keep their cell text under the field name.
+- `product.productId` is set when the product's first row has a product id in the first column, that is when the row updates an existing product by id. Without it, the importer matches existing products by variant SKU.
+- `product.customFields` holds the custom fields of the product's first translation, which include every non-localised field; each entry of `product.translations` has its own.
+- The groups are copies: changing them does not change what is imported.
+
+`init(injector)` and `destroy()` are called when the application starts and stops. The default strategy accepts every row.
+
+If `validate` throws, the upload answers `500` and nothing is queued, and a running job fails with the thrown error. Return errors instead to show them by row.
+
+Lookup columns must be plain text columns of the related entity, so a translated field (for example a collection's `name`, which lives on its translation entity) cannot be one. The strategy does not run when a lookup header is wrong, since no row is read then.
 
 ### Custom export columns
 
@@ -164,19 +219,21 @@ export const config = {
 - The header is checked before the upload is queued. A custom field column the shop does not have, a missing required column or mixed translated and untranslated columns make the upload answer `400` with `{ "errors": ["Invalid custom field: product:clubName"] }`, the Dashboard lists the errors, and nothing is imported.
 - Product data (`slug`, `description`, `assets`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
 
-#### Relations to variants by SKU
+#### Relations by SKU or another column
 
-A relation custom field to `ProductVariant` can name the related variant by SKU instead of id. Add `:sku` to the column header after the type:
+A relation custom field can name the related row by one of its columns instead of by id. Add the column as a fourth segment to the header, after the type (the related entity's class name in lower case):
 
 ```csv
-name,sku,price,variant:baseVariant:productvariant:sku
-Club Tee,CLUB-TEE-M,299,BASE-TEE-M
+name,sku,price,variant:baseVariant:productvariant:sku,product:label:productlabel:code
+Club Tee,CLUB-TEE-M,299,BASE-TEE-M,ECO
 ```
 
-- Each SKU must match exactly one variant that is not deleted, in any channel. A list field takes `SKU|SKU`.
-- The upload is checked before it is queued. If a SKU matches no variant or more than one, the upload answers `400` with `{ "errors": ["Row 2: no variant with SKU BASE-TEE-M"] }`, the Dashboard lists the rows, and nothing is imported. The import job checks again when it runs.
-- The related variants must exist before the upload, so import them in an earlier file.
-- `:sku` is the only lookup, and it works only on relation fields to `ProductVariant`. Columns without it still take ids.
+- The column must be a text column of the related entity (not a relation or custom field). Otherwise the upload answers `400` with `{ "errors": ["Invalid lookup column \"title\" on ProductLabel"] }`.
+- Each value must match exactly one row of the related entity, in any channel. Rows with a `deletedAt` are skipped. Matching is exact, so case and spacing count. A list field takes `VALUE|VALUE`.
+- The upload is checked before it is queued. If a value matches no row or more than one, the upload answers `400` with the rows, for example `Row 2: no ProductLabel with code ECO` or `Row 3: code ECO matches 2 ProductLabel rows`. `:sku` on a relation to `ProductVariant` keeps its own wording: `Row 2: no variant with SKU BASE-TEE-M` and `Row 3: SKU BASE-TEE-M matches 2 variants`. The Dashboard lists the rows and nothing is imported. The import job checks again when it runs; if a value no longer matches exactly one row, the job fails with the same list and nothing is imported.
+- The related rows must exist before the upload, so import them in an earlier file.
+- The third segment must be the related entity's class name (`productvariant`, `productlabel`; case does not matter), and a field takes one lookup column. Otherwise the upload answers `400` and names the column. `:sku` on a relation to `ProductVariant` accepts any third segment, as it always has.
+- A lookup works only on relation custom fields. Columns without a fourth segment still take ids.
 
 #### Sharing option groups
 

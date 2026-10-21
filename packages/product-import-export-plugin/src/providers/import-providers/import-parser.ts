@@ -88,6 +88,8 @@ export interface ParsedAsset {
  * @docsPage ImportParser
  */
 export interface ParsedProductVariant {
+  /** The file line of the variant's row (the header is line 1, blank lines are not counted). */
+  line?: number
   sku: string
   price: number | undefined
   taxCategory?: string
@@ -116,6 +118,8 @@ export interface ParsedProductVariant {
  * @docsPage ImportParser
  */
 export interface ParsedProduct {
+  /** The file line of the product's first row (the header is line 1, blank lines are not counted). */
+  line?: number
   assetPaths: string[]
   assetsJson?: ParsedAsset[]
   optionGroups: ParsedOptionGroup[]
@@ -192,14 +196,18 @@ export class ImportParser {
       let errors: string[] = []
 
       if (typeof input === 'string') {
-        parse(input, options, async (err: any, records: string[][]) => {
+        parse(input, options, (err: any, records: string[][]) => {
           if (err) {
             errors = errors.concat(err)
           }
           if (records) {
-            const parseResult = await this.processRawRecords(records, mainLanguage)
-            errors = errors.concat(parseResult.errors)
-            resolve({ results: parseResult.results, errors, processed: parseResult.processed })
+            // A throw here must reject, or the caller (an upload request) waits forever.
+            this.processRawRecords(records, mainLanguage)
+              .then((parseResult) => {
+                errors = errors.concat(parseResult.errors)
+                resolve({ results: parseResult.results, errors, processed: parseResult.processed })
+              })
+              .catch(reject)
           } else {
             resolve({ results: [], errors, processed: 0 })
           }
@@ -283,8 +291,10 @@ export class ImportParser {
           }
         }
         currentRow = {
-          product: await this.parseProductFromRecord(r, usedLanguages, mainLanguage),
-          variants: [await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)],
+          product: { line, ...(await this.parseProductFromRecord(r, usedLanguages, mainLanguage)) },
+          variants: [
+            { line, ...(await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)) },
+          ],
         }
         currentRowRejected = false
       } else {
@@ -297,9 +307,10 @@ export class ImportParser {
             )
             currentRowRejected = true
           }
-          currentRow.variants.push(
-            await this.parseVariantFromRecord(r, usedLanguages, mainLanguage),
-          )
+          currentRow.variants.push({
+            line,
+            ...(await this.parseVariantFromRecord(r, usedLanguages, mainLanguage)),
+          })
         }
       }
       const optionError = validateOptionValueCount(r, currentRow, mainLanguage)
