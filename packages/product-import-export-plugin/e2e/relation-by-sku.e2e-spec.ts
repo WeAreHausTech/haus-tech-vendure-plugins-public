@@ -1,14 +1,20 @@
 import path from 'path'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import {
+  DeepPartial,
   ID,
   LanguageCode,
+  PluginCommonModule,
   Product,
   ProductVariant,
   RequestContextService,
   TransactionalConnection,
+  VendureEntity,
+  VendurePlugin,
   mergeConfig,
 } from '@vendure/core'
+import gql from 'graphql-tag'
+import { Column, Entity } from 'typeorm'
 import {
   E2E_DEFAULT_CHANNEL_TOKEN,
   createTestEnvironment,
@@ -20,14 +26,14 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { IMPORT_JOB_STORAGE_STRATEGY } from '../src/constants'
 import { ImportJobStorageStrategy } from '../src/services/import-storage/import-job-storage-strategy'
 import { ProductImporter } from '../src/providers/import-providers/product-importer'
-import { SkuRelationResolver } from '../src/services/sku-relation-resolver'
+import { RelationLookupResolver } from '../src/services/relation-lookup-resolver'
 import { ProductImportExportPlugin } from '../src/product-import-export.plugin'
 import { initialData } from './fixtures/initial-data'
 
 // Own data dir (a sibling of `__data__`), because vitest runs spec files in parallel and this
 // spec needs its own custom field schema.
 const sqliteDataDir = path.join(__dirname, '__data-relation-by-sku__')
-const SQLITE_SCHEMA_VERSION = '3.6'
+const SQLITE_SCHEMA_VERSION = '3.6-test-tag'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')
@@ -49,10 +55,44 @@ registerInitializer('sqljs', new SqljsInitializer(sqliteDataDir))
 const HEADER = 'name,slug,description,sku,price,taxCategory,stockOnHand'
 const BASE_BY_SKU = 'variant:baseVariant:productvariant:sku'
 const SIBLINGS_BY_SKU = 'variant:siblings:productvariant:sku'
+const TAG_BY_CODE = 'product:tag:testtag:code'
+const TAGS_BY_CODE = 'product:tags:testtag:code'
+
+/** A plugin entity with a unique column, a non-unique one and soft delete. */
+@Entity()
+class TestTag extends VendureEntity {
+  constructor(input?: DeepPartial<TestTag>) {
+    super(input)
+  }
+
+  @Column({ unique: true })
+  code: string
+
+  @Column({ type: 'varchar', nullable: true })
+  label: string | null
+
+  @Column({ type: Date, nullable: true })
+  deletedAt: Date | null
+}
+
+@VendurePlugin({
+  imports: [PluginCommonModule],
+  entities: [TestTag],
+  adminApiExtensions: {
+    schema: gql`
+      type TestTag implements Node {
+        id: ID!
+        code: String!
+      }
+    `,
+  },
+})
+class TestTagPlugin {}
 
 /**
  * A ProductVariant relation custom field can name the related variant by SKU: the column header
- * gets a fourth segment, `:sku`. The upload is checked before it is queued, so the uploader sees
+ * gets a fourth segment, `:sku`. Any relation custom field can name its rows by another text
+ * column the same way, e.g. `:code`. The upload is checked before it is queued, so the uploader sees
  * a missing or ambiguous SKU at once; the import job checks again, since data can change between
  * upload and run.
  */
@@ -63,14 +103,21 @@ describe('relation custom fields given by SKU', () => {
     mergeConfig(testConfig, {
       apiOptions: { port: apiPort },
       customFields: {
-        Product: [{ name: 'relatedProduct', type: 'relation', entity: Product, nullable: true }],
+        Product: [
+          { name: 'relatedProduct', type: 'relation', entity: Product, nullable: true },
+          { name: 'tag', type: 'relation', entity: TestTag, nullable: true, public: false },
+          { name: 'tags', type: 'relation', entity: TestTag, list: true, public: false },
+        ],
         ProductVariant: [
           { name: 'baseVariant', type: 'relation', entity: ProductVariant, nullable: true },
           { name: 'siblings', type: 'relation', entity: ProductVariant, list: true },
           { name: 'note', type: 'string', nullable: true },
         ],
       },
-      plugins: [ProductImportExportPlugin.init({ importOptions: {}, exportOptions: {} })],
+      plugins: [
+        TestTagPlugin,
+        ProductImportExportPlugin.init({ importOptions: {}, exportOptions: {} }),
+      ],
     }),
   )
   let ctx: Awaited<ReturnType<RequestContextService['create']>>
@@ -102,9 +149,19 @@ describe('relation custom fields given by SKU', () => {
       }) as Promise<ProductVariant | null>
   }
 
+  async function findProductBySku(sku: string): Promise<Product | null> {
+    return server.app
+      .get(TransactionalConnection)
+      .getRepository(ctx, Product)
+      .findOne({
+        where: { variants: { sku } },
+        relations: ['customFields.tag', 'customFields.tags'],
+      }) as Promise<Product | null>
+  }
+
   function validate(csv: string): Promise<string[]> {
     return server.app
-      .get(SkuRelationResolver)
+      .get(RelationLookupResolver)
       .resolve(ctx, csv)
       .then((result) => result.errors)
   }
@@ -147,6 +204,16 @@ describe('relation custom fields given by SKU', () => {
     // Vendure does not keep SKUs unique, so two variants can share one.
     await variantRepo.update({ sku: 'DUP-B' }, { sku: 'DUP-A' })
     await variantRepo.update({ sku: 'GONE-1' }, { deletedAt: new Date() })
+
+    const tagRepo = server.app.get(TransactionalConnection).getRepository(ctx, TestTag)
+    const tags = await tagRepo.save([
+      new TestTag({ code: 'T-1', label: 'Shared' }),
+      new TestTag({ code: 'T 2.b', label: 'Shared' }),
+      new TestTag({ code: 'T-OLD', label: 'Old', deletedAt: new Date() }),
+    ])
+    for (const tag of tags) {
+      ids[tag.code] = tag.id
+    }
   }, 120_000)
 
   afterEach(() => {
@@ -270,24 +337,23 @@ describe('relation custom fields given by SKU', () => {
       ])
     })
 
-    it('rejects a lookup other than sku', async () => {
+    it('rejects a lookup column the related entity does not have', async () => {
       const csv = [
-        `${HEADER},variant:baseVariant:productvariant:code`,
-        'A,a,A,X-1,1,Standard Tax,1,BASE-1',
-      ].join('\n')
-      expect(await validate(csv)).toEqual([
-        "Column 'variant:baseVariant:productvariant:code': only ':sku' is supported as a lookup",
-      ])
-    })
-
-    it('rejects :sku on a field that is not a relation to ProductVariant', async () => {
-      const csv = [
-        `${HEADER},product:relatedProduct:product:sku,variant:note:string:sku`,
+        `${HEADER},variant:baseVariant:productvariant:code,product:relatedProduct:product:sku`,
         'A,a,A,X-1,1,Standard Tax,1,BASE-1,BASE-1',
       ].join('\n')
       expect(await validate(csv)).toEqual([
-        "Column 'product:relatedProduct:product:sku': ':sku' works only on relation custom fields to ProductVariant",
-        "Column 'variant:note:string:sku': ':sku' works only on relation custom fields to ProductVariant",
+        'Invalid lookup column "code" on ProductVariant',
+        'Invalid lookup column "sku" on Product',
+      ])
+    })
+
+    it('rejects a lookup on a field that is not a relation', async () => {
+      const csv = [`${HEADER},variant:note:string:sku`, 'A,a,A,X-1,1,Standard Tax,1,BASE-1'].join(
+        '\n',
+      )
+      expect(await validate(csv)).toEqual([
+        "Column 'variant:note:string:sku': a lookup works only on relation custom fields",
       ])
     })
 
@@ -361,6 +427,96 @@ describe('relation custom fields given by SKU', () => {
         [`${HEADER},${BASE_BY_SKU}`, 'A,a,A,UP-2,1,Standard Tax,1,BASE-1'].join('\n'),
       )
       expect(response.status).toBe(200)
+    })
+  })
+
+  describe('relation custom fields given by another column', () => {
+    it('links a single relation to the row with that code', async () => {
+      const csv = [
+        `${HEADER},${TAG_BY_CODE}`,
+        'Tag One,tag-one,Tag,TAG-1,150,Standard Tax,1,T-1',
+      ].join('\n')
+      expect(await runImport(csv)).toEqual([])
+      expect((await findProductBySku('TAG-1'))?.customFields.tag?.id).toBe(ids['T-1'])
+    })
+
+    it('links a list relation with CODE|CODE', async () => {
+      const csv = [
+        `${HEADER},${TAGS_BY_CODE}`,
+        'Tag Two,tag-two,Tag,TAG-2,150,Standard Tax,1,T-1|T 2.b',
+      ].join('\n')
+      expect(await runImport(csv)).toEqual([])
+      const product = await findProductBySku('TAG-2')
+      expect(product?.customFields.tags.map((tag: TestTag) => tag.id).sort()).toEqual(
+        [ids['T-1'], ids['T 2.b']].sort(),
+      )
+    })
+
+    it('imports nothing when a code is missing at run time', async () => {
+      const csv = [
+        `${HEADER},${TAG_BY_CODE}`,
+        'Tag Three,tag-three,Tag,TAG-3,150,Standard Tax,1,T-1',
+        'Tag Four,tag-four,Tag,TAG-4,150,Standard Tax,1,NOPE',
+      ].join('\n')
+      expect(await runImport(csv)).toEqual(['Row 3: no TestTag with code NOPE'])
+      expect(await findProductBySku('TAG-3')).toBeNull()
+    })
+
+    it('reports missing, deleted and ambiguous values with their rows', async () => {
+      const csv = [
+        `${HEADER},${TAG_BY_CODE},product:tags:testtag:label`,
+        'A,a,A,X-1,1,Standard Tax,1,T-1,',
+        'B,b,B,X-2,1,Standard Tax,1,t-1,',
+        'C,c,C,X-3,1,Standard Tax,1,T-OLD,',
+        'D,d,D,X-4,1,Standard Tax,1,,Shared|Missing',
+      ].join('\n')
+      expect(await validate(csv)).toEqual([
+        'Row 3: no TestTag with code t-1',
+        'Row 4: no TestTag with code T-OLD',
+        'Row 5: label Shared matches 2 TestTag rows',
+        'Row 5: no TestTag with label Missing',
+      ])
+    })
+
+    it('rejects a lookup column the entity does not have', async () => {
+      const csv = [`${HEADER},product:tag:testtag:nope`, 'A,a,A,X-1,1,Standard Tax,1,T-1'].join(
+        '\n',
+      )
+      expect(await validate(csv)).toEqual(['Invalid lookup column "nope" on TestTag'])
+    })
+
+    it('rejects a lookup on a column that is not text', async () => {
+      const csv = [
+        `${HEADER},product:tag:testtag:deletedAt`,
+        'A,a,A,X-1,1,Standard Tax,1,T-1',
+      ].join('\n')
+      expect(await validate(csv)).toEqual(['Invalid lookup column "deletedAt" on TestTag'])
+    })
+
+    it('answers 400 with the errors and queues nothing when a code is wrong', async () => {
+      const storage = server.app.get<ImportJobStorageStrategy>(IMPORT_JOB_STORAGE_STRATEGY)
+      const store = vi.spyOn(storage, 'storeImportFile')
+
+      const response = await upload(
+        [`${HEADER},${TAG_BY_CODE}`, 'A,a,A,UP-6,1,Standard Tax,1,NOPE'].join('\n'),
+      )
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ errors: ['Row 2: no TestTag with code NOPE'] })
+      expect(store).not.toHaveBeenCalled()
+    })
+
+    it('answers 400 and queues nothing when the lookup column is unknown', async () => {
+      const storage = server.app.get<ImportJobStorageStrategy>(IMPORT_JOB_STORAGE_STRATEGY)
+      const store = vi.spyOn(storage, 'storeImportFile')
+
+      const response = await upload(
+        [`${HEADER},product:tag:testtag:nope`, 'A,a,A,UP-7,1,Standard Tax,1,T-1'].join('\n'),
+      )
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ errors: ['Invalid lookup column "nope" on TestTag'] })
+      expect(store).not.toHaveBeenCalled()
     })
   })
 })

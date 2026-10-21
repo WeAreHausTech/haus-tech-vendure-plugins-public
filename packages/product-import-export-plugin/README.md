@@ -164,19 +164,20 @@ export const config = {
 - The header is checked before the upload is queued. A custom field column the shop does not have, a missing required column or mixed translated and untranslated columns make the upload answer `400` with `{ "errors": ["Invalid custom field: product:clubName"] }`, the Dashboard lists the errors, and nothing is imported.
 - Product data (`slug`, `description`, `assets`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
 
-#### Relations to variants by SKU
+#### Relations by SKU or another column
 
-A relation custom field to `ProductVariant` can name the related variant by SKU instead of id. Add `:sku` to the column header after the type:
+A relation custom field can name the related row by one of its columns instead of by id. Add the column as a fourth segment to the header, after the type (the related entity's class name in lower case):
 
 ```csv
-name,sku,price,variant:baseVariant:productvariant:sku
-Club Tee,CLUB-TEE-M,299,BASE-TEE-M
+name,sku,price,variant:baseVariant:productvariant:sku,product:label:productlabel:code
+Club Tee,CLUB-TEE-M,299,BASE-TEE-M,ECO
 ```
 
-- Each SKU must match exactly one variant that is not deleted, in any channel. A list field takes `SKU|SKU`.
-- The upload is checked before it is queued. If a SKU matches no variant or more than one, the upload answers `400` with `{ "errors": ["Row 2: no variant with SKU BASE-TEE-M"] }`, the Dashboard lists the rows, and nothing is imported. The import job checks again when it runs.
-- The related variants must exist before the upload, so import them in an earlier file.
-- `:sku` is the only lookup, and it works only on relation fields to `ProductVariant`. Columns without it still take ids.
+- The column must be a text column of the related entity (not a relation or custom field). Otherwise the upload answers `400` with `{ "errors": ["Invalid lookup column \"title\" on ProductLabel"] }`.
+- Each value must match exactly one row of the related entity, in any channel. Rows with a `deletedAt` are skipped. Matching is exact, so case and spacing count. A list field takes `VALUE|VALUE`.
+- The upload is checked before it is queued. If a value matches no row or more than one, the upload answers `400` with the rows, for example `Row 2: no ProductLabel with code ECO` or `Row 3: code ECO matches 2 ProductLabel rows`. `:sku` on a relation to `ProductVariant` keeps its own wording: `Row 2: no variant with SKU BASE-TEE-M` and `Row 3: SKU BASE-TEE-M matches 2 variants`. The Dashboard lists the rows and nothing is imported. The import job checks again when it runs.
+- The related rows must exist before the upload, so import them in an earlier file.
+- A lookup works only on relation custom fields. Columns without a fourth segment still take ids.
 
 #### Sharing option groups
 

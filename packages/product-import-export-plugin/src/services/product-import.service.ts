@@ -17,7 +17,7 @@ import { UpdatingStrategy } from '../types'
 import { ProductImporter } from '../providers/import-providers/product-importer'
 import { omit } from 'lodash'
 import { ImportJobStorageStrategy } from './import-storage/import-job-storage-strategy'
-import { SkuRelationResolver } from './sku-relation-resolver'
+import { RelationLookupResolver } from './relation-lookup-resolver'
 import { importProgressPercent } from './import-progress'
 
 /** The uploaded file cannot be imported as it is; `errors` says why, one line per problem. */
@@ -46,7 +46,7 @@ export class ProductImportService implements OnModuleInit {
     private searchService: SearchService,
     private productService: ProductService,
     private eventBus: EventBus,
-    private skuRelationResolver: SkuRelationResolver,
+    private relationLookupResolver: RelationLookupResolver,
   ) {}
 
   public async onModuleInit(): Promise<void> {
@@ -101,14 +101,14 @@ export class ProductImportService implements OnModuleInit {
     mainLanguage: LanguageCode,
     updatingStrategy: UpdatingStrategy,
   ) {
-    // Checked before queueing so the uploader sees a wrong header or SKU at once, not as a
-    // finished job that imported nothing.
+    // Checked before queueing so the uploader sees a wrong header or lookup value at once, not as
+    // a finished job that imported nothing.
     const csv = file.buffer.toString('utf8')
     const headerErrors = this.productImporter.validateHeader(csv)
     if (headerErrors.length > 0) {
       throw new ImportFileInvalidError(headerErrors)
     }
-    const { errors } = await this.skuRelationResolver.resolve(ctx, csv)
+    const { errors } = await this.relationLookupResolver.resolve(ctx, csv)
     if (errors.length > 0) {
       throw new ImportFileInvalidError(errors)
     }

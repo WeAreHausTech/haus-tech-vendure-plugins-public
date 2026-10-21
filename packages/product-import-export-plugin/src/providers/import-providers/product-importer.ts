@@ -53,10 +53,12 @@ import { generateAssetHash } from '../../helpers/generate-asset-hash'
 import { createHash } from 'crypto'
 import { removeUpdatedAtFields } from '../../helpers/remove-update-at-fields'
 import {
-  SkuRelationResolver,
-  SkuRelationResult,
-  splitSkuList,
-} from '../../services/sku-relation-resolver'
+  RelationLookup,
+  RelationLookupResolver,
+  RelationLookupResult,
+  relationLookupKey,
+  splitLookupList,
+} from '../../services/relation-lookup-resolver'
 import {
   importCsvHeaders,
   importCsvLines,
@@ -64,14 +66,14 @@ import {
   splitCsvLine,
 } from '../../helpers/import-csv-lines'
 
-/** The relation columns of one import whose values are SKUs, and the variant id behind each SKU. */
-type SkuLookup = Pick<SkuRelationResult, 'fields' | 'variantIdsBySku'>
+/** The relation columns of one import whose values are not ids, and the id behind each value. */
+type RelationLookups = Pick<RelationLookupResult, 'fields' | 'idsByLookup'>
 
-const NO_SKU_LOOKUP: SkuLookup = { fields: new Set(), variantIdsBySku: new Map() }
+const NO_RELATION_LOOKUPS: RelationLookups = { fields: new Map(), idsByLookup: new Map() }
 
 /**
- * Splits a typed custom field header (`product:field:type`, or with a fourth `:sku` segment that
- * SkuRelationResolver reads) into the `<owner>:<field>` key the parser checks and the type.
+ * Splits a typed custom field header (`product:field:type`, or with a fourth lookup segment that
+ * RelationLookupResolver reads) into the `<owner>:<field>` key the parser checks and the type.
  */
 function splitTypedCustomFieldHeader(
   header: string,
@@ -117,7 +119,7 @@ export class ProductImporter {
     private assetService: AssetService,
     private optionGroupService: ProductOptionGroupService,
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private pluginOptions: PluginInitOptions,
-    private skuRelationResolver: SkuRelationResolver,
+    private relationLookupResolver: RelationLookupResolver,
   ) {
     this.slugStrategy = this.configService.entityOptions.slugStrategy
   }
@@ -190,7 +192,7 @@ export class ProductImporter {
   } {
     const customFieldTypes: Record<string, string> = {}
 
-    // Without blank and comma-only lines, as SkuRelationResolver reads the file
+    // Without blank and comma-only lines, as RelationLookupResolver reads the file
     const filteredLines = importCsvLines(input)
 
     const headers = splitCsvLine(filteredLines[0])
@@ -294,11 +296,11 @@ export class ProductImporter {
       csvContent = await this.streamToString(input)
     }
 
-    // Checked again here, not only on upload: variants can change while the job waits. SKUs are
-    // resolved once, here: a variant deleted while the import runs is still linked to.
-    const skuRelations = await this.skuRelationResolver.resolve(ctx, csvContent)
-    if (skuRelations.errors.length > 0) {
-      return { errors: skuRelations.errors, imported: 0, processed: 0 }
+    // Checked again here, not only on upload: related rows can change while the job waits. Values
+    // are resolved once, here: a row deleted while the import runs is still linked to.
+    const relationLookups = await this.relationLookupResolver.resolve(ctx, csvContent)
+    if (relationLookups.errors.length > 0) {
+      return { errors: relationLookups.errors, imported: 0, processed: 0 }
     }
 
     // Preprocess the CSV to extract types and clean headers
@@ -331,7 +333,7 @@ export class ProductImporter {
               processed: parsed.processed,
             })
           },
-          skuRelations,
+          relationLookups,
         )
         return {
           errors: parsed.errors.concat(importErrors),
@@ -377,7 +379,7 @@ export class ProductImporter {
     rows: ParsedProductWithId[],
     updatingStrategy: UpdatingStrategy,
     onProgress: OnProgressFn,
-    skuLookup: SkuLookup = NO_SKU_LOOKUP,
+    relationLookups: RelationLookups = NO_RELATION_LOOKUPS,
   ): Promise<string[]> {
     let errors: string[] = []
     let imported = 0
@@ -432,7 +434,7 @@ export class ProductImporter {
         this.configService.customFields.Product,
         ctx,
         'product',
-        skuLookup,
+        relationLookups,
       )
 
       let checkExistingProduct
@@ -532,7 +534,7 @@ export class ProductImporter {
                 this.configService.customFields.Product,
                 ctx,
                 'product',
-                skuLookup,
+                relationLookups,
               ),
             }
           }),
@@ -712,7 +714,7 @@ export class ProductImporter {
           this.configService.customFields.ProductVariant,
           ctx,
           'variant',
-          skuLookup,
+          relationLookups,
         )
 
         const optionIds = shouldUpdateOptions
@@ -795,7 +797,7 @@ export class ProductImporter {
                   this.configService.customFields.ProductVariant,
                   ctx,
                   'variant',
-                  skuLookup,
+                  relationLookups,
                 ),
               }
             }),
@@ -994,23 +996,26 @@ export class ProductImporter {
     return out
   }
 
-  /** Swaps SKUs for variant ids; `SkuRelationResolver` has already checked each SKU. */
-  private variantIdsForSkus(
-    variantIdsBySku: Map<string, ID>,
+  /** Swaps lookup values for ids; `RelationLookupResolver` has already checked each value. */
+  private idsForLookupValues(
+    idsByLookup: Map<string, ID>,
+    lookup: RelationLookup,
     value: string,
     list: boolean,
   ): string | string[] {
-    const idFor = (sku: string): string => {
-      const id = variantIdsBySku.get(sku)
+    const idFor = (lookupValue: string): string => {
+      const id = idsByLookup.get(relationLookupKey(lookup, lookupValue))
       if (id === undefined) {
-        throw new InternalServerError(`No variant with SKU ${sku}`)
+        throw new InternalServerError(
+          `No ${lookup.entityName} with ${lookup.column} ${lookupValue}`,
+        )
       }
       return String(id)
     }
     if (!list) {
       return idFor(value.trim())
     }
-    return splitSkuList(value).map(idFor)
+    return splitLookupList(value).map(idFor)
   }
 
   private isValidRelationIdentifier(value: string): boolean {
@@ -1022,7 +1027,7 @@ export class ProductImporter {
     config: CustomFieldConfig[],
     ctx: RequestContext,
     owner: 'product' | 'variant',
-    skuLookup: SkuLookup = NO_SKU_LOOKUP,
+    relationLookups: RelationLookups = NO_RELATION_LOOKUPS,
   ) {
     function parseBoolean(input?: string): boolean {
       if (input == null) {
@@ -1133,6 +1138,23 @@ export class ProductImporter {
       if (fieldDef.type === 'relation') {
         const inputKey = getGraphQlInputName(fieldDef)
         const relDef = fieldDef as RelationCustomFieldConfig
+        const lookup = relationLookups.fields.get(`${owner}:${fieldDef.name}`)
+        if (lookup) {
+          const ids = this.idsForLookupValues(
+            relationLookups.idsByLookup,
+            lookup,
+            value,
+            fieldDef.list === true,
+          )
+          if (relDef.nullable === false && Array.isArray(ids) && ids.length === 0) {
+            throw new InternalServerError(
+              `Required relation custom field "${fieldDef.name}" is missing or empty`,
+            )
+          }
+          processed[inputKey] = ids
+          continue
+        }
+
         if (relDef.entity === Asset) {
           let resolvedAssetRelation: string | string[] | undefined
           if (startsWith(value, '{') || startsWith(value, '[')) {
@@ -1195,21 +1217,6 @@ export class ProductImporter {
               `Required relation custom field "${fieldDef.name}" must contain valid asset data`,
             )
           }
-          continue
-        }
-
-        if (skuLookup.fields.has(`${owner}:${fieldDef.name}`)) {
-          const variantIds = this.variantIdsForSkus(
-            skuLookup.variantIdsBySku,
-            value,
-            fieldDef.list === true,
-          )
-          if (relDef.nullable === false && Array.isArray(variantIds) && variantIds.length === 0) {
-            throw new InternalServerError(
-              `Required relation custom field "${fieldDef.name}" is missing or empty`,
-            )
-          }
-          processed[inputKey] = variantIds
           continue
         }
 
