@@ -1,3 +1,9 @@
+## 3.6.13
+
+### 🚀 Features
+
+- **product-import-export-plugin:** link relations by any column and validate import rows ([#59](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/59))
+
 ## 3.6.12
 
 ### 🩹 Fixes
