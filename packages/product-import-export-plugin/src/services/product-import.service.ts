@@ -84,7 +84,8 @@ export class ProductImportService implements OnModuleInit {
           }).then(async (result) => {
             if (jobResult?.rejected) {
               // The rows were checked again before the first write and nothing was imported.
-              throw new ImportFileInvalidError(result.errors ?? [])
+              const errors = result.errors?.length ? result.errors : ['The import was rejected']
+              throw new ImportFileInvalidError(errors)
             }
             await this.runPostImportTasks(ctx, result)
             return omit(result, 'currentProduct') as ImportProgress

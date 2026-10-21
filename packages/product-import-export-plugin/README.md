@@ -106,7 +106,9 @@ The plugin supports configurable storage for exported files:
 1. At upload, before the file is stored. If it returns errors, the upload answers `400` with `{ "errors": [...] }` and nothing is queued.
 2. When the import job starts, before anything is written, since data can change while the job waits. If it returns errors, the job fails with the same list and nothing is imported.
 
-Each error is shown as `Row <line>: <message>`, in one list with the [relation lookup](#relations-by-sku-or-another-column) errors, ordered by row. Line 1 is the header; blank and comma-only lines are not counted.
+Each error is shown as `Row <line>: <message>`, in one list with the [relation lookup](#relations-by-sku-or-another-column) errors, ordered by row. Line 1 is the header; blank and comma-only lines are not counted. Lines are physical lines of the file, so a quoted cell that spans several lines shifts the numbers of the rows after it.
+
+A job that fails this way ends in the `FAILED` state with the list as its error, instead of `COMPLETED` with the errors in its result. The same holds when a relation lookup no longer matches when the job runs.
 
 ```typescript
 import {
@@ -223,9 +225,9 @@ Club Tee,CLUB-TEE-M,299,BASE-TEE-M,ECO
 
 - The column must be a text column of the related entity (not a relation or custom field). Otherwise the upload answers `400` with `{ "errors": ["Invalid lookup column \"title\" on ProductLabel"] }`.
 - Each value must match exactly one row of the related entity, in any channel. Rows with a `deletedAt` are skipped. Matching is exact, so case and spacing count. A list field takes `VALUE|VALUE`.
-- The upload is checked before it is queued. If a value matches no row or more than one, the upload answers `400` with the rows, for example `Row 2: no ProductLabel with code ECO` or `Row 3: code ECO matches 2 ProductLabel rows`. `:sku` on a relation to `ProductVariant` keeps its own wording: `Row 2: no variant with SKU BASE-TEE-M` and `Row 3: SKU BASE-TEE-M matches 2 variants`. The Dashboard lists the rows and nothing is imported. The import job checks again when it runs.
+- The upload is checked before it is queued. If a value matches no row or more than one, the upload answers `400` with the rows, for example `Row 2: no ProductLabel with code ECO` or `Row 3: code ECO matches 2 ProductLabel rows`. `:sku` on a relation to `ProductVariant` keeps its own wording: `Row 2: no variant with SKU BASE-TEE-M` and `Row 3: SKU BASE-TEE-M matches 2 variants`. The Dashboard lists the rows and nothing is imported. The import job checks again when it runs; if a value no longer matches exactly one row, the job fails with the same list and nothing is imported.
 - The related rows must exist before the upload, so import them in an earlier file.
-- The third segment must be the related entity's class name in lower case (`productvariant`, `productlabel`), and a field takes one lookup column. Otherwise the upload answers `400` and names the column.
+- The third segment must be the related entity's class name (`productvariant`, `productlabel`; case does not matter), and a field takes one lookup column. Otherwise the upload answers `400` and names the column. `:sku` on a relation to `ProductVariant` accepts any third segment, as it always has.
 - A lookup works only on relation custom fields. Columns without a fourth segment still take ids.
 
 #### Sharing option groups
