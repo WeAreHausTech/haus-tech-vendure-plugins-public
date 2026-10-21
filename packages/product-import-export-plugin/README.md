@@ -177,6 +177,7 @@ Club Tee,CLUB-TEE-M,299,BASE-TEE-M,ECO
 - Each value must match exactly one row of the related entity, in any channel. Rows with a `deletedAt` are skipped. Matching is exact, so case and spacing count. A list field takes `VALUE|VALUE`.
 - The upload is checked before it is queued. If a value matches no row or more than one, the upload answers `400` with the rows, for example `Row 2: no ProductLabel with code ECO` or `Row 3: code ECO matches 2 ProductLabel rows`. `:sku` on a relation to `ProductVariant` keeps its own wording: `Row 2: no variant with SKU BASE-TEE-M` and `Row 3: SKU BASE-TEE-M matches 2 variants`. The Dashboard lists the rows and nothing is imported. The import job checks again when it runs.
 - The related rows must exist before the upload, so import them in an earlier file.
+- The third segment must be the related entity's class name in lower case (`productvariant`, `productlabel`), and a field takes one lookup column. Otherwise the upload answers `400` and names the column.
 - A lookup works only on relation custom fields. Columns without a fourth segment still take ids.
 
 #### Sharing option groups

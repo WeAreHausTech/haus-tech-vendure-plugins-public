@@ -485,6 +485,40 @@ describe('relation custom fields given by SKU', () => {
       expect(await validate(csv)).toEqual(['Invalid lookup column "nope" on TestTag'])
     })
 
+    it('reports a value that matches several rows on a single relation', async () => {
+      const csv = [`${HEADER},product:tag:testtag:label`, 'A,a,A,X-1,1,Standard Tax,1,Shared'].join(
+        '\n',
+      )
+      expect(await validate(csv)).toEqual(['Row 2: label Shared matches 2 TestTag rows'])
+    })
+
+    it('rejects a lookup on a relation column of the related entity', async () => {
+      const csv = [
+        `${HEADER},variant:baseVariant:productvariant:product`,
+        'A,a,A,X-1,1,Standard Tax,1,BASE-1',
+      ].join('\n')
+      expect(await validate(csv)).toEqual(['Invalid lookup column "product" on ProductVariant'])
+    })
+
+    it('rejects a third segment that is not the related entity', async () => {
+      const csv = [`${HEADER},product:tag:product:code`, 'A,a,A,X-1,1,Standard Tax,1,T-1'].join(
+        '\n',
+      )
+      expect(await validate(csv)).toEqual([
+        "Column 'product:tag:product:code': the third segment must be 'testtag', the related entity",
+      ])
+    })
+
+    it('rejects two lookup columns for the same field', async () => {
+      const csv = [
+        `${HEADER},${TAG_BY_CODE},product:tag:testtag:label`,
+        'A,a,A,X-1,1,Standard Tax,1,T-1,Shared',
+      ].join('\n')
+      expect(await validate(csv)).toEqual([
+        "Column 'product:tag:testtag:label': product:tag is already given by another column",
+      ])
+    })
+
     it('rejects a lookup on a column that is not text', async () => {
       const csv = [
         `${HEADER},product:tag:testtag:deletedAt`,

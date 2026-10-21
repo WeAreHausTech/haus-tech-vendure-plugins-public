@@ -92,7 +92,10 @@ export class RelationLookupResolver {
       return { errors: [], idsByLookup, fields }
     }
 
-    const headerErrors = lookupHeaders.flatMap((header) => this.checkHeader(header))
+    const headerErrors = [
+      ...lookupHeaders.flatMap((header) => this.checkHeader(header)),
+      ...duplicateFieldErrors(lookupHeaders.map((header) => this.splitHeader(header))),
+    ]
     if (headerErrors.length > 0) {
       return { errors: headerErrors, idsByLookup, fields }
     }
@@ -145,7 +148,7 @@ export class RelationLookupResolver {
   }
 
   private checkHeader(header: string): string[] {
-    const [owner, fieldName, , column] = this.splitHeader(header)
+    const [owner, fieldName, entitySegment, column] = this.splitHeader(header)
     const config = this.findFieldConfig(header)
     if (!config) {
       const entity = owner === 'product' ? 'Product' : 'ProductVariant'
@@ -155,6 +158,12 @@ export class RelationLookupResolver {
       return [`Column '${header}': a lookup works only on relation custom fields`]
     }
     const { entity } = config as RelationCustomFieldConfig
+    const expectedSegment = entity.name.toLowerCase()
+    if (entitySegment !== expectedSegment) {
+      return [
+        `Column '${header}': the third segment must be '${expectedSegment}', the related entity`,
+      ]
+    }
     if (!this.findLookupColumn(entity, column)) {
       return [`Invalid lookup column "${column}" on ${entity.name}`]
     }
@@ -178,10 +187,16 @@ export class RelationLookupResolver {
     entity: Type<VendureEntity>,
     propertyName: string,
   ): ColumnMetadata | undefined {
+    // Not findColumnWithPropertyName: it can return a custom field (embedded) column of that name.
     const column = this.connection.rawConnection
       .getMetadata(entity)
-      .findColumnWithPropertyName(propertyName)
-    if (!column || column.relationMetadata || column.embeddedMetadata) {
+      .columns.find(
+        (candidate) =>
+          candidate.propertyName === propertyName &&
+          !candidate.embeddedMetadata &&
+          !candidate.relationMetadata,
+      )
+    if (!column) {
       return undefined
     }
     const isText = column.type === String || TEXT_COLUMN_TYPES.has(String(column.type))
@@ -261,6 +276,20 @@ export class RelationLookupResolver {
     }
     return found
   }
+}
+
+/** A second lookup column for a field that an earlier column already gives. */
+function duplicateFieldErrors(headers: string[][]): string[] {
+  const seen = new Set<string>()
+  const errors: string[] = []
+  for (const parts of headers) {
+    const field = `${parts[0]}:${parts[1]}`
+    if (seen.has(field)) {
+      errors.push(`Column '${parts.join(':')}': ${field} is already given by another column`)
+    }
+    seen.add(field)
+  }
+  return errors
 }
 
 function lookupError(lookup: RelationLookup, value: string, matchCount: number): string {
