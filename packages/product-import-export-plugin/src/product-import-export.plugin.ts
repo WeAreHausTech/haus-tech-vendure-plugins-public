@@ -1,4 +1,4 @@
-import { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common'
+import { Inject, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common'
 import { Injector, PluginCommonModule, Type, VendurePlugin } from '@vendure/core'
 import { AdminUiExtension } from '@vendure/ui-devkit/compiler'
 import { ModuleRef } from '@nestjs/core'
@@ -169,20 +169,20 @@ function validateCustomExportColumns(columns: CustomExportColumn[] | undefined):
 export class ProductImportExportPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
   static options: PluginInitOptions
 
-  constructor(private moduleRef: ModuleRef) {}
+  constructor(
+    private moduleRef: ModuleRef,
+    @Inject(IMPORT_ROW_VALIDATION_STRATEGY)
+    private rowValidationStrategy: ImportRowValidationStrategy,
+  ) {}
 
   /** @internal */
   async onApplicationBootstrap(): Promise<void> {
-    await this.rowValidationStrategy().init?.(new Injector(this.moduleRef))
+    await this.rowValidationStrategy.init?.(new Injector(this.moduleRef))
   }
 
   /** @internal */
   async onApplicationShutdown(): Promise<void> {
-    await this.rowValidationStrategy().destroy?.()
-  }
-
-  private rowValidationStrategy(): ImportRowValidationStrategy {
-    return this.moduleRef.get(IMPORT_ROW_VALIDATION_STRATEGY, { strict: false })
+    await this.rowValidationStrategy.destroy?.()
   }
 
   /**

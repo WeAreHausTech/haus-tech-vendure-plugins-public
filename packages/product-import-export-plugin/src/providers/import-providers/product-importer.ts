@@ -62,7 +62,10 @@ import {
   relationLookupKey,
   splitLookupList,
 } from '../../services/relation-lookup-resolver'
-import { ImportRowValidationStrategy } from '../../strategies/import-row-validation-strategy'
+import {
+  DefaultImportRowValidationStrategy,
+  ImportRowValidationStrategy,
+} from '../../strategies/import-row-validation-strategy'
 import { toImportRowGroups } from '../../services/import-row-groups'
 import {
   importCsvHeaders,
@@ -177,6 +180,7 @@ export class ProductImporter {
     })
   }
 
+  /** Column 0 of every data line as a product id, null when empty: index 0 is line 2. */
   private extractProductIdsFromCSV(csvString: string): (number | null)[] {
     // Split the CSV string into lines
     const lines = csvString.split('\n')
@@ -216,15 +220,24 @@ export class ProductImporter {
    * Everything that is checked before an import writes anything: relation lookups, then the parsed
    * rows through the row validation strategy. The upload runs this before the file is stored, and
    * the import job runs it again before its first write, since data can change while the job waits.
+   * With the default strategy the file is parsed only when `parse` asks for it (the job does), so
+   * an upload without a strategy costs no more than the lookups.
    */
   async checkFile(
     ctx: RequestContext,
     csv: string,
     mainLanguage: LanguageCode,
     updateProductSlug: boolean,
+    { parse = false }: { parse?: boolean } = {},
   ): Promise<CheckedImportFile> {
     const relationLookups = await this.relationLookupResolver.resolve(ctx, csv)
     if (!relationLookups.rowsChecked) {
+      return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
+    }
+    const validatesRows = !(
+      this.rowValidationStrategy instanceof DefaultImportRowValidationStrategy
+    )
+    if (!validatesRows && !parse) {
       return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
     }
 
@@ -234,17 +247,20 @@ export class ProductImporter {
       mainLanguage,
     )) as ParseResult<ParsedProductWithId>
     const productIds = this.extractProductIdsFromCSV(cleanedCsv)
-    parsed.results.forEach((result, index) => {
-      const productId = productIds[index]
-      if (productId !== null) {
+    for (const result of parsed.results) {
+      // The id on the product's own first row, not on the line with the product's index.
+      const productId = result.product.line ? productIds[result.product.line - 2] : null
+      if (productId != null && !Number.isNaN(productId)) {
         result.product.productId = productId
       }
-    })
+    }
 
-    const rowErrors = await this.rowValidationStrategy.validate(
-      ctx,
-      toImportRowGroups(parsed.results, relationLookups, this.configService.customFields),
-    )
+    const rowErrors = validatesRows
+      ? await this.rowValidationStrategy.validate(
+          ctx,
+          toImportRowGroups(parsed.results, relationLookups, this.configService.customFields),
+        )
+      : []
     const errors = [
       ...relationLookups.errors,
       ...rowErrors.map(({ line, message }) => `Row ${line}: ${message}`),
@@ -372,9 +388,12 @@ export class ProductImporter {
       csvContent,
       mainLanguage,
       updateProductSlug,
+      { parse: true },
     )
     if (errors.length > 0 || !parsed) {
-      return { errors, imported: 0, processed: 0, rejected: true }
+      // Never fail a job without saying why.
+      const reasons = errors.length > 0 ? errors : ['The import file could not be read']
+      return { errors: reasons, imported: 0, processed: 0, rejected: true }
     }
 
     await this.setMissingAssetHashes(ctx)

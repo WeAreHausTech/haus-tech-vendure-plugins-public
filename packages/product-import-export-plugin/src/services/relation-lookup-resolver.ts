@@ -165,7 +165,10 @@ export class RelationLookupResolver {
     }
     const { entity } = config as RelationCustomFieldConfig
     const expectedSegment = entity.name.toLowerCase()
-    if (entitySegment !== expectedSegment) {
+    // `:sku` on a ProductVariant relation never read the third segment, so files written with any
+    // segment there keep importing.
+    const isLegacySku = entity === ProductVariant && column === SKU_LOOKUP
+    if (!isLegacySku && entitySegment.toLowerCase() !== expectedSegment) {
       return [
         `Column '${header}': the third segment must be '${expectedSegment}', the related entity`,
       ]

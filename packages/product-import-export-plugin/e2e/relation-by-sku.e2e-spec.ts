@@ -325,6 +325,19 @@ describe('relation custom fields given by SKU', () => {
       expect(await runImport(csv)).toEqual(['Row 2: no variant with SKU NOPE-1'])
     })
 
+    it('still accepts any entity segment on a :sku header, as before lookups by column', async () => {
+      const csv = [
+        `${HEADER},variant:baseVariant:relation:sku,variant:siblings:ProductVariant:sku`,
+        'Legacy,legacy,Legacy,LEGACY-1,150,Standard Tax,1,BASE-1,BASE 2.b',
+      ].join('\n')
+      expect(await runImport(csv)).toEqual([])
+      const legacy = await findVariant('LEGACY-1')
+      expect(legacy?.customFields.baseVariant?.id).toBe(ids['BASE-1'])
+      expect(legacy?.customFields.siblings.map((v: ProductVariant) => v.id)).toEqual([
+        ids['BASE 2.b'],
+      ])
+    })
+
     it('still reads a three-segment column as ids', async () => {
       const csv = [
         `${HEADER},variant:baseVariant:productvariant`,
@@ -536,6 +549,13 @@ describe('relation custom fields given by SKU', () => {
       expect(await validate(csv)).toEqual(['Invalid lookup column "product" on ProductVariant'])
     })
 
+    it('compares the entity segment without regard to case', async () => {
+      const csv = [`${HEADER},product:tag:TestTag:code`, 'A,a,A,X-1,1,Standard Tax,1,T-1'].join(
+        '\n',
+      )
+      expect(await validate(csv)).toEqual([])
+    })
+
     it('rejects a third segment that is not the related entity', async () => {
       const csv = [`${HEADER},product:tag:product:code`, 'A,a,A,X-1,1,Standard Tax,1,T-1'].join(
         '\n',
@@ -743,6 +763,38 @@ describe('relation custom fields given by SKU', () => {
       const job = await waitForFailedImportJob('changed after upload')
       expect(job.error).toContain('Row 2: changed after upload')
       expect(await findProductBySku('LATE-1')).toBeNull()
+    })
+
+    it('gets the product id of each product from its own first row', async () => {
+      const existingCsv = [
+        `${HEADER},optionGroups,optionValues`,
+        'Exist Two,exist-two,E,EX2-S,1,Standard Tax,1,size,S',
+        ',,,EX2-M,1,Standard Tax,1,,M',
+      ].join('\n')
+      expect(await runImport(existingCsv)).toEqual([])
+      const existing = await findProductBySku('EX2-S')
+      expect(existing).not.toBeNull()
+      const existingId = existing?.id
+      const validate = vi.spyOn(rowValidation, 'validate')
+
+      const errors = await runImport(
+        [
+          `id,${HEADER},optionGroups,optionValues`,
+          ',New One,new-one,N,NEW1-S,1,Standard Tax,1,size,S',
+          ',,,,NEW1-M,1,Standard Tax,1,,M',
+          `${existingId},Exist Two,exist-two,E,EX2-L,1,Standard Tax,1,size,L`,
+          `${existingId},,,,EX2-XL,1,Standard Tax,1,,XL`,
+        ].join('\n'),
+      )
+
+      expect(errors).toEqual([])
+      const [, rows] = validate.mock.calls[0]
+      expect(rows.map((row) => [row.line, row.product.productId])).toEqual([
+        [2, undefined],
+        [4, Number(existingId)],
+      ])
+      expect((await findProductBySku('EX2-L'))?.id).toBe(existingId)
+      expect((await findProductBySku('NEW1-S'))?.id).not.toBe(existingId)
     })
 
     it('cannot change what is imported by changing the rows it gets', async () => {
