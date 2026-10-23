@@ -210,6 +210,24 @@ describe('asset source paths on import', () => {
     }
   }
 
+  it('removes the images a replace import does not list', async () => {
+    await linkImages()
+    const assetsBefore = await assetCount()
+
+    const csv = [
+      `${HEADER},assets,variantAssets`,
+      `Pictured tee,pictured-tee,Two colours,Colour,PIC-BLACK,Black,100,Standard Tax,1,${navy.source},${black.source}`,
+      `,,,,PIC-NAVY,Navy,100,Standard Tax,1,,${black.source}`,
+    ].join('\n')
+    expect(await runImport(csv, 'replace')).toEqual([])
+
+    expect(await variantAssets('PIC-BLACK')).toEqual({ featured: String(black.id), ids: [String(black.id)] })
+    expect(await variantAssets('PIC-NAVY')).toEqual({ featured: String(black.id), ids: [String(black.id)] })
+    expect(await productAssetIds()).toEqual([String(navy.id)])
+    // The images are unlinked, not deleted.
+    expect(await assetCount()).toBe(assetsBefore)
+  })
+
   it('links an existing image given by its source to a variant without images', async () => {
     const variant = await connection.getRepository(ctx, ProductVariant).findOneOrFail({ where: { sku: 'PIC-NAVY' } })
     await connection.getRepository(ctx, ProductVariantAsset).delete({ productVariantId: variant.id })
