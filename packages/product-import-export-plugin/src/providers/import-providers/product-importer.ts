@@ -481,14 +481,15 @@ export class ProductImporter {
     let errors: string[] = []
     let imported = 0
     const languageCode = ctx.languageCode
-    const taxCategories = await this.taxCategoryService.findAll(ctx)
+    let taxCategories = await this.taxCategoryService.findAll(ctx)
 
-    // Create taxCategory if none exists
+    // Create taxCategory if none exists, and read the list again so the rows can match it
     if (taxCategories.totalItems === 0) {
       await this.taxCategoryService.create(ctx, {
         name: 'Standard Tax',
         isDefault: true,
       })
+      taxCategories = await this.taxCategoryService.findAll(ctx)
     }
     await this.fastImporter.initialize(ctx.channel)
 
