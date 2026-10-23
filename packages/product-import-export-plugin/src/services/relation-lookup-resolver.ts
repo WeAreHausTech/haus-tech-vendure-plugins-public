@@ -12,7 +12,7 @@ import {
 } from '@vendure/core'
 import { parse } from 'csv-parse/sync'
 import { FindOptionsWhere, In, IsNull } from 'typeorm'
-import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata'
+import { findTextColumn } from '../helpers/find-text-column'
 import { importCsvHeaders, importCsvLines } from '../helpers/import-csv-lines'
 
 /** The fourth header segment that makes a ProductVariant relation column hold SKUs. */
@@ -20,18 +20,6 @@ export const SKU_LOOKUP = 'sku'
 
 /** Values per database query, well below every driver's bind parameter limit. */
 const LOOKUP_QUERY_CHUNK_SIZE = 1000
-
-/** Column types a lookup can match a CSV cell against without a cast. */
-const TEXT_COLUMN_TYPES = new Set([
-  'varchar',
-  'character varying',
-  'nvarchar',
-  'text',
-  'char',
-  'character',
-  'nchar',
-  'citext',
-])
 
 /** The column a relation custom field's values are matched on, instead of the id. */
 export interface RelationLookup {
@@ -173,7 +161,7 @@ export class RelationLookupResolver {
         `Column '${header}': the third segment must be '${expectedSegment}', the related entity`,
       ]
     }
-    if (!this.findLookupColumn(entity, column)) {
+    if (!findTextColumn(this.connection.rawConnection, entity, column)) {
       return [`Invalid lookup column "${column}" on ${entity.name}`]
     }
     return []
@@ -186,30 +174,6 @@ export class RelationLookupResolver {
         ? this.configService.customFields.Product
         : this.configService.customFields.ProductVariant
     return configs.find((config) => config.name === fieldName)
-  }
-
-  /**
-   * A plain text column of the entity, so a CSV cell compares to it without a cast. Relation and
-   * embedded columns (custom fields among them) are not lookups.
-   */
-  private findLookupColumn(
-    entity: Type<VendureEntity>,
-    propertyName: string,
-  ): ColumnMetadata | undefined {
-    // Not findColumnWithPropertyName: it can return a custom field (embedded) column of that name.
-    const column = this.connection.rawConnection
-      .getMetadata(entity)
-      .columns.find(
-        (candidate) =>
-          candidate.propertyName === propertyName &&
-          !candidate.embeddedMetadata &&
-          !candidate.relationMetadata,
-      )
-    if (!column) {
-      return undefined
-    }
-    const isText = column.type === String || TEXT_COLUMN_TYPES.has(String(column.type))
-    return isText ? column : undefined
   }
 
   /**

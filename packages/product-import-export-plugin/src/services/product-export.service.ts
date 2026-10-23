@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common'
+import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import {
   Asset,
@@ -29,8 +29,15 @@ import * as path from 'path'
 import { existsSync, mkdirSync, promises as fs } from 'fs'
 import { chunk, forEach, groupBy, sortBy, startsWith } from 'lodash'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
+import { findTextColumn } from '../helpers/find-text-column'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
 import {
+  ExportRelationLookup,
+  relationLookupValues,
+  resolveExportRelationLookups,
+} from './export-relation-lookups'
+import {
+  loadColumnValues,
   loadSelfRelationCustomFieldIds,
   splitSelfRelationCustomFields,
 } from './self-relation-custom-fields'
@@ -73,7 +80,10 @@ function formatTimestampForFilename(date: Date = new Date()): string {
 const VARIANT_LOAD_CHUNK_SIZE = 100
 
 @Injectable()
-export class ProductExportService {
+export class ProductExportService implements OnApplicationBootstrap {
+  /** `exportOptions.relationLookups`, checked against the custom fields, keyed `<owner>:<field>`. */
+  private relationLookups = new Map<string, ExportRelationLookup>()
+
   constructor(
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
     @Inject(EXPORT_STORAGE_STRATEGY) private exportStorageStrategy: ExportStorageStrategy,
@@ -83,6 +93,16 @@ export class ProductExportService {
     private connection: TransactionalConnection,
     private moduleRef: ModuleRef,
   ) {}
+
+  /** @internal Fails the bootstrap on a lookup the import could not read back. */
+  onApplicationBootstrap(): void {
+    this.relationLookups = resolveExportRelationLookups(
+      this.options.exportOptions.relationLookups,
+      this.configService.customFields,
+      (entity, column) =>
+        findTextColumn(this.connection.rawConnection, entity, column) !== undefined,
+    )
+  }
 
   async createExportFile(
     ctx: RequestContext,
@@ -113,7 +133,10 @@ export class ProductExportService {
       .filter((field) => allCustomFieldNames.some((f) => f.name === field))
       .map((field) => {
         const found = allCustomFieldNames.find((f) => f.name === field)
-        return found ? `${found.name}:${found.type}` : ''
+        if (!found) {
+          return ''
+        }
+        return this.relationLookups.get(found.name)?.header ?? `${found.name}:${found.type}`
       })
 
     const channelToken = channel.token
@@ -361,7 +384,8 @@ export class ProductExportService {
 
   /**
    * Sets each self-referencing relation custom field on the given entities to `{ id }`,
-   * `[{ id }, …]` or `null`, the shapes {@link serializeRelationCustomFieldIds} reads.
+   * `[{ id }, …]` or `null`, the shapes {@link serializeRelationCustomFieldIds} reads. A field with
+   * a relation lookup also gets its lookup column on each related row, e.g. `{ id, sku }`.
    */
   private async applySelfRelationCustomFields(
     ctx: RequestContext,
@@ -382,16 +406,31 @@ export class ProductExportService {
       entities.map((item) => item.id),
       fieldNames.map((name) => ({ name, list: this.isCustomFieldList(owner, name) })),
     )
+    const toRelatedRow = new Map<string, (id: ID) => Record<string, unknown>>()
+    for (const name of fieldNames) {
+      const lookup = this.relationLookups.get(`${owner}:${name}`)
+      if (!lookup) {
+        toRelatedRow.set(name, (id) => ({ id }))
+        continue
+      }
+      const relatedIds = Array.from(idsByEntityId.values()).flatMap((values) => {
+        const value = values[name]
+        return Array.isArray(value) ? value : value == null ? [] : [value]
+      })
+      const columnValues = await loadColumnValues(repository, owner, relatedIds, lookup.column)
+      toRelatedRow.set(name, (id) => ({ id, [lookup.column]: columnValues.get(String(id)) }))
+    }
     for (const item of entities) {
       const values = idsByEntityId.get(String(item.id)) ?? {}
       const customFields = (item.customFields ?? {}) as Record<string, unknown>
       for (const name of fieldNames) {
         const value = values[name]
+        const toRow = toRelatedRow.get(name) ?? ((id: ID) => ({ id }))
         customFields[name] = Array.isArray(value)
-          ? value.map((id) => ({ id }))
+          ? value.map(toRow)
           : value == null
             ? null
-            : { id: value }
+            : toRow(value)
       }
       item.customFields = customFields as typeof item.customFields
     }
@@ -741,12 +780,15 @@ export class ProductExportService {
         return this.handleAssets(assets, exportAssetsAs)
       }
 
-      const ids = this.serializeRelationCustomFieldIds(fieldValue)
-      if (ids.length === 0) {
+      const lookup = this.relationLookups.get(`${owner}:${fieldName}`)
+      const values = lookup
+        ? relationLookupValues(fieldValue, lookup.column)
+        : this.serializeRelationCustomFieldIds(fieldValue)
+      if (values.length === 0) {
         return
       }
       const isList = this.isCustomFieldList(owner, fieldName)
-      return isList ? ids.join('|') : ids[0]
+      return isList ? values.join('|') : values[0]
     }
 
     if (typeof fieldValue === 'object') {

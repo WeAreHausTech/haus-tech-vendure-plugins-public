@@ -85,3 +85,32 @@ export async function loadSelfRelationCustomFieldIds(
   }
   return byOwnerId
 }
+
+/**
+ * The given column of each listed live row, keyed by the stringified id, read with an explicit
+ * alias like {@link loadSelfRelationCustomFieldIds}. Used for the relation lookups of
+ * self-referencing fields, whose related rows are loaded as ids only. A soft-deleted row has no
+ * entry, since the import matches only live rows.
+ */
+export async function loadColumnValues(
+  repository: Repository<Product> | Repository<ProductVariant>,
+  alias: string,
+  ids: ID[],
+  column: string,
+): Promise<Map<string, unknown>> {
+  const values = new Map<string, unknown>()
+  for (const idChunk of chunk(Array.from(new Set(ids.map(String))), ID_CHUNK_SIZE)) {
+    const rows = await (repository as Repository<Product | ProductVariant>)
+      .createQueryBuilder(alias)
+      .select(`${alias}.id`, 'id')
+      // The column was checked against the entity's metadata when the application started.
+      .addSelect(`${alias}.${column}`, 'value')
+      .where(`${alias}.id IN (:...ids)`, { ids: idChunk })
+      .andWhere(`${alias}.deletedAt IS NULL`)
+      .getRawMany<{ id: ID; value: unknown }>()
+    for (const row of rows) {
+      values.set(String(row.id), row.value)
+    }
+  }
+  return values
+}
