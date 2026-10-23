@@ -69,6 +69,11 @@ import {
 } from '../../strategies/import-row-validation-strategy'
 import { toImportRowGroups } from '../../services/import-row-groups'
 import {
+  CHANNELS_COLUMN,
+  ChannelColumnResolver,
+  ChannelsByToken,
+} from '../../services/channel-column-resolver'
+import {
   importCsvHeaders,
   importCsvLines,
   normalizeHeader,
@@ -91,6 +96,8 @@ export interface CheckedImportFile {
   /** The parsed file; missing when a lookup header was wrong, so no row was read. */
   parsed?: ParseResult<ParsedProductWithId>
   customFieldTypes: Record<string, string>
+  /** The channels the `channels` column names; empty when the file has no such column. */
+  channelsByToken: ChannelsByToken
 }
 
 /** The row an error names (`Row 12: ...`), 0 for an error about the whole file. */
@@ -150,6 +157,7 @@ export class ProductImporter {
     private relationLookupResolver: RelationLookupResolver,
     @Inject(IMPORT_ROW_VALIDATION_STRATEGY)
     private rowValidationStrategy: ImportRowValidationStrategy,
+    private channelColumnResolver: ChannelColumnResolver,
   ) {
     this.slugStrategy = this.configService.entityOptions.slugStrategy
   }
@@ -219,25 +227,29 @@ export class ProductImporter {
    * Everything that is checked before an import writes anything: relation lookups, then the parsed
    * rows through the row validation strategy. The upload runs this before the file is stored, and
    * the import job runs it again before its first write, since data can change while the job waits.
-   * With the default strategy the file is parsed only when `parse` asks for it (the job does), so
-   * an upload without a strategy costs no more than the lookups.
+   * With the default strategy and no `channels` column the file is parsed only when `parse` asks
+   * for it (the job does), so such an upload costs no more than the lookups. `uploader` is the
+   * context whose user needs rights in the channels the `channels` column names; the job passes
+   * the uploader's, since it imports with a context of its own.
    */
   async checkFile(
     ctx: RequestContext,
     csv: string,
     mainLanguage: LanguageCode,
     updateProductSlug: boolean,
-    { parse = false }: { parse?: boolean } = {},
+    { parse = false, uploader = ctx }: { parse?: boolean; uploader?: RequestContext } = {},
   ): Promise<CheckedImportFile> {
+    const unchecked = { customFieldTypes: {}, channelsByToken: new Map() }
     const relationLookups = await this.relationLookupResolver.resolve(ctx, csv)
     if (!relationLookups.rowsChecked) {
-      return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
+      return { errors: relationLookups.errors, relationLookups, ...unchecked }
     }
     // Only the default itself is skipped: a subclass of it has rules of its own.
     const validatesRows =
       this.rowValidationStrategy.constructor !== DefaultImportRowValidationStrategy
-    if (!validatesRows && !parse) {
-      return { errors: relationLookups.errors, relationLookups, customFieldTypes: {} }
+    const namesChannels = importCsvHeaders(importCsvLines(csv)).includes(CHANNELS_COLUMN)
+    if (!validatesRows && !namesChannels && !parse) {
+      return { errors: relationLookups.errors, relationLookups, ...unchecked }
     }
 
     const { cleanedCsv, customFieldTypes } = this.preprocessCsv(csv, updateProductSlug)
@@ -260,11 +272,19 @@ export class ProductImporter {
           toImportRowGroups(parsed.results, relationLookups, this.configService.customFields),
         )
       : []
+    const channelColumn = await this.channelColumnResolver.resolve(ctx, uploader, parsed.results)
     const errors = [
       ...relationLookups.errors,
+      ...channelColumn.errors,
       ...rowErrors.map(({ line, message }) => `Row ${line}: ${message}`),
     ].sort((a, b) => errorRow(a) - errorRow(b))
-    return { errors, relationLookups, parsed, customFieldTypes }
+    return {
+      errors,
+      relationLookups,
+      parsed,
+      customFieldTypes,
+      channelsByToken: channelColumn.channelsByToken,
+    }
   }
 
   private preprocessCsv(
@@ -382,13 +402,11 @@ export class ProductImporter {
     // Checked again here, before the first write, not only on upload: data can change while the
     // job waits. Lookup values are resolved once, here: a row deleted while the import runs is
     // still linked to.
-    const { errors, relationLookups, parsed, customFieldTypes } = await this.checkFile(
-      ctx,
-      csvContent,
-      mainLanguage,
-      updateProductSlug,
-      { parse: true },
-    )
+    const { errors, relationLookups, parsed, customFieldTypes, channelsByToken } =
+      await this.checkFile(ctx, csvContent, mainLanguage, updateProductSlug, {
+        parse: true,
+        uploader: reqCtx,
+      })
     if (errors.length > 0 || !parsed) {
       // Never fail a job without saying why.
       const reasons = errors.length > 0 ? errors : ['The import file could not be read']
@@ -411,6 +429,7 @@ export class ProductImporter {
             })
           },
           relationLookups,
+          channelsByToken,
         )
         return {
           errors: parsed.errors.concat(importErrors),
@@ -457,18 +476,20 @@ export class ProductImporter {
     updatingStrategy: UpdatingStrategy,
     onProgress: OnProgressFn,
     relationLookups: RelationLookups = NO_RELATION_LOOKUPS,
+    channelsByToken: ChannelsByToken = new Map(),
   ): Promise<string[]> {
     let errors: string[] = []
     let imported = 0
     const languageCode = ctx.languageCode
-    const taxCategories = await this.taxCategoryService.findAll(ctx)
+    let taxCategories = await this.taxCategoryService.findAll(ctx)
 
-    // Create taxCategory if none exists
+    // Create taxCategory if none exists, and read the list again so the rows can match it
     if (taxCategories.totalItems === 0) {
       await this.taxCategoryService.create(ctx, {
         name: 'Standard Tax',
         isDefault: true,
       })
+      taxCategories = await this.taxCategoryService.findAll(ctx)
     }
     await this.fastImporter.initialize(ctx.channel)
 
@@ -478,6 +499,9 @@ export class ProductImporter {
     const sharedGroupMap = await this.buildSharedOptionGroupMap(ctx, rows)
 
     for (const { product, variants } of rows) {
+      this.fastImporter.setProductChannels(
+        compact(product.channelTokens.map((token) => channelsByToken.get(token))),
+      )
       const productMainTranslation = this.getTranslationByCodeOrFirst(
         product.translations,
         ctx.languageCode,

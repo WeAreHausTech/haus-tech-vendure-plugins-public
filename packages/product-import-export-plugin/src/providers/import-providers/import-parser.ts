@@ -125,6 +125,11 @@ export interface ParsedProduct {
   optionGroups: ParsedOptionGroup[]
   optionGroupsProvided: boolean
   facets: ParsedFacet[]
+  /**
+   * The tokens in the `channels` column: channels the product is assigned to on top of the
+   * default channel and the channel the import runs in. Empty when the column is missing or empty.
+   */
+  channelTokens: string[]
   translations: Array<{
     languageCode: LanguageCode
     name: string
@@ -596,6 +601,7 @@ export class ImportParser {
       optionGroups,
       optionGroupsProvided,
       facets,
+      channelTokens: unique(parseStringArray(r.channels)),
       translations: await Promise.all(translations),
     }
     return parsedProduct
@@ -797,7 +803,15 @@ function mapRowToObject(columns: string[], row: string[]): { [key: string]: stri
 }
 
 /** Columns read from a product's first row only (their translated forms too, e.g. `slug:en`). */
-const PRODUCT_COLUMNS = new Set(['name', 'slug', 'description', 'assets', 'facets', 'optionGroups'])
+const PRODUCT_COLUMNS = new Set([
+  'name',
+  'slug',
+  'description',
+  'assets',
+  'facets',
+  'optionGroups',
+  'channels',
+])
 
 /**
  * Returns the first filled product column in a variant row (a row without a name), if any.

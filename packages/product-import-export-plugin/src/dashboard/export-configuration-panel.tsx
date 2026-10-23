@@ -36,6 +36,7 @@ const AVAILABLE_EXPORT_FIELDS: ExportFields = [
   'description',
   'id',
   'assets',
+  'channels',
   'facets',
   'optionGroups',
   'sku',

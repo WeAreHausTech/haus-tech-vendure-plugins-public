@@ -137,6 +137,7 @@ type ProductFields =
   | 'slug'
   | 'description'
   | 'assets'
+  | 'channels'
   | 'facets'
   | 'optionGroups'
 

@@ -9,6 +9,7 @@ type ProductFields =
   | 'slug'
   | 'description'
   | 'assets'
+  | 'channels'
   | 'facets'
   | 'optionGroups'
 
@@ -71,6 +72,7 @@ export class ExportDialogComponent
     'slug',
     'description',
     'assets',
+    'channels',
     'facets',
     'optionGroups',
     'sku',

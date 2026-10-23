@@ -46,6 +46,7 @@ import { loggerCtx } from '../constants'
 export class ExtendedFastImporterService {
   private defaultChannel: Channel
   private importCtx: RequestContext
+  private productChannels: Channel[] = []
 
   /** @internal */
   constructor(
@@ -68,6 +69,7 @@ export class ExtendedFastImporterService {
    * to that Channel.
    */
   async initialize(channel?: Channel) {
+    this.productChannels = []
     this.importCtx = channel
       ? await this.requestContextService.create({
           apiType: 'admin',
@@ -90,7 +92,7 @@ export class ExtendedFastImporterService {
       translationType: ProductTranslation,
       beforeSave: async (p) => {
         await this.entityHydrator.hydrate(this.importCtx, p, { relations: ['channels'] })
-        p.channels = unique([...p.channels, this.defaultChannel, this.importCtx.channel], 'id')
+        p.channels = unique([...p.channels, ...this.assignedChannels()], 'id')
         if (input.facetValueIds) {
           p.facetValues = input.facetValueIds.map((id) => ({ id }) as any)
         }
@@ -154,7 +156,7 @@ export class ExtendedFastImporterService {
       translationType: ProductTranslation,
       beforeSave: async (p) => {
         try {
-          p.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+          p.channels = this.assignedChannels()
           if (input.featuredAssetId) {
             p.featuredAsset = { id: input.featuredAssetId } as any
           }
@@ -191,10 +193,7 @@ export class ExtendedFastImporterService {
       translationType: ProductOptionGroupTranslation,
       beforeSave: async (group) => {
         await this.entityHydrator.hydrate(this.importCtx, group, { relations: ['channels'] })
-        group.channels = unique(
-          [...group.channels, this.defaultChannel, this.importCtx.channel],
-          'id',
-        )
+        group.channels = unique([...group.channels, ...this.assignedChannels()], 'id')
         group.deletedAt = null
       },
     })
@@ -219,10 +218,7 @@ export class ExtendedFastImporterService {
         translationType: ProductOptionGroupTranslation,
         beforeSave: async (group) => {
           await this.entityHydrator.hydrate(this.importCtx, group, { relations: ['channels'] })
-          group.channels = unique(
-            [...group.channels, this.defaultChannel, this.importCtx.channel],
-            'id',
-          )
+          group.channels = unique([...group.channels, ...this.assignedChannels()], 'id')
           group.deletedAt = null
         },
       })
@@ -235,7 +231,7 @@ export class ExtendedFastImporterService {
       entityType: ProductOptionGroup,
       translationType: ProductOptionGroupTranslation,
       beforeSave: (group) => {
-        group.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+        group.channels = this.assignedChannels()
       },
     })
     return group.id
@@ -258,7 +254,7 @@ export class ExtendedFastImporterService {
         translationType: ProductOptionTranslation,
         beforeSave: async (po) => {
           await this.entityHydrator.hydrate(this.importCtx, po, { relations: ['channels'] })
-          po.channels = unique([...po.channels, this.defaultChannel, this.importCtx.channel], 'id')
+          po.channels = unique([...po.channels, ...this.assignedChannels()], 'id')
           po.group = { id: input.productOptionGroupId } as any
           po.deletedAt = null
         },
@@ -273,7 +269,7 @@ export class ExtendedFastImporterService {
       entityType: ProductOption,
       translationType: ProductOptionTranslation,
       beforeSave: (po) => {
-        po.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+        po.channels = this.assignedChannels()
         po.group = { id: input.productOptionGroupId } as any
         po.deletedAt = null
       },
@@ -330,10 +326,7 @@ export class ExtendedFastImporterService {
         translationType: FacetTranslation,
         beforeSave: async (facet) => {
           await this.entityHydrator.hydrate(this.importCtx, facet, { relations: ['channels'] })
-          facet.channels = unique(
-            [...facet.channels, this.defaultChannel, this.importCtx.channel],
-            'id',
-          )
+          facet.channels = unique([...facet.channels, ...this.assignedChannels()], 'id')
         },
       })
 
@@ -346,7 +339,7 @@ export class ExtendedFastImporterService {
       entityType: Facet,
       translationType: FacetTranslation,
       beforeSave: async (facet) => {
-        facet.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+        facet.channels = this.assignedChannels()
       },
     })
 
@@ -371,10 +364,7 @@ export class ExtendedFastImporterService {
         beforeSave: async (facetValue) => {
           await this.entityHydrator.hydrate(this.importCtx, facetValue, { relations: ['channels'] })
           facetValue.facet = { id: input.facetId } as any
-          facetValue.channels = unique(
-            [...facetValue.channels, this.defaultChannel, this.importCtx.channel],
-            'id',
-          )
+          facetValue.channels = unique([...facetValue.channels, ...this.assignedChannels()], 'id')
         },
       })
 
@@ -388,7 +378,7 @@ export class ExtendedFastImporterService {
       translationType: FacetValueTranslation,
       beforeSave: async (facetValue) => {
         facetValue.facet = { id: input.facetId } as any
-        facetValue.channels = unique([this.defaultChannel, this.importCtx.channel], 'id')
+        facetValue.channels = this.assignedChannels()
       },
     })
 
@@ -466,7 +456,7 @@ export class ExtendedFastImporterService {
       translationType: ProductVariantTranslation,
       beforeSave: async (variant) => {
         await this.entityHydrator.hydrate(ctx, variant, { relations: ['channels'] })
-        variant.channels = unique([...variant.channels, this.defaultChannel, ctx.channel], 'id')
+        variant.channels = unique([...variant.channels, ...this.assignedChannels(ctx)], 'id')
         const { optionIds } = input
         if (optionIds && optionIds.length) {
           variant.options = optionIds.map((id) => ({ id }) as any)
@@ -513,24 +503,23 @@ export class ExtendedFastImporterService {
     if (input.stockOnHand !== undefined) {
       await this.setProductVariantStockOnHandDirectly(ctx, updatedVariant.id, input.stockOnHand)
     }
-    const assignedChannelIds = unique([this.defaultChannel, ctx.channel], 'id').map((c) => c.id)
-
-    for (const channelId of assignedChannelIds) {
+    for (const channel of this.assignedChannels(ctx)) {
+      const channelId = channel.id
+      const currencyCode = this.priceCurrency(ctx, channel)
       const allPrices = await this.connection.getRepository(ctx, ProductVariantPrice).find({
         where: {
           variant: { id: updatedVariant.id },
         },
       })
       const existingVariantPrice = allPrices.find(
-        (p) =>
-          idsAreEqual(p.channelId, channelId) && p.currencyCode === ctx.channel.defaultCurrencyCode,
+        (p) => idsAreEqual(p.channelId, channelId) && p.currencyCode === currencyCode,
       )
 
       if (!existingVariantPrice) {
         const variantPrice = new ProductVariantPrice({
           price: isNumber(input.price) ? input.price : 0,
           channelId,
-          currencyCode: ctx.channel.defaultCurrencyCode,
+          currencyCode,
         })
         variantPrice.variant = updatedVariant
         await this.connection
@@ -580,7 +569,7 @@ export class ExtendedFastImporterService {
       entityType: ProductVariant,
       translationType: ProductVariantTranslation,
       beforeSave: async (variant) => {
-        variant.channels = unique([this.defaultChannel, ctx.channel], 'id')
+        variant.channels = this.assignedChannels(ctx)
         const { optionIds } = input
         if (optionIds && optionIds.length) {
           variant.options = optionIds.map((id) => ({ id }) as any)
@@ -617,13 +606,11 @@ export class ExtendedFastImporterService {
         .save(variantAssets, { reload: false })
     }
     await this.setProductVariantStockOnHandDirectly(ctx, createdVariant.id, input.stockOnHand ?? 0)
-    const assignedChannelIds = unique([this.defaultChannel, ctx.channel], 'id').map((c) => c.id)
-
-    for (const channelId of assignedChannelIds) {
+    for (const channel of this.assignedChannels(ctx)) {
       const variantPrice = new ProductVariantPrice({
         price: isNumber(input.price) ? input.price : 0,
-        channelId,
-        currencyCode: ctx.channel.defaultCurrencyCode,
+        channelId: channel.id,
+        currencyCode: this.priceCurrency(ctx, channel),
       })
       variantPrice.variant = createdVariant
       await this.connection
@@ -632,6 +619,32 @@ export class ExtendedFastImporterService {
     }
 
     return createdVariant.id
+  }
+
+  /**
+   * @description
+   * Sets the channels the next product, its variants, option groups and facets are assigned to, on
+   * top of the default channel and the import's channel: the `channels` column of the product's
+   * row. Applies until it is set again, so call it once per product, with `[]` for none.
+   */
+  setProductChannels(channels: Channel[]) {
+    this.productChannels = channels
+  }
+
+  /** The default channel, the import's channel and the current product's channels. */
+  private assignedChannels(ctx: RequestContext = this.importCtx): Channel[] {
+    return unique([this.defaultChannel, ctx.channel, ...this.productChannels], 'id')
+  }
+
+  /**
+   * A price row in a channel of the product's own is in that channel's currency, or Vendure
+   * finds no price there. The default channel's row keeps the import channel's currency, as it
+   * always has.
+   */
+  private priceCurrency(ctx: RequestContext, channel: Channel) {
+    return idsAreEqual(channel.id, this.defaultChannel.id)
+      ? ctx.channel.defaultCurrencyCode
+      : channel.defaultCurrencyCode
   }
 
   private ensureInitialized() {

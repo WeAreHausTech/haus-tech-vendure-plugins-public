@@ -129,6 +129,7 @@ export class ProductImportComponent implements OnInit {
 
     const optionalColumns = [
       'assets',
+      'channels',
       'price',
       'taxCategory',
       'stockOnHand',

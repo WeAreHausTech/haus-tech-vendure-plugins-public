@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import {
   Asset,
+  Channel,
   ConfigService,
   ID,
   Injector,
@@ -14,6 +15,7 @@ import {
   RequestContext,
   StockLevel,
   ChannelService,
+  idsAreEqual,
   TransactionalConnection,
 } from '@vendure/core'
 import { SortOrder } from '@vendure/common/lib/generated-types'
@@ -30,6 +32,7 @@ import { existsSync, mkdirSync, promises as fs } from 'fs'
 import { chunk, forEach, groupBy, sortBy, startsWith } from 'lodash'
 import { CsvWriter } from 'csv-writer/src/lib/csv-writer'
 import { ExportStorageStrategy } from './export-storage/export-storage-strategy'
+import { CHANNELS_COLUMN } from './channel-column-resolver'
 import {
   loadSelfRelationCustomFieldIds,
   splitSelfRelationCustomFields,
@@ -150,6 +153,7 @@ export class ProductExportService {
 
     headers.push(
       { id: 'assets', title: 'assets' },
+      { id: CHANNELS_COLUMN, title: CHANNELS_COLUMN },
       ...languages.map((lang) => ({ id: `facets:${lang}`, title: `facets:${lang}` })),
       ...productCustomFieldNames.map(toHeader),
       // optionGroups last among the product columns, next to the optionValues it names.
@@ -203,6 +207,7 @@ export class ProductExportService {
       })
 
       const includeStockOnHand = selectedExportFieldsSet.has('stockOnHand')
+      const defaultChannel = await this.channelService.getDefaultChannel(ctx)
 
       let currentPage = 1
       let hasMore = true
@@ -249,6 +254,7 @@ export class ProductExportService {
             'facetValues.facet',
             'optionGroups',
             'assets',
+            'channels',
             ...(productRelations.relations as Array<`customFields.${string}`>),
           ],
         )
@@ -310,6 +316,7 @@ export class ProductExportService {
             stockOnHandByVariantId,
             selectedCustomColumns,
             injector,
+            channelsCell(product, ctx.channel, defaultChannel),
           )
         }
 
@@ -471,6 +478,7 @@ export class ProductExportService {
     stockOnHandByVariantId: Map<string, number>,
     customColumns: CustomExportColumn[],
     injector: Injector,
+    channels = '',
   ) {
     const records: any[] = []
     const {
@@ -605,6 +613,7 @@ export class ProductExportService {
         (price) => price.channelId === ctx.channelId,
       )
       record.assets = variantIndex === 0 ? productAssets : ''
+      record[CHANNELS_COLUMN] = variantIndex === 0 ? channels : ''
       record.id = String(product.id)
       record.sku = variant.sku
       record.price = productVariantPrices[0]?.price / 100 // Assuming the price is stored in cents
@@ -934,4 +943,21 @@ export class ProductExportService {
   async getConfig(): Promise<PluginInitOptions> {
     return this.options
   }
+}
+
+/**
+ * The `channels` cell of a product: the tokens of its channels other than the default one, by
+ * channel id. Exported from another channel it names only that channel, so a club's file never
+ * shows which other clubs sell the product.
+ */
+function channelsCell(product: Product, exportChannel: Channel, defaultChannel: Channel): string {
+  if (!idsAreEqual(exportChannel.id, defaultChannel.id)) {
+    return exportChannel.token
+  }
+  return sortBy(
+    (product.channels ?? []).filter((channel) => !idsAreEqual(channel.id, defaultChannel.id)),
+    (channel) => channel.id,
+  )
+    .map((channel) => channel.token)
+    .join('|')
 }

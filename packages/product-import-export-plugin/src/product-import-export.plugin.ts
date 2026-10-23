@@ -27,6 +27,7 @@ import { ExtendedFastImporterService } from './services/extended-fast-importer.s
 import { ProductExportService } from './services/product-export.service'
 import { ProductExportQueueService } from './services/product-export-queue.service'
 import { RelationLookupResolver } from './services/relation-lookup-resolver'
+import { ChannelColumnResolver } from './services/channel-column-resolver'
 import { LocalExportStorageStrategy } from './services/export-storage/local-export-storage-strategy'
 import { LocalImportJobStorageStrategy } from './services/import-storage/local-import-job-storage-strategy'
 import {
@@ -35,7 +36,7 @@ import {
 } from './strategies/import-row-validation-strategy'
 
 const RESERVED_EXPORT_COLUMN_NAMES = new Set([
-  'id', 'name', 'slug', 'description', 'assets', 'facets', 'optionGroups', 'optionValues',
+  'id', 'name', 'slug', 'description', 'assets', 'channels', 'facets', 'optionGroups', 'optionValues',
   'sku', 'price', 'taxCategory', 'stockOnHand', 'trackInventory', 'variantAssets',
   'variantFacets', 'enabled',
 ])
@@ -122,6 +123,7 @@ function validateCustomExportColumns(columns: CustomExportColumn[] | undefined):
     ProductExportService,
     ProductExportQueueService,
     RelationLookupResolver,
+    ChannelColumnResolver,
   ],
   controllers: [
     ProductImportController,
