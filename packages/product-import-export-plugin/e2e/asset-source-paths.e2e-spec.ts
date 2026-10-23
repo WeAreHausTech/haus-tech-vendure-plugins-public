@@ -69,7 +69,7 @@ const PRODUCT_CSV = [
 // Exporting assets as a value the importer cannot download (an asset's `source`, relative to the
 // storage) used to drop every image on re-import without an error.
 describe('asset source paths on import', () => {
-  const apiPort = 3066
+  const apiPort = 3067
   const { server } = createTestEnvironment(
     mergeConfig(testConfig, {
       apiOptions: { port: apiPort },

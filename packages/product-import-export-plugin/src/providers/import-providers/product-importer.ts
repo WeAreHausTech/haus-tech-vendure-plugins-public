@@ -43,7 +43,7 @@ import { getGraphQlInputName } from '@vendure/common/lib/shared-utils'
 import { ImportInfo } from '@vendure/common/lib/generated-types'
 import { AssetType } from '@vendure/common/lib/generated-types'
 import { ExtendedFastImporterService } from '../../services/extended-fast-importer.service'
-import { find, isUndefined, startsWith } from 'lodash'
+import { compact, find, isUndefined, startsWith } from 'lodash'
 import { JsonAsset, ParsedProductWithId, UpdatingStrategy } from '../../types'
 import {
   IMPORT_ROW_VALIDATION_STRATEGY,
