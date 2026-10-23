@@ -1,3 +1,14 @@
+## 3.6.14
+
+### 🚀 Features
+
+- **product-import-export-plugin:** export relation custom fields by a lookup column ([#62](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/62))
+- **product-import-export-plugin:** assign imported products to channels with a channels column ([#64](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/64), [#63](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/issues/63))
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** import the asset sources the export writes ([#65](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/65))
+
 ## 3.6.13
 
 ### 🚀 Features
