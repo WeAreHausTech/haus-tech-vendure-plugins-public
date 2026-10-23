@@ -132,6 +132,7 @@ export class ProductImporter {
   private customFieldTypes: Record<string, string> = {}
   private allAssets: Asset[] = []
   private allAssetsById = new Map<ID, Asset>()
+  private allAssetsBySource = new Map<string, Asset>()
   private facetIdCache = new Map<string, ID>()
   private facetValueIdCache = new Map<string, ID>()
 
@@ -374,6 +375,7 @@ export class ProductImporter {
 
     this.allAssets = assets
     this.allAssetsById = new Map(assets.map((asset) => [asset.id, asset]))
+    this.allAssetsBySource = new Map(assets.map((asset) => [asset.source, asset]))
   }
 
   private async doParseAndImport(
@@ -507,23 +509,11 @@ export class ProductImporter {
         ctx.languageCode,
       )
 
-      const assetsToImport = compact(
-        product.assetPaths.map((assetPath, idx) => {
-          const assetID = product.assetsJson?.[idx]?.id
-          if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
-            return {
-              url: assetPath,
-              name: product.assetsJson?.[idx]?.name || undefined,
-              id:
-                assetID && this.allAssetsById.get(assetID)
-                  ? product.assetsJson?.[idx]?.id
-                  : undefined,
-            }
-          }
-        }),
+      const createProductAssets = await this.resolveAssets(
+        product.assetPaths,
+        product.assetsJson,
+        ctx,
       )
-
-      const createProductAssets = await this.assetImporter.getAssets(assetsToImport, ctx)
       const productAssets = createProductAssets.assets
 
       if (createProductAssets.errors.length) {
@@ -781,23 +771,7 @@ export class ProductImporter {
           ctx.languageCode,
         )
 
-        const assetsToImport = compact(
-          variant.assetPaths.map((assetPath, idx) => {
-            const assetID = variant.assetsJson?.[idx]?.id
-            if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
-              return {
-                url: assetPath,
-                name: variant.assetsJson?.[idx]?.name || undefined,
-                id:
-                  assetID && this.allAssetsById.get(assetID)
-                    ? variant.assetsJson?.[idx]?.id
-                    : undefined,
-              }
-            }
-          }),
-        )
-
-        const createVariantAssets = await this.assetImporter.getAssets(assetsToImport)
+        const createVariantAssets = await this.resolveAssets(variant.assetPaths, variant.assetsJson)
         const variantAssets = createVariantAssets.assets
 
         if (createVariantAssets.errors.length) {
@@ -1567,6 +1541,41 @@ export class ProductImporter {
 
     this.facetValueIdCache.set(facetValueCacheKey, facetValueId)
     return facetValueId
+  }
+
+  /**
+   * Resolves the assets of an `assets` or `variantAssets` cell, in cell order. A URL goes through
+   * the asset importer. Any other value names an existing asset the way the export writes it: by
+   * the `id` of the JSON format or by its `source`. An existing asset is linked as it is, never
+   * uploaded again, and a value that matches no asset is reported.
+   */
+  private async resolveAssets(
+    assetPaths: string[],
+    assetsJson: JsonAsset[] | undefined,
+    ctx?: RequestContext,
+  ): Promise<{ assets: Asset[]; errors: string[] }> {
+    const assets: Asset[] = []
+    const errors: string[] = []
+    for (const [idx, assetPath] of assetPaths.entries()) {
+      const assetID = assetsJson?.[idx]?.id
+      const knownAsset = assetID ? this.allAssetsById.get(assetID) : undefined
+      if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
+        const imported = await this.assetImporter.getAssets(
+          [{ url: assetPath, name: assetsJson?.[idx]?.name || undefined, id: knownAsset?.id }],
+          ctx,
+        )
+        assets.push(...imported.assets)
+        errors.push(...imported.errors)
+        continue
+      }
+      const existingAsset = knownAsset ?? this.allAssetsBySource.get(assetPath)
+      if (existingAsset) {
+        assets.push(existingAsset)
+      } else {
+        errors.push(`Could not find an existing asset with source "${assetPath}"`)
+      }
+    }
+    return { assets, errors }
   }
 
   private resolveFeaturedAssetId(

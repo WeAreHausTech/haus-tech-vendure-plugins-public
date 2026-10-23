@@ -198,7 +198,7 @@ export const config = {
 | Column                        | Format                                                                                                                             | Example                                                                                    |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `name`, `slug`, `description` | Text, or `name:en`, `name:sv` for translations                                                                                     | `My Product`                                                                               |
-| `assets`                      | Pipe-separated URLs, or JSON `[{"url":"...","name":"..."}]`                                                                        | `https://example.com/1.jpg\|https://example.com/2.jpg`                                     |
+| `assets`                      | Pipe-separated URLs or existing asset sources, or JSON `[{"id":1,"url":"...","name":"..."}]`                                       | `https://example.com/1.jpg\|source/b6/2.jpg`                                               |
 | `channels`                    | Channel tokens, pipe-separated (see [Assigning products to channels](#assigning-products-to-channels))                            | `club-a\|club-b`                                                                          |
 | `facets`                      | `facet:value` pairs, pipe-separated                                                                                                | `Brand:Acme\|Category:Electronics`                                                         |
 | `optionGroups`                | Pipe-separated group names. Use `name:code` to share a group across products (see [Sharing option groups](#sharing-option-groups)) | `Size\|Color` or `size:shoe-size`                                                          |
@@ -219,6 +219,7 @@ export const config = {
 - For products with more than one variant, `optionGroups` and `optionValues` are required.
 - The header is checked before the upload is queued. A custom field column the shop does not have, a missing required column or mixed translated and untranslated columns make the upload answer `400` with `{ "errors": ["Invalid custom field: product:clubName"] }`, the Dashboard lists the errors, and nothing is imported.
 - Product data (`slug`, `description`, `assets`, `channels`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
+- An asset value that is not a URL names an existing asset the way the export writes it: by the JSON `id`, otherwise by its `source`. It is linked without being uploaded again, so an unchanged export imports with every image kept, also with **replace**. A value that matches no asset is reported as an error. A URL is downloaded unless an asset with the same file name exists.
 
 #### Assigning products to channels
 
