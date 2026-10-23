@@ -94,6 +94,7 @@ Bulk import/export of products via CSV: validation, custom fields, assets, facet
 | `src/services/product-import.service.ts`                                     | Import orchestration                                                        |
 | `src/services/extended-fast-importer.service.ts`                             | Extended Vendure FastImporter                                               |
 | `src/services/product-export.service.ts` / `product-export-queue.service.ts` | Export + async export job queue                                             |
+| `src/services/channel-column-resolver.ts`                                    | Checks the `channels` column's tokens and the uploader's rights per channel (ADR-0003) |
 | `src/services/import-storage/`                                               | Import job storage strategies (interface, local, S3)                        |
 | `src/services/export-storage/`                                               | Export storage strategies (interface, local, S3)                            |
 | `src/providers/import-providers/`                                            | CSV parser, product importer, asset importer                                |
@@ -102,7 +103,7 @@ Bulk import/export of products via CSV: validation, custom fields, assets, facet
 | `src/email.ts` + `src/email-templates/`                                      | Export-complete email entry (subpath export `./email`) + template           |
 | `src/ui/` / `src/dashboard/`                                                 | Angular Admin UI (route `product-importer`) + React Dashboard (with locales) |
 | `assets/`                                                                    | Static assets synced to the public docs site                                |
-| `e2e/`                                                                       | `product-import-export-plugin.e2e-spec.ts` (main flows), `rest-api-security.e2e-spec.ts`, `custom-export-columns.e2e-spec.ts`, `export-paging-and-large-products.e2e-spec.ts`, `self-relation-custom-fields.e2e-spec.ts` + fixtures |
+| `e2e/`                                                                       | `product-import-export-plugin.e2e-spec.ts` (main flows), `rest-api-security.e2e-spec.ts`, `custom-export-columns.e2e-spec.ts`, `export-paging-and-large-products.e2e-spec.ts`, `self-relation-custom-fields.e2e-spec.ts`, `channels-column.e2e-spec.ts` + fixtures |
 
 This is the only plugin exposing **REST controllers** rather than only GraphQL; `rest-api-security.e2e-spec.ts` guards their authorization.
 
