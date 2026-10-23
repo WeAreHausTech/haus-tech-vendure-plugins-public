@@ -498,7 +498,7 @@ export class ProductImporter {
     const shouldRestore =
       this.pluginOptions?.importOptions?.defaultOptions?.restoreSoftDeleted !== false
 
-    const sharedGroupMap = await this.buildSharedOptionGroupMap(ctx, rows)
+    const sharedGroupMap = await this.buildSharedOptionGroupMap(ctx, rows, channelsByToken)
 
     for (const { product, variants } of rows) {
       this.fastImporter.setProductChannels(
@@ -1414,6 +1414,7 @@ export class ProductImporter {
   private async buildSharedOptionGroupMap(
     ctx: RequestContext,
     rows: ParsedProductWithId[],
+    channelsByToken: ChannelsByToken,
   ): Promise<Map<string, { groupId: ID; optionIds: Map<string, ID> }>> {
     const sharedGroupMap = new Map<string, { groupId: ID; optionIds: Map<string, ID> }>()
 
@@ -1423,15 +1424,24 @@ export class ProductImporter {
     // The group's name comes from the first product that declares the code.
     const codeEntries = new Map<
       string,
-      { optionGroup: ParsedOptionGroup; values: Map<string, OptionTranslation[]> }
+      {
+        optionGroup: ParsedOptionGroup
+        values: Map<string, OptionTranslation[]>
+        channelTokens: Set<string>
+      }
     >()
     for (const { product } of rows) {
       for (const optionGroup of product.optionGroups) {
         if (!optionGroup.code) {
           continue
         }
-        const entry = codeEntries.get(optionGroup.code) ?? { optionGroup, values: new Map() }
+        const entry = codeEntries.get(optionGroup.code) ?? {
+          optionGroup,
+          values: new Map(),
+          channelTokens: new Set<string>(),
+        }
         codeEntries.set(optionGroup.code, entry)
+        product.channelTokens.forEach((token) => entry.channelTokens.add(token))
         const mainTranslation = this.getTranslationByCodeOrFirst(
           optionGroup.translations,
           ctx.languageCode,
@@ -1453,7 +1463,12 @@ export class ProductImporter {
       }
     }
 
-    for (const [code, { optionGroup, values }] of codeEntries) {
+    for (const [code, { optionGroup, values, channelTokens }] of codeEntries) {
+      // Vendure resolves an option's group in the request's channel, so a shared group and its
+      // options join every channel a product using them is assigned to through the channels column.
+      this.fastImporter.setProductChannels(
+        compact([...channelTokens].map((token) => channelsByToken.get(token))),
+      )
       const groupTranslations = optionGroup.translations
         .map((translation) => ({
           languageCode: translation.languageCode,
@@ -1502,6 +1517,7 @@ export class ProductImporter {
 
       sharedGroupMap.set(code, { groupId, optionIds })
     }
+    this.fastImporter.setProductChannels([])
 
     return sharedGroupMap
   }

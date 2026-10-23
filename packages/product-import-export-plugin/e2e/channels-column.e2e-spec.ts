@@ -7,6 +7,7 @@ import {
   LanguageCode,
   Permission,
   Product,
+  ProductOptionGroup,
   ProductVariant,
   ProductVariantPrice,
   RequestContext,
@@ -76,6 +77,20 @@ const CREATE_CHANNEL = gql`
     }
   }
 `
+const PRODUCT_OPTION_GROUPS = gql`
+  query ProductOptionGroups($slug: String!) {
+    product(slug: $slug) {
+      variants {
+        options {
+          code
+          group {
+            code
+          }
+        }
+      }
+    }
+  }
+`
 const CREATE_ROLE = gql`
   mutation CreateRole($input: CreateRoleInput!) {
     createRole(input: $input) {
@@ -101,7 +116,7 @@ const CREATE_ADMINISTRATOR = gql`
 describe('channels column', () => {
   const apiPort = 3066
   const baseUrl = `http://localhost:${apiPort}`
-  const { server, adminClient } = createTestEnvironment(
+  const { server, adminClient, shopClient } = createTestEnvironment(
     mergeConfig(testConfig, {
       apiOptions: { port: apiPort },
       plugins: [ProductImportExportPlugin.init({ importOptions: {}, exportOptions: {} })],
@@ -297,6 +312,34 @@ describe('channels column', () => {
 
       expect(await channelsOfVariant('THREE-M')).toEqual(withDefault('club-a'))
       expect(await priceIn('THREE-M', 'club-a')).toBe(1000)
+    })
+
+    it('assigns a shared option group and its options to every channel its products name', async () => {
+      const csv = [
+        `${HEADER},optionGroups,optionValues,channels`,
+        'Shared A,shared-a,Shared A,SHARED-A-S,10,Standard Tax,1,Fit:shared-fit,Slim,club-a',
+        'Shared B,shared-b,Shared B,SHARED-B-W,10,Standard Tax,1,Fit:shared-fit,Wide,club-b',
+      ].join('\n')
+      expect(await runImport(csv)).toEqual([])
+
+      const group = await server.app
+        .get(TransactionalConnection)
+        .rawConnection.getRepository(ProductOptionGroup)
+        .findOneOrFail({ where: { code: 'shared-fit' }, relations: ['channels', 'options', 'options.channels'] })
+      expect(group.channels.map((channel) => channel.token).sort()).toEqual(
+        withDefault('club-a', 'club-b'),
+      )
+      for (const option of group.options) {
+        expect(option.channels.map((channel) => channel.token).sort()).toEqual(
+          withDefault('club-a', 'club-b'),
+        )
+      }
+
+      // The shop API resolves an option's group in the request's channel only.
+      shopClient.setChannelToken('club-a')
+      const { product } = await shopClient.query(PRODUCT_OPTION_GROUPS, { slug: 'shared-a' })
+      shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN)
+      expect(product.variants[0].options[0].group.code).toBe('shared-fit')
     })
 
     it('updates the price in the named channels too', async () => {
