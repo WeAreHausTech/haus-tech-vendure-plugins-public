@@ -94,6 +94,7 @@ Bulk import/export of products via CSV: validation, custom fields, assets, facet
 | `src/services/product-import.service.ts`                                     | Import orchestration                                                        |
 | `src/services/extended-fast-importer.service.ts`                             | Extended Vendure FastImporter                                               |
 | `src/services/product-export.service.ts` / `product-export-queue.service.ts` | Export + async export job queue                                             |
+| `src/services/export-relation-lookups.ts`                                    | Checks `exportOptions.relationLookups` at start and reads a related row's lookup value |
 | `src/services/channel-column-resolver.ts`                                    | Checks the `channels` column's tokens and the uploader's rights per channel (ADR-0003) |
 | `src/services/import-storage/`                                               | Import job storage strategies (interface, local, S3)                        |
 | `src/services/export-storage/`                                               | Export storage strategies (interface, local, S3)                            |

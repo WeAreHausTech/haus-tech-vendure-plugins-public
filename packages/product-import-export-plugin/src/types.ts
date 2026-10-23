@@ -96,6 +96,18 @@ export interface PluginInitOptions {
      * plugin init time.
      */
     customExportColumns?: CustomExportColumn[]
+    /**
+     * @description
+     * Optional. Writes the chosen relation custom fields by a column of the related row instead
+     * of its id, keyed `<owner>:<field>` with the column as value, e.g.
+     * `{ 'variant:baseVariant': 'sku', 'product:brand': 'code' }`. The CSV header becomes
+     * `<owner>:<field>:<entity>:<column>`, the lookup header the import reads, so the file
+     * imports again, also into another database. The column must be a plain text column of the
+     * related entity, and the field must not relate to `Asset`; the application does not start
+     * otherwise. Soft-deleted related rows and rows without a value in the column are left out
+     * of the cell, since the import matches only live rows by a value.
+     */
+    relationLookups?: Record<string, string>
   }
 }
 

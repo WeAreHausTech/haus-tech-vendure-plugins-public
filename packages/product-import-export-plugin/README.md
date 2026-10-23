@@ -89,6 +89,7 @@ Available import storage strategies:
 | `defaultExportFields`   | `string[]`            | See above               | Fields that will be pre-selected in the export UI            |
 | `requiredExportFields`  | `string[]`            | `['name', 'sku']`       | Fields that must always be included                          |
 | `customExportColumns`   | `CustomExportColumn[]`| `undefined`             | Extra CSV columns resolved per variant row. See [Custom export columns](#custom-export-columns) below. |
+| `relationLookups`       | `Record<string, string>` | `undefined`          | Relation custom fields written by a column of the related row instead of its id. See [Exporting relations by a column](#exporting-relations-by-a-column) below. |
 | `storageStrategy`       | `'s3' \| 'disk'`      | `'disk'`                | Where exported files are stored                              |
 | `s3Options`             | `object`              | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`) |
 
@@ -255,6 +256,26 @@ Club Tee,CLUB-TEE-M,299,BASE-TEE-M,ECO
 - The related rows must exist before the upload, so import them in an earlier file.
 - The third segment must be the related entity's class name (`productvariant`, `productlabel`; case does not matter), and a field takes one lookup column. Otherwise the upload answers `400` and names the column. `:sku` on a relation to `ProductVariant` accepts any third segment, as it always has.
 - A lookup works only on relation custom fields. Columns without a fourth segment still take ids.
+
+#### Exporting relations by a column
+
+The export writes relation custom fields as ids unless `exportOptions.relationLookups` names a column for the field. Keys are `<owner>:<field>`, values the column of the related entity:
+
+```ts
+ProductImportExportPlugin.init({
+  importOptions: {},
+  exportOptions: {
+    relationLookups: {
+      'variant:baseVariant': 'sku',
+      'product:label': 'code',
+    },
+  },
+})
+```
+
+- The export then writes the field under the lookup header (`variant:baseVariant:productvariant:sku`, `product:label:productlabel:code`) with the related rows' values, `VALUE|VALUE` for a list field. The import reads that header as described above, so the file imports again, also into another database where the ids differ.
+- The column must be a plain text column of the related entity, and the field must be a relation custom field that does not relate to `Asset`. Otherwise the application does not start and the error names the key.
+- A related row that is soft-deleted, or has no value in the column, is left out of the cell, since the import matches only live rows by a value. Values must be unique among live rows: a value two live rows share makes the import of the file fail with the lookup error above.
 
 #### Sharing option groups
 

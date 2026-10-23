@@ -1,5 +1,7 @@
 import path from 'path'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { Readable } from 'node:stream'
+import { parse } from 'csv-parse/sync'
 import {
   DeepPartial,
   ID,
@@ -25,7 +27,9 @@ import {
   testConfig,
 } from '@vendure/testing'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { IMPORT_JOB_STORAGE_STRATEGY } from '../src/constants'
+import { EXPORT_STORAGE_STRATEGY, IMPORT_JOB_STORAGE_STRATEGY } from '../src/constants'
+import { ExportStorageStrategy } from '../src/services/export-storage/export-storage-strategy'
+import { ProductExportService } from '../src/services/product-export.service'
 import { ImportJobStorageStrategy } from '../src/services/import-storage/import-job-storage-strategy'
 import { ProductImporter } from '../src/providers/import-providers/product-importer'
 import { RelationLookupResolver } from '../src/services/relation-lookup-resolver'
@@ -157,7 +161,14 @@ describe('relation custom fields given by SKU', () => {
         TestTagPlugin,
         ProductImportExportPlugin.init({
           importOptions: { rowValidationStrategy: rowValidation },
-          exportOptions: {},
+          exportOptions: {
+            relationLookups: {
+              'product:tag': 'code',
+              'product:tags': 'code',
+              'variant:baseVariant': 'sku',
+              'variant:siblings': 'sku',
+            },
+          },
         }),
       ],
     }),
@@ -857,6 +868,98 @@ describe('relation custom fields given by SKU', () => {
 
       expect(errors).toEqual([])
       expect((await findProductBySku('COPY-1'))?.customFields.tag?.id).toBe(ids['T-1'])
+    })
+  })
+  /**
+   * `exportOptions.relationLookups` makes the export write a relation by a column of the related
+   * row under the lookup header, so the file imports again without database ids.
+   */
+  describe('export by lookup column', () => {
+    const CUSTOM_FIELDS =
+      'product:tag,product:tags,product:relatedProduct,variant:baseVariant,variant:siblings'
+    let rows: Record<string, string>[]
+    let csv: string
+
+    async function streamToString(stream: Readable): Promise<string> {
+      const chunks: Buffer[] = []
+      for await (const chunk of stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      }
+      return Buffer.concat(chunks).toString('utf8')
+    }
+
+    async function runExport(productIds: ID[]): Promise<string> {
+      const exportService = server.app.get(ProductExportService)
+      const storage = server.app.get<ExportStorageStrategy>(EXPORT_STORAGE_STRATEGY)
+      const file = await exportService.createExportFile(
+        ctx,
+        productIds,
+        'relation-lookups.csv',
+        CUSTOM_FIELDS,
+        'url',
+        'name,slug,description,sku,price,taxCategory,stockOnHand',
+      )
+      const text = await streamToString(await storage.getExportFileStream(ctx, file))
+      await storage.deleteExportFile(ctx, file)
+      return text
+    }
+
+    const sorted = (cell: string) => cell.split('|').sort()
+
+    beforeAll(async () => {
+      const related = await findProductBySku('BASE-1')
+      const gone = await variantRepo.findOneOrFail({ where: { sku: 'GONE-1' } })
+      // Ids, so the lists can hold the soft-deleted tag and variant too.
+      const tagIds = [ids['T-1'], ids['T 2.b'], ids['T-OLD']].join('|')
+      const siblingIds = [ids['BASE-1'], ids['BASE 2.b'], gone.id].join('|')
+      expect(
+        await runImport(
+          [
+            `${HEADER},${TAG_BY_CODE},product:tags:testtag,${BASE_BY_SKU},variant:siblings:productvariant,product:relatedProduct:product`,
+            `Export One,export-one,Export,EXPORT-1,150,Standard Tax,1,T-1,${tagIds},BASE-1,${siblingIds},${related?.id}`,
+          ].join('\n'),
+        ),
+      ).toEqual([])
+      const product = await findProductBySku('EXPORT-1')
+      if (!product) {
+        throw new Error('EXPORT-1 was not imported')
+      }
+      csv = await runExport([product.id])
+      rows = parse(csv, { columns: true }) as Record<string, string>[]
+    })
+
+    it('writes each configured relation by its column, under the lookup header, without soft-deleted rows', () => {
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({
+        sku: 'EXPORT-1',
+        [TAG_BY_CODE]: 'T-1',
+        [BASE_BY_SKU]: 'BASE-1',
+      })
+      expect(sorted(rows[0][TAGS_BY_CODE])).toEqual(['T 2.b', 'T-1'])
+      expect(sorted(rows[0][SIBLINGS_BY_SKU])).toEqual(['BASE 2.b', 'BASE-1'])
+    })
+
+    it('keeps writing a relation without a lookup as ids', async () => {
+      const related = await findProductBySku('BASE-1')
+      expect(rows[0]['product:relatedProduct:product']).toBe(String(related?.id))
+    })
+
+    it('imports the file it wrote, linking the same rows by their columns', async () => {
+      // Another SKU and name make the same row a new product, so every link is set by the file.
+      const copy = csv.replace('EXPORT-1', 'EXPORT-COPY').replace(/Export One/g, 'Export Copy')
+      expect(await validate(copy)).toEqual([])
+      expect(await runImport(copy)).toEqual([])
+
+      const product = await findProductBySku('EXPORT-COPY')
+      const variant = await findVariant('EXPORT-COPY')
+      expect(product?.customFields.tag?.id).toBe(ids['T-1'])
+      expect(product?.customFields.tags.map((tag: TestTag) => tag.id).sort()).toEqual(
+        [ids['T-1'], ids['T 2.b']].sort(),
+      )
+      expect(variant?.customFields.baseVariant?.id).toBe(ids['BASE-1'])
+      expect(variant?.customFields.siblings.map((v: ProductVariant) => v.id).sort()).toEqual(
+        [ids['BASE-1'], ids['BASE 2.b']].sort(),
+      )
     })
   })
 })
