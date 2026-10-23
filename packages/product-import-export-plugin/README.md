@@ -199,7 +199,8 @@ export const config = {
 | Column                        | Format                                                                                                                             | Example                                                                                    |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `name`, `slug`, `description` | Text, or `name:en`, `name:sv` for translations                                                                                     | `My Product`                                                                               |
-| `assets`                      | Pipe-separated URLs, or JSON `[{"url":"...","name":"..."}]`                                                                        | `https://example.com/1.jpg\|https://example.com/2.jpg`                                     |
+| `assets`                      | Pipe-separated URLs or existing asset sources, or JSON `[{"id":1,"url":"...","name":"..."}]`                                       | `https://example.com/1.jpg\|source/b6/2.jpg`                                               |
+| `channels`                    | Channel tokens, pipe-separated (see [Assigning products to channels](#assigning-products-to-channels))                            | `club-a\|club-b`                                                                          |
 | `facets`                      | `facet:value` pairs, pipe-separated                                                                                                | `Brand:Acme\|Category:Electronics`                                                         |
 | `optionGroups`                | Pipe-separated group names. Use `name:code` to share a group across products (see [Sharing option groups](#sharing-option-groups)) | `Size\|Color` or `size:shoe-size`                                                          |
 | `optionValues`                | Pipe-separated values (order matches option groups)                                                                                | `Large\|Blue`                                                                              |
@@ -218,7 +219,27 @@ export const config = {
 - If a column exists in the header but the cell is empty, that field is explicitly cleared.
 - For products with more than one variant, `optionGroups` and `optionValues` are required.
 - The header is checked before the upload is queued. A custom field column the shop does not have, a missing required column or mixed translated and untranslated columns make the upload answer `400` with `{ "errors": ["Invalid custom field: product:clubName"] }`, the Dashboard lists the errors, and nothing is imported.
-- Product data (`slug`, `description`, `assets`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
+- Product data (`slug`, `description`, `assets`, `channels`, `facets`, `optionGroups` and `product:` custom fields) is read from a product's first row, the row with a `name`. If a later variant row of the product fills one of these columns, that product is not imported and the import reports the column and line. Other products in the file still import. `id` may repeat on every row.
+- An asset value that is not a URL names an existing asset the way the export writes it: by the JSON `id`, otherwise by its `source`. It is linked without being uploaded again, so an unchanged export imports with every image kept, also with **replace**. A value that matches no asset is reported as an error. A URL is downloaded unless an asset with the same file name exists.
+
+#### Assigning products to channels
+
+A product is always assigned to the default channel and to the channel the import runs in. The `channels` column assigns it to more channels, named by token, so one file run from the default channel can fill several channels:
+
+```csv
+name,sku,price,channels
+Club Tee,CLUB-TEE-M,299,club-a
+Shared Cap,CAP-1,199,club-a|club-b
+```
+
+- The product and its variants are assigned, each variant with a price row in each channel's currency, and so are the option groups and facets the row writes. A shared option group (`name:code`) keeps the channels it has; Vendure reads a product's option groups whatever their channels. A variant added to the product later in the file gets the same channels.
+- The column only adds. An empty cell or a file without the column leaves a product in the channels it is in; remove a product from a channel in the Admin UI or Dashboard.
+- The upload is checked before it is queued, and the job checks again before its first write. Any problem answers `400` with the rows and nothing is imported:
+  - `Row 3: channels: no channel with token 'club-x'`
+  - `Row 2: channels: no right to update products in channel 'club-b'`: the uploader needs `UpdateCatalog` or `UpdateProduct` in every channel the file names.
+  - `Row 2: channels: an import run in channel 'club-a' can only name 'club-a', not 'club-b'`: outside the default channel, a file can only name the channel it runs in.
+- Server code that calls `ProductImporter` with a context without a user is trusted, so it is not checked for rights; the token and channel rules still apply.
+- The export writes the column (select `channels`): from the default channel the product's other channels, by channel id; from another channel only that channel's token, so a club's file never shows which other channels sell the product. An exported file imports again.
 
 #### Relations by SKU or another column
 
@@ -326,6 +347,7 @@ The Admin UI offers basic import and export. Some features such as the export-al
 1. In the Admin UI or Dashboard, select products to export (or use bulk export).
 2. Configure export fields (assets, facets, custom fields, etc.).
    - For products with more than one variant, `optionGroups` and `optionValues` must be included.
+   - `channels` is available as a selectable export field (see [Assigning products to channels](#assigning-products-to-channels)).
    - `id` (the Vendure product id) is available as a selectable export field. It is written after the translated `name`/`slug`/`description` columns, so it is never CSV column 0, since import treats column 0 positionally as a product id for by-id matching.
    - If `customExportColumns` is configured, only the columns whose `name` is selected are written to the CSV.
    - The job reports progress per page; the Dashboard job queue shows it.
