@@ -232,7 +232,7 @@ Club Tee,CLUB-TEE-M,299,club-a
 Shared Cap,CAP-1,199,club-a|club-b
 ```
 
-- The product and its variants are assigned, each variant with a price row in each channel's currency, and so are the option groups and facets the row writes. A shared option group (`name:code`) keeps the channels it has; Vendure reads a product's option groups whatever their channels. A variant added to the product later in the file gets the same channels.
+- The product and its variants are assigned, each variant with a price row in each channel's currency, and so are the option groups and facets the row writes. A shared option group (`name:code`) and its options join every channel named by a product that uses them, since the Shop API resolves an option's group in the request's channel only. A variant added to the product later in the file gets the same channels.
 - The column only adds. An empty cell or a file without the column leaves a product in the channels it is in; remove a product from a channel in the Admin UI or Dashboard.
 - The upload is checked before it is queued, and the job checks again before its first write. Any problem answers `400` with the rows and nothing is imported:
   - `Row 3: channels: no channel with token 'club-x'`
