@@ -1,3 +1,9 @@
+## 3.6.15
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** assign shared option groups to the channels column's channels ([#66](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/66))
+
 ## 3.6.14
 
 ### 🚀 Features
