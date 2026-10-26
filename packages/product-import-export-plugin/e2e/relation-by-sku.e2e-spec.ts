@@ -343,17 +343,16 @@ describe('relation custom fields given by SKU', () => {
       expect(await runImport(csv)).toEqual(['Row 2: no variant with SKU NOPE-1'])
     })
 
-    it('still accepts any entity segment on a :sku header, as before lookups by column', async () => {
+    it('rejects a :sku header whose third segment is not the related entity', async () => {
       const csv = [
-        `${HEADER},variant:baseVariant:relation:sku,variant:siblings:ProductVariant:sku`,
-        'Legacy,legacy,Legacy,LEGACY-1,150,Standard Tax,1,BASE-1,BASE 2.b',
+        `${HEADER},variant:baseVariant:relation:sku`,
+        'Strict,strict,Strict,STRICT-1,150,Standard Tax,1,BASE-1',
       ].join('\n')
-      expect(await runImport(csv)).toEqual([])
-      const legacy = await findVariant('LEGACY-1')
-      expect(legacy?.customFields.baseVariant?.id).toBe(ids['BASE-1'])
-      expect(legacy?.customFields.siblings.map((v: ProductVariant) => v.id)).toEqual([
-        ids['BASE 2.b'],
-      ])
+      const expected = [
+        "Column 'variant:baseVariant:relation:sku': the third segment must be 'productvariant', the related entity",
+      ]
+      expect(await validate(csv)).toEqual(expected)
+      expect(await runImport(csv)).toEqual(expected)
     })
 
     it('still reads a three-segment column as ids', async () => {

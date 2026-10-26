@@ -26,7 +26,7 @@ One generic lookup covers every relation instead of a lookup class per entity, a
 
 ## Consequences
 
-- `:sku` headers keep working with any third segment; other lookups require the entity segment.
+- Every lookup header, `:sku` included, requires the related entity's class name in lower case as its third segment (`variant:baseVariant:productvariant:sku`); other third segments are rejected.
 - An import job whose rows are rejected when it runs now ends FAILED with the list as its error instead of COMPLETED with zero imported.
 - With a non-default strategy the whole file is parsed at upload, which costs memory proportional to the file.
 - Lookups work on text columns of the entity itself, not on translated fields.
