@@ -27,9 +27,9 @@ Success:
    | 3 | set | set | the promotion is active and the product is in the collection; the promotion's conditions are not checked |
 
    Mode 3 covers promotions whose conditions are about the order (minimum amount, customer group): the collection names the products, the promotion supplies the dates. A badge with neither link shows nowhere, as today.
-3. **Product checks per condition code.** A product check answers "would this condition select this product?" for one condition type. The plugin ships checks for Vendure's `contains_products` and `at_least_n_with_facets`. Projects register checks for their own conditions through a new init option; a registered check with the same code replaces the shipped one.
+3. **Product checks per condition code.** A product check answers "would this condition select this product?" for one condition type. The plugin ships one check, for Vendure's `contains_products`. Projects register checks for their own conditions through a new init option; a registered check with the same code replaces the shipped one.
 4. **All conditions must match (mode 2).** Vendure requires every condition of a promotion to pass, so the badge does too. If any condition has no registered check, the badge is not shown in mode 2, because the plugin cannot know. A promotion with no conditions applies to every order in Vendure, so its badge shows on every product.
-5. **Quantity arguments are ignored.** `contains_products` and `at_least_n_with_facets` carry a minimum quantity. A product check only asks whether the product is one of the selected ones; the badge invites the shopper to reach the quantity.
+5. **Quantity arguments are ignored.** `contains_products` carries a minimum quantity. A product check only asks whether the product is one of the selected ones; the badge invites the shopper to reach the quantity.
 6. **Coupon promotions show no badge.** A shopper cannot get the discount without the code, so a badge would promise something the cart does not give.
 7. **Active means**: `enabled`, not deleted, assigned to the active channel, `startsAt` empty or in the past, `endsAt` empty or in the future. The same test Vendure applies before a promotion takes part in an order.
 8. **React Dashboard only.** The promotion picker is added to the Dashboard badge page. The Angular Admin UI keeps managing collection badges; saving a badge there leaves its promotion link unchanged, because an omitted `promotionId` in `updateBadge` means "no change".
@@ -42,7 +42,7 @@ In:
 1. `promotionId` on the `Badge` entity (nullable, set to null when the promotion is hard-deleted).
 2. Admin API: `Badge.promotion`, `Badge.promotionId`, `promotionId` on `CreateBadgeInput` and `UpdateBadgeInput`, and `Badge.unmatchedConditionCodes: [String!]!`.
 3. Shop API: `Product.badges`, `ProductVariant.badges` and `SearchResult.badges` return collection badges plus active promotion badges, without duplicates, ordered by the badge's `order` then id.
-4. Init option `promotionProductChecks`, the exported type for a check, and the two shipped checks.
+4. Init option `promotionProductChecks`, the exported type for a check, and the shipped `contains_products` check.
 5. Dashboard badge page: promotion picker, and a warning listing `unmatchedConditionCodes` when the badge is in mode 2.
 6. Unit tests, e2e tests, README and changelog through the release flow.
 
@@ -52,6 +52,7 @@ Out:
 2. Angular Admin UI support for the promotion link.
 3. Assigning badges to other channels (unchanged: a badge shows only in channels it is assigned to).
 4. Precomputing or caching badges across requests.
+6. A shipped check for `at_least_n_with_facets`.
 5. Struck-through or campaign prices.
 
 ## 4. Data model
@@ -90,10 +91,7 @@ BadgePlugin.init({
 })
 ```
 
-Shipped checks:
-
-1. `contains_products`: true when one of the product's variants is in `productVariantIds`.
-2. `at_least_n_with_facets`: true when one of the product's variants carries every facet value in `facets`, counting the product's own facet values as the variant's (the way Vendure's facet value checks treat them).
+Shipped check: `contains_products`, true when one of the product's variants is in `productVariantIds`. A check for `at_least_n_with_facets` is left out until a project needs it; a project can register one.
 
 The plugin looks condition definitions up in `promotionOptions.promotionConditions` by code to parse stored arguments. A stored condition whose code is no longer configured counts as unmatched.
 
@@ -121,12 +119,12 @@ The decision in step 3 is a pure function (promotion facts plus check results in
 
 ## 8. Error handling
 
-1. A check that throws is logged once per request with the condition code and treated as no match; the product still renders with its other badges.
+1. A check that throws is logged with the condition code and treated as no match; the product still renders with its other badges.
 2. A promotion deleted after linking stops showing its badges (soft delete) or clears the link (hard delete).
 
 ## 9. Testing
 
-1. Unit (`*.spec.ts`): the keep-or-drop function for every row in decision 2 and every active-test clause in decision 7; both shipped checks, including quantity arguments being ignored.
+1. Unit (`*.spec.ts`): the keep-or-drop function for every row in decision 2 and every active-test clause in decision 7; the shipped check, including its quantity argument being ignored.
 2. E2E (`e2e/badge-plugin.e2e-spec.ts`, extended): a badge linked to a promotion appears on a matching product and not on another; disappears when the promotion is disabled, before its start, after its end, given a coupon code, or not in the channel; mode 3 with a `minimum_order_amount` promotion; a custom check registered through init; `unmatchedConditionCodes`; collection badges unchanged; `SearchResult.badges` and `ProductVariant.badges` agree with `Product.badges`.
 3. Local Dashboard run: create a promotion badge, see the warning for an order-level condition, see the badge in a shop query.
 
