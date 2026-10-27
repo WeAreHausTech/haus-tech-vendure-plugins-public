@@ -1,6 +1,6 @@
 import { PluginCommonModule, VendurePlugin } from '@vendure/core'
 import { adminApiExtensions, shopApiExtensions } from './api/api-extensions'
-import { BadgeAdminResolver } from './api/admin.resolver'
+import { BadgeAdminEntityResolver, BadgeAdminResolver } from './api/admin.resolver'
 
 import { PLUGIN_INIT_OPTIONS } from './constants'
 import { Badge } from './entity/badge.entity'
@@ -54,7 +54,7 @@ export interface BadgePluginOptions {
   },
   adminApiExtensions: {
     schema: adminApiExtensions,
-    resolvers: [BadgeAdminResolver],
+    resolvers: [BadgeAdminResolver, BadgeAdminEntityResolver],
   },
   entities: [Badge],
   dashboard: './dashboard/index.tsx',

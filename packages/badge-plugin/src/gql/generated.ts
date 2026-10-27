@@ -321,6 +321,9 @@ export type Badge = Node & {
   createdAt: Scalars['DateTime']['output']
   id: Scalars['ID']['output']
   position: Scalars['String']['output']
+  promotion?: Maybe<Promotion>
+  promotionId?: Maybe<Scalars['ID']['output']>
+  unmatchedConditionCodes: Array<Scalars['String']['output']>
   updatedAt: Scalars['DateTime']['output']
 }
 
@@ -820,6 +823,7 @@ export type CreateBadgeInput = {
   position?: InputMaybe<Scalars['String']['input']>
   text?: InputMaybe<Scalars['String']['input']>
   collectionId?: InputMaybe<Scalars['ID']['input']>
+  promotionId?: InputMaybe<Scalars['ID']['input']>
 }
 
 export type CreateChannelCustomFieldsInput = {
@@ -6277,6 +6281,7 @@ export type UpdateBadgeInput = {
   collectionId?: InputMaybe<Scalars['ID']['input']>
   id: Scalars['ID']['input']
   position?: InputMaybe<Scalars['String']['input']>
+  promotionId?: InputMaybe<Scalars['ID']['input']>
   text?: InputMaybe<Scalars['String']['input']>
 }
 

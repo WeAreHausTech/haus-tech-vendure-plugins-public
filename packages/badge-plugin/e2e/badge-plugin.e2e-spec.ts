@@ -16,7 +16,7 @@ import { initialData } from './fixtures/initial-data'
 
 const sqliteDataDir = path.join(__dirname, '__data__')
 /** Bump when Vendure upgrades change the sqljs schema (invalidates cached e2e DB). */
-const SQLITE_SCHEMA_VERSION = '3.6.0-badge-asset-validated'
+const SQLITE_SCHEMA_VERSION = '3.6.0-badge-promotion-link'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')
@@ -51,6 +51,8 @@ const CREATE_BADGE = gql`
       position
       text
       collectionId
+      promotionId
+      unmatchedConditionCodes
       assetId
     }
   }
@@ -62,6 +64,38 @@ const UPDATE_BADGE = gql`
       id
       position
       text
+      collectionId
+      promotionId
+      unmatchedConditionCodes
+    }
+  }
+`
+
+const CREATE_PRODUCT = gql`
+  mutation CreateBadgeTestProduct($input: CreateProductInput!) {
+    createProduct(input: $input) {
+      id
+    }
+  }
+`
+
+const CREATE_VARIANTS = gql`
+  mutation CreateBadgeTestVariants($input: [CreateProductVariantInput!]!) {
+    createProductVariants(input: $input) {
+      id
+    }
+  }
+`
+
+const CREATE_PROMOTION = gql`
+  mutation CreateBadgeTestPromotion($input: CreatePromotionInput!) {
+    createPromotion(input: $input) {
+      ... on Promotion {
+        id
+      }
+      ... on ErrorResult {
+        message
+      }
     }
   }
 `
@@ -113,6 +147,46 @@ describe('BadgePlugin e2e', () => {
   let collectionId: string
   let assetId: string
   let badgeId: string
+  let variantId: string
+  let containsPromotionId: string
+  let amountPromotionId: string
+
+  async function createAsset(): Promise<string> {
+    const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' })
+    const asset = await server.app.get(AssetService).create(ctx, {
+      file: {
+        createReadStream: () => Readable.from(Buffer.from('badge-image')),
+        filename: 'badge.png',
+        mimetype: 'image/png',
+        encoding: '7bit',
+      },
+    })
+    return (asset as Asset).id as string
+  }
+
+  async function createCollectionId(slug: string): Promise<string> {
+    const { createCollection } = await adminClient.query(CREATE_COLLECTION, {
+      input: {
+        translations: [{ languageCode: 'en', name: slug, slug, description: '' }],
+        filters: [],
+      },
+    })
+    return createCollection.id
+  }
+
+  async function createPromotion(name: string, conditions: unknown[]): Promise<string> {
+    const { createPromotion } = await adminClient.query(CREATE_PROMOTION, {
+      input: {
+        enabled: true,
+        conditions,
+        actions: [
+          { code: 'order_percentage_discount', arguments: [{ name: 'discount', value: '10' }] },
+        ],
+        translations: [{ languageCode: 'en', name, description: '' }],
+      },
+    })
+    return createPromotion.id
+  }
 
   beforeAll(async () => {
     await ensureFreshE2eDatabase()
@@ -138,6 +212,44 @@ describe('BadgePlugin e2e', () => {
       },
     })
     assetId = (asset as Asset).id as string
+
+    const { createProduct } = await adminClient.query(CREATE_PRODUCT, {
+      input: {
+        translations: [
+          { languageCode: 'en', name: 'Promo product', slug: 'promo-product', description: '' },
+        ],
+      },
+    })
+    const { createProductVariants } = await adminClient.query(CREATE_VARIANTS, {
+      input: [
+        {
+          productId: createProduct.id,
+          sku: 'PROMO-1',
+          price: 1000,
+          translations: [{ languageCode: 'en', name: 'Promo variant' }],
+        },
+      ],
+    })
+    variantId = createProductVariants[0].id
+
+    containsPromotionId = await createPromotion('Contains', [
+      {
+        code: 'contains_products',
+        arguments: [
+          { name: 'minimum', value: '1' },
+          { name: 'productVariantIds', value: JSON.stringify([variantId]) },
+        ],
+      },
+    ])
+    amountPromotionId = await createPromotion('Amount', [
+      {
+        code: 'minimum_order_amount',
+        arguments: [
+          { name: 'amount', value: '5000' },
+          { name: 'taxInclusive', value: 'false' },
+        ],
+      },
+    ])
   }, 120_000)
 
   afterAll(async () => {
@@ -226,5 +338,82 @@ describe('BadgePlugin e2e', () => {
       collectionId,
     })
     expect(getBadgeFromCollection).toBeNull()
+  })
+
+  describe('promotion link', () => {
+    it('creates a badge linked to a promotion', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), promotionId: containsPromotionId },
+      })
+      expect(createBadge.promotionId).toBe(containsPromotionId)
+      expect(createBadge.collectionId).toBeNull()
+      expect(createBadge.unmatchedConditionCodes).toEqual([])
+    })
+
+    it('rejects a badge linked to both a collection and a promotion', async () => {
+      await expect(
+        adminClient.query(CREATE_BADGE, {
+          input: {
+            assetId: await createAsset(),
+            collectionId: await createCollectionId('both-create'),
+            promotionId: containsPromotionId,
+          },
+        }),
+      ).rejects.toThrow(/collection or a promotion/i)
+    })
+
+    it('rejects a promotion that does not exist', async () => {
+      await expect(
+        adminClient.query(CREATE_BADGE, {
+          input: { assetId: await createAsset(), promotionId: '999999' },
+        }),
+      ).rejects.toThrow(/No promotion with the id/i)
+    })
+
+    it('rejects adding a promotion to a collection badge, and allows switching', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), collectionId: await createCollectionId('switch') },
+      })
+      await expect(
+        adminClient.query(UPDATE_BADGE, {
+          input: { id: createBadge.id, promotionId: containsPromotionId },
+        }),
+      ).rejects.toThrow(/collection or a promotion/i)
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE, {
+        input: { id: createBadge.id, collectionId: null, promotionId: containsPromotionId },
+      })
+      expect(updateBadge.collectionId).toBeNull()
+      expect(updateBadge.promotionId).toBe(containsPromotionId)
+    })
+
+    it('keeps promotionId null when a collection badge changes only its position', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), collectionId: await createCollectionId('keep') },
+      })
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE, {
+        input: { id: createBadge.id, position: 'top-right' },
+      })
+      expect(updateBadge.position).toBe('top-right')
+      expect(updateBadge.promotionId).toBeNull()
+      expect(updateBadge.collectionId).toBe(createBadge.collectionId)
+    })
+
+    it('reports condition codes that cannot be checked per product', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), promotionId: amountPromotionId },
+      })
+      expect(createBadge.unmatchedConditionCodes).toEqual(['minimum_order_amount'])
+    })
+
+    it('clears the promotion link with null', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), promotionId: containsPromotionId },
+      })
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE, {
+        input: { id: createBadge.id, promotionId: null },
+      })
+      expect(updateBadge.promotionId).toBeNull()
+      expect(updateBadge.unmatchedConditionCodes).toEqual([])
+    })
   })
 })

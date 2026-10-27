@@ -4,6 +4,7 @@ import {
   AssetService,
   ChannelService,
   Collection,
+  ConfigService,
   CollectionService,
   EntityHydrator,
   EntityNotFoundError,
@@ -12,6 +13,8 @@ import {
   ListQueryOptions,
   PaginatedList,
   Product,
+  Promotion,
+  PromotionService,
   RequestContext,
   TransactionalConnection,
   UserInputError,
@@ -22,6 +25,7 @@ import { SearchResult } from '@vendure/common/lib/generated-shop-types'
 import { AssignBadgesToChannelInput } from '../types'
 import { PLUGIN_INIT_OPTIONS } from '../constants'
 import { BadgePluginOptions } from '../badge.plugin'
+import { buildCheckRegistry, uncheckedConditionCodes } from '../promotion-checks/evaluate-conditions'
 
 /**
  * @description
@@ -42,12 +46,14 @@ export class BadgeService {
     private entityHydratorService: EntityHydrator,
     private collectionService: CollectionService,
     private channelService: ChannelService,
+    private promotionService: PromotionService,
+    private configService: ConfigService,
   ) {}
 
   async findOne(ctx: RequestContext, id: ID): Promise<Badge | null> {
     return this.connection
       .getRepository(ctx, Badge)
-      .findOne({ where: { id }, relations: ['collection', 'asset', 'channels'] })
+      .findOne({ where: { id }, relations: ['collection', 'promotion', 'asset', 'channels'] })
   }
 
   async findAll(
@@ -55,7 +61,7 @@ export class BadgeService {
     options?: ListQueryOptions<Badge>,
   ): Promise<PaginatedList<Badge>> {
     return this.listQueryBuilder
-      .build(Badge, options, { relations: ['collection', 'asset', 'channels'], ctx })
+      .build(Badge, options, { relations: ['collection', 'promotion', 'asset', 'channels'], ctx })
       .leftJoin('badge.channels', 'channel')
       .andWhere('channel.id = :channelId', { channelId: ctx.channel.id })
       .getManyAndCount()
@@ -70,6 +76,7 @@ export class BadgeService {
     if (!asset) {
       throw new UserInputError(`No asset with the id "${input.assetId}" could be found`)
     }
+    this.assertNotBoth(input.collectionId, input.promotionId)
     const badge = new Badge({ position, text: input.text ?? undefined })
     // `asset` and `collection` each share their FK column with the relation. On save()
     // TypeORM takes the FK from the relation *object*, so a scalar-only id is discarded
@@ -86,6 +93,14 @@ export class BadgeService {
     } else {
       badge.collection = null
       badge.collectionId = null
+    }
+    if (input.promotionId) {
+      const promotion = await this.findPromotion(ctx, input.promotionId)
+      badge.promotion = promotion
+      badge.promotionId = promotion.id
+    } else {
+      badge.promotion = null
+      badge.promotionId = null
     }
     const created = await this.connection.getRepository(ctx, Badge).save(badge)
     // ManyToMany channel membership isn't written from a constructor array — use the
@@ -119,10 +134,19 @@ export class BadgeService {
       throw new EntityNotFoundError('Badge', input.id)
     }
 
+    // An omitted key keeps the stored value, an explicit null clears it.
+    const collectionId = 'collectionId' in input ? input.collectionId : badge.collectionId
+    const promotionId = 'promotionId' in input ? input.promotionId : badge.promotionId
+    this.assertNotBoth(collectionId, promotionId)
+    if (promotionId) {
+      await this.findPromotion(ctx, promotionId)
+    }
+
     await repository.update(input.id, {
       position: input.position ?? badge.position,
       text: input.text ?? badge.text,
       collectionId: input.collectionId,
+      promotionId: 'promotionId' in input ? (input.promotionId ?? null) : undefined,
       assetId: input.assetId || badge.assetId,
     })
 
@@ -200,6 +224,40 @@ export class BadgeService {
       ctx.channelId,
       {},
     )
+  }
+
+  /**
+   * The condition codes of the badge's promotion that cannot be checked per product,
+   * so the admin can warn that the badge may show on products the promotion ignores.
+   */
+  async unmatchedConditionCodes(ctx: RequestContext, badge: Badge): Promise<string[]> {
+    if (!badge.promotionId) {
+      return []
+    }
+    const promotion =
+      badge.promotion ?? (await this.promotionService.findOne(ctx, badge.promotionId))
+    if (!promotion) {
+      return []
+    }
+    return uncheckedConditionCodes(
+      promotion.conditions,
+      this.configService.promotionOptions.promotionConditions ?? [],
+      buildCheckRegistry(this.options.promotionProductChecks),
+    )
+  }
+
+  private async findPromotion(ctx: RequestContext, id: ID): Promise<Promotion> {
+    const promotion = await this.promotionService.findOne(ctx, id)
+    if (!promotion) {
+      throw new UserInputError(`No promotion with the id "${id}" could be found`)
+    }
+    return promotion
+  }
+
+  private assertNotBoth(collectionId?: ID | null, promotionId?: ID | null): void {
+    if (collectionId && promotionId) {
+      throw new UserInputError('A badge links a collection or a promotion, not both')
+    }
   }
 
   /**

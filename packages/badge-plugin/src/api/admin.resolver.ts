@@ -1,4 +1,4 @@
-import { Args, Query, Resolver, Mutation } from '@nestjs/graphql'
+import { Args, Query, Resolver, Mutation, ResolveField, Parent } from '@nestjs/graphql'
 import {
   Allow,
   Ctx,
@@ -90,5 +90,18 @@ export class BadgeAdminResolver {
   @Allow(Permission.ReadCatalog)
   getBadgePluginConfig() {
     return this.config
+  }
+}
+
+@Resolver('Badge')
+export class BadgeAdminEntityResolver {
+  constructor(private badgeService: BadgeService) {}
+
+  @ResolveField()
+  async unmatchedConditionCodes(
+    @Ctx() ctx: RequestContext,
+    @Parent() badge: Badge,
+  ): Promise<string[]> {
+    return this.badgeService.unmatchedConditionCodes(ctx, badge)
   }
 }

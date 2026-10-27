@@ -7,6 +7,9 @@ export const adminApiExtensions = gql`
     updatedAt: DateTime!
     collection: Collection
     collectionId: ID
+    promotion: Promotion
+    promotionId: ID
+    unmatchedConditionCodes: [String!]!
     position: String!
     text: String
     asset: Asset!
@@ -31,6 +34,7 @@ export const adminApiExtensions = gql`
     position: String
     text: String
     collectionId: ID
+    promotionId: ID
   }
 
   extend type Mutation {
@@ -44,6 +48,7 @@ export const adminApiExtensions = gql`
   input UpdateBadgeInput {
     id: ID!
     collectionId: ID
+    promotionId: ID
     position: String
     text: String
     assetId: ID
@@ -69,6 +74,7 @@ export const shopApiExtensions = gql`
     updatedAt: DateTime!
     collection: Collection
     collectionId: ID
+    promotionId: ID
     position: String!
     text: String
     asset: Asset!

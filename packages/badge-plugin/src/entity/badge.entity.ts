@@ -7,8 +7,9 @@ import {
   Asset,
   ChannelAware,
   Channel,
+  Promotion,
 } from '@vendure/core'
-import { Column, Entity, OneToOne, JoinColumn, ManyToMany, JoinTable } from 'typeorm'
+import { Column, Entity, OneToOne, ManyToOne, JoinColumn, ManyToMany, JoinTable } from 'typeorm'
 
 /**
  * @description
@@ -62,4 +63,11 @@ export class Badge extends VendureEntity implements ChannelAware {
 
   @EntityId({ nullable: true })
   collectionId: ID | null
+
+  @ManyToOne(() => Promotion, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'promotionId' })
+  promotion: Promotion | null
+
+  @EntityId({ nullable: true })
+  promotionId: ID | null
 }
