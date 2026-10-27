@@ -71,7 +71,9 @@ Badges appear under their own section in the Admin UI.
 
 **Upgrading:** the `badge` table gets a new nullable `promotionId` column (a link to a
 promotion). Generate and run a migration after updating. Collection and promotion badges
-are now returned ordered by `order`, then by id.
+are now returned ordered by `order`, then by id. `ProductVariant.badges` now uses only public
+collections, matching `Product.badges`, so a badge on a private collection no longer shows on
+variants.
 
 ## Configuration options
 
@@ -108,6 +110,11 @@ BadgePlugin.init({ promotionProductChecks: [inFacetCheck] })
 ```
 
 A check that throws counts as no match and is logged.
+
+The badge follows the promotion's conditions, not its actions. A promotion that limits its
+discount to some products only through its action (for example `products_percentage_discount`
+with no condition) shows the badge on every product. Give it a product condition such as
+`contains_products` to scope the badge.
 
 ## How it works
 

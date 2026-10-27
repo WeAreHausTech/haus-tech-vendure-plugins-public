@@ -170,7 +170,17 @@ export class BadgeService {
 
     // An omitted key keeps the stored value, an explicit null clears it.
     const collectionId = input.collectionId !== undefined ? input.collectionId : badge.collectionId
-    const promotionId = input.promotionId !== undefined ? input.promotionId : badge.promotionId
+    let promotionId = input.promotionId !== undefined ? input.promotionId : badge.promotionId
+    // Vendure soft-deletes promotions: a stored link that no longer resolves is gone,
+    // so it is cleared instead of blocking a new collection link.
+    let clearStaleLink = false
+    if (input.promotionId === undefined && promotionId && collectionId) {
+      const stored = await this.promotionService.findOne(ctx, promotionId)
+      if (!stored) {
+        promotionId = null
+        clearStaleLink = true
+      }
+    }
     this.assertNotBoth(collectionId, promotionId)
     // A promotion that was deleted since linking must not block unrelated edits.
     if (promotionId && !idsAreEqual(promotionId, badge.promotionId)) {
@@ -181,7 +191,12 @@ export class BadgeService {
       position: input.position ?? badge.position,
       text: input.text ?? badge.text,
       collectionId: input.collectionId,
-      promotionId: input.promotionId !== undefined ? (input.promotionId ?? null) : undefined,
+      promotionId:
+        input.promotionId !== undefined
+          ? (input.promotionId ?? null)
+          : clearStaleLink
+            ? null
+            : undefined,
       assetId: input.assetId || badge.assetId,
     })
 

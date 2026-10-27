@@ -4,7 +4,7 @@ import type { PromotionProductCheck } from './promotion-product-check'
 
 /**
  * Shipped check for Vendure's `contains_products` condition: matches when the
- * product has a non-deleted variant among the condition's variants. The
+ * product has an enabled, non-deleted variant among the condition's variants. The
  * required quantity is ignored, a product page has no order.
  */
 export const containsProductsCheck: PromotionProductCheck = {
@@ -15,7 +15,7 @@ export const containsProductsCheck: PromotionProductCheck = {
     const variants = await injector
       .get(TransactionalConnection)
       .getRepository(ctx, ProductVariant)
-      .find({ where: { productId, deletedAt: IsNull() }, select: { id: true } })
+      .find({ where: { productId, deletedAt: IsNull(), enabled: true }, select: { id: true } })
     return variants.some((variant) => listed.some((id) => idsAreEqual(id, variant.id)))
   },
 }

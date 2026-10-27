@@ -32,11 +32,12 @@ describe('containsProductsCheck', () => {
     expect(await run({ productVariantIds: ['12'], minimum: 5 })).toBe(true)
   })
 
-  it('queries only non-deleted variants of the product', async () => {
+  it('queries only enabled, non-deleted variants of the product', async () => {
     await run({ productVariantIds: ['12'] })
     const where = find.mock.calls[find.mock.calls.length - 1][0].where
     expect(where.productId).toBe('1')
     expect(where.deletedAt).toEqual(IsNull())
+    expect(where.enabled).toBe(true)
   })
 
   it('matches numeric ids against string ids', async () => {

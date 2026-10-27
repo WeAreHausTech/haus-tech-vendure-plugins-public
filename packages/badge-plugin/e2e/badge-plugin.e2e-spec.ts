@@ -832,6 +832,22 @@ describe('BadgePlugin e2e', () => {
       expect(badge.unmatchedConditionCodes).toEqual([])
     })
 
+    it('clears a deleted promotion link when the badge gets a collection', async () => {
+      const promotion = await createPromotion('Soon deleted', [
+        { code: 'test_always', arguments: [] },
+      ])
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), promotionId: promotion },
+      })
+      await adminClient.query(DELETE_PROMOTION, { id: promotion })
+      const collectionId = await createCollectionId('after-delete')
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE, {
+        input: { id: createBadge.id, collectionId },
+      })
+      expect(updateBadge.promotionId).toBeNull()
+      expect(updateBadge.collectionId).toBe(collectionId)
+    })
+
     it('rejects an update where an explicit undefined collectionId hides the collection link', async () => {
       const { createBadge } = await adminClient.query(CREATE_BADGE, {
         input: { assetId: await createAsset(), collectionId: await createCollectionId('undef') },
