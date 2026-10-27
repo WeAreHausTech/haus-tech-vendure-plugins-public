@@ -6,6 +6,7 @@ import { PLUGIN_INIT_OPTIONS } from './constants'
 import { Badge } from './entity/badge.entity'
 import { AdminUiExtension } from '@vendure/ui-devkit/compiler'
 import { join } from 'path'
+import type { PromotionProductCheck } from './promotion-checks/promotion-product-check'
 import { BadgeService } from './service/badge.service'
 import {
   BadgeShopResolver,
@@ -26,6 +27,11 @@ export interface BadgePluginOptions {
    * this list is rejected on create/update. Defaults to the four image corners.
    */
   availablePositions?: string[]
+  /**
+   * Extra checks that decide whether a product satisfies a promotion condition.
+   * A check with the code of a shipped one replaces it.
+   */
+  promotionProductChecks?: PromotionProductCheck[]
 }
 
 @VendurePlugin({
@@ -83,7 +89,7 @@ export class BadgePlugin {
 
   static init(options?: BadgePluginOptions) {
     if (options) {
-      this.options = options
+      this.options = { ...this.options, ...options }
     }
     return BadgePlugin
   }
