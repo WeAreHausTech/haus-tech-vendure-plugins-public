@@ -12,6 +12,10 @@ export const getBadgeListDocument = graphql(`
           name
         }
         collectionId
+        promotion {
+          id
+          name
+        }
         position
         asset {
           id
@@ -41,6 +45,12 @@ export const getBadgeDetailDocument = graphql(`
         name
       }
       collectionId
+      promotion {
+        id
+        name
+      }
+      promotionId
+      unmatchedConditionCodes
       position
       text
       assetId
@@ -99,6 +109,18 @@ export const getCollectionsDocument = graphql(`
         id
         name
         slug
+      }
+      totalItems
+    }
+  }
+`)
+
+export const getPromotionsDocument = graphql(`
+  query GetPromotions($options: PromotionListOptions) {
+    promotions(options: $options) {
+      items {
+        id
+        name
       }
       totalItems
     }

@@ -235,6 +235,10 @@ const GET_BADGES = gql`
         id
         collectionId
         promotionId
+        promotion {
+          id
+          name
+        }
         assetId
       }
     }
@@ -709,6 +713,12 @@ describe('BadgePlugin e2e', () => {
       expect(createBadge.promotionId).toBe(containsPromotionId)
       expect(createBadge.collectionId).toBeNull()
       expect(createBadge.unmatchedConditionCodes).toEqual([])
+    })
+
+    it('returns the promotion name in the admin list', async () => {
+      const { badges } = await adminClient.query(GET_BADGES)
+      const linked = badges.items.find((b: { promotionId: string | null }) => b.promotionId === containsPromotionId)
+      expect(linked.promotion).toEqual({ id: containsPromotionId, name: 'Contains' })
     })
 
     it('rejects a badge linked to both a collection and a promotion', async () => {

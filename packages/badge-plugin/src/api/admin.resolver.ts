@@ -6,6 +6,8 @@ import {
   ListQueryOptions,
   PaginatedList,
   Permission,
+  Promotion,
+  PromotionService,
   RequestContext,
   Transaction,
 } from '@vendure/core'
@@ -95,7 +97,17 @@ export class BadgeAdminResolver {
 
 @Resolver('Badge')
 export class BadgeAdminEntityResolver {
-  constructor(private badgeService: BadgeService) {}
+  constructor(
+    private badgeService: BadgeService,
+    private promotionService: PromotionService,
+  ) {}
+
+  /** Loaded through PromotionService so the translated name is filled in. */
+  @ResolveField()
+  async promotion(@Ctx() ctx: RequestContext, @Parent() badge: Badge): Promise<Promotion | null> {
+    if (!badge.promotionId) return null
+    return (await this.promotionService.findOne(ctx, badge.promotionId)) ?? null
+  }
 
   @ResolveField()
   async unmatchedConditionCodes(

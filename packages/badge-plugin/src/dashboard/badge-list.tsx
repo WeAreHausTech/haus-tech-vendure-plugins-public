@@ -55,6 +55,9 @@ export const badgeListRoute: DashboardRouteDefinition = {
           collection: {
             cell: ({ row }) => {
               const badge = row.original
+              if (!badge.collection && badge.promotion) {
+                return <span className="text-sm">{badge.promotion.name}</span>
+              }
               return badge.collection ? (
                 <Link
                   to={`/collections/${badge.collection.id}`}
