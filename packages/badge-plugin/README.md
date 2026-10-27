@@ -81,7 +81,7 @@ are now returned ordered by `order`, then by id.
 | `promotionProductChecks` | `PromotionProductCheck[]` | `[]` | Extra checks that answer whether a product satisfies a promotion condition (see below) |
 
 The configured positions are also exposed on the Admin API via the `getBadgePluginConfig`
-query, so the React Dashboard can offer them as choices.
+query, so the Admin UI and the React Dashboard can offer them as choices.
 
 ### Promotion product checks
 

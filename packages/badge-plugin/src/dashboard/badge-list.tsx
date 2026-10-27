@@ -55,15 +55,27 @@ export const badgeListRoute: DashboardRouteDefinition = {
           collection: {
             cell: ({ row }) => {
               const badge = row.original
-              if (!badge.collection && badge.promotion) {
-                return <span className="text-sm">{badge.promotion.name}</span>
-              }
               return badge.collection ? (
                 <Link
                   to={`/collections/${badge.collection.id}`}
                   className="text-sm text-primary hover:underline"
                 >
                   {badge.collection.name}
+                </Link>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )
+            },
+          },
+          promotion: {
+            cell: ({ row }) => {
+              const badge = row.original
+              return badge.promotion ? (
+                <Link
+                  to={`/promotions/${badge.promotion.id}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {badge.promotion.name}
                 </Link>
               ) : (
                 <span className="text-sm text-muted-foreground">—</span>
@@ -88,9 +100,10 @@ export const badgeListRoute: DashboardRouteDefinition = {
           asset: true,
           position: true,
           collection: true,
+          promotion: true,
           updatedAt: true,
         }}
-        defaultColumnOrder={['asset', 'position', 'collection', 'updatedAt']}
+        defaultColumnOrder={['asset', 'position', 'collection', 'promotion', 'updatedAt']}
       >
         <ActionBarItem itemId="create-button">
           <Button render={<Link to="./new" />}>
