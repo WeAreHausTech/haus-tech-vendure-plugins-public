@@ -52,8 +52,8 @@ Out:
 2. Angular Admin UI support for the promotion link.
 3. Assigning badges to other channels (unchanged: a badge shows only in channels it is assigned to).
 4. Precomputing or caching badges across requests.
-6. A shipped check for `at_least_n_with_facets`.
 5. Struck-through or campaign prices.
+6. A shipped check for `at_least_n_with_facets`.
 
 ## 4. Data model
 
