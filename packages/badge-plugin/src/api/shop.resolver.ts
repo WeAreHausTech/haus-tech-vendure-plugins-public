@@ -50,8 +50,7 @@ export class ProductVariantEntityResolver {
 
   @ResolveField()
   async badges(@Ctx() ctx: RequestContext, @Parent() productVariant: ProductVariant) {
-    const collectionIds = productVariant.collections.map((c) => c.id)
-    return this.badgeService.findByCollectionIds(ctx, collectionIds)
+    return this.badgeService.findBadgesForVariant(ctx, productVariant)
   }
 }
 
