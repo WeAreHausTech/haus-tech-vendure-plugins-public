@@ -278,7 +278,7 @@ function rawId(id: string): number {
 describe('BadgePlugin e2e', () => {
   const { server, adminClient, shopClient } = createTestEnvironment(
     mergeConfig(testConfig, {
-      apiOptions: { port: 3061 },
+      apiOptions: { port: 3071 },
       promotionOptions: {
         promotionConditions: [...defaultPromotionConditions, testAlwaysCondition],
       },
