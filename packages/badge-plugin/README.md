@@ -81,7 +81,7 @@ are now returned ordered by `order`, then by id.
 | `promotionProductChecks` | `PromotionProductCheck[]` | `[]` | Extra checks that answer whether a product satisfies a promotion condition (see below) |
 
 The configured positions are also exposed on the Admin API via the `getBadgePluginConfig`
-query, so the Admin UI can offer them as choices.
+query, so the React Dashboard can offer them as choices.
 
 ### Promotion product checks
 
@@ -89,7 +89,7 @@ A promotion badge shows on a product when every condition of the promotion is sa
 that product. A condition is only checked if a `PromotionProductCheck` is registered for its
 code. The plugin ships `containsProductsCheck` for `contains_products` (registered by
 default, the required quantity is ignored). A promotion with a condition that has no check
-never shows its badge, and the Admin UI lists the unchecked condition codes.
+never shows its badge, and the React Dashboard lists the unchecked condition codes.
 
 Register a check for your own condition:
 
@@ -146,7 +146,7 @@ The Shop API badge queries are public, matching the rest of the Vendure shop API
 Once installed, manage badges from the dedicated **Badges** section in the Admin UI. From there you can:
 
 - Create a badge by uploading an image asset and choosing a position.
-- Assign the badge to a collection or to a promotion (picking one clears the other). A warning shows when the promotion has conditions that cannot be checked per product.
+- Assign the badge to a collection or to a promotion (picking one clears the other; the promotion picker is in the React Dashboard). A warning shows when the promotion has conditions that cannot be checked per product.
 - Update or delete existing badges. Deleting a badge also deletes its image asset.
 
 ### Shop API
@@ -157,8 +157,8 @@ The plugin extends the Shop API with badge queries and adds a `badges` resolver 
 | Field / Query                            | Returns         | Description                                                              |
 | ---------------------------------------- | --------------- | ------------------------------------------------------------------------ |
 | `Product.badges`                         | `[Badge!]!`     | Badges inherited from the product's collections and matching active promotions            |
-| `ProductVariant.badges`                  | `[Badge!]!`     | Badges from the variant's collections                                    |
-| `SearchResult.badges`                    | `[Badge!]!`     | Badges for a search result (resolved via its product's collections)      |
+| `ProductVariant.badges`                  | `[Badge!]!`     | Badges from the variant's collections and matching active promotions     |
+| `SearchResult.badges`                    | `[Badge!]!`     | Badges for a search result (its product's collections and matching active promotions) |
 | `badges(options)`                        | `BadgeList!`    | Paginated list of all badges in the active channel                       |
 | `getBadgeFromCollection(collectionId)`   | `Badge`         | The badge assigned to a single collection, if any                        |
 | `getBadgesFromCollections(collectionIds)`| `[Badge!]!`     | Badges assigned to any of the given collections                          |

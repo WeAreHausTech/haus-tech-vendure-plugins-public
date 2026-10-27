@@ -23,7 +23,7 @@ Success:
 4. **All conditions must match.** Vendure requires every condition of a promotion to pass, so the badge does too. If any condition has no registered check, the badge is not shown, because the plugin cannot know. A promotion with no conditions applies to every order in Vendure, so its badge shows on every product.
 5. **Quantity arguments are ignored.** `contains_products` carries a minimum quantity. A product check only asks whether the product is one of the selected ones; the badge invites the shopper to reach the quantity.
 6. **Coupon promotions show no badge.** A shopper cannot get the discount without the code, so a badge would promise something the cart does not give.
-7. **Active means**: `enabled`, not deleted, assigned to the active channel, `startsAt` empty or in the past, `endsAt` empty or in the future. The same test Vendure applies before a promotion takes part in an order.
+7. **Active means**: `enabled`, not deleted, assigned to the active channel, `startsAt` empty or in the past, `endsAt` empty or in the future, global usage limit not reached. The same test Vendure applies before a promotion takes part in an order.
 8. **React Dashboard only.** The promotion picker is added to the Dashboard badge page. The Angular Admin UI keeps managing collection badges; saving a badge there leaves its promotion link unchanged, because an omitted `promotionId` in `updateBadge` means "no change".
 9. **No precomputation.** Badges are resolved per request. Active promotions with a badge are loaded once per request; product checks run per product. Writing badges onto products ahead of time stays a later option if lists get slow.
 
