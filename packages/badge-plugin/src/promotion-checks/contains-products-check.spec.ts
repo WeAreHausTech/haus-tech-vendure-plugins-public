@@ -1,14 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { IsNull } from 'typeorm'
 import { TransactionalConnection } from '@vendure/core'
 import type { Injector, RequestContext } from '@vendure/core'
 import { containsProductsCheck } from './contains-products-check'
 
+const find = vi.fn<(options: { where: Record<string, unknown> }) => Promise<Array<{ id: string }>>>(
+  async () => [{ id: '11' }, { id: '12' }],
+)
 const injector = {
   get: (token: unknown) => {
     if (token === TransactionalConnection) {
       return {
         getRepository: () => ({
-          find: async () => [{ id: '11' }, { id: '12' }],
+          find,
         }),
       }
     }
@@ -26,6 +30,13 @@ describe('containsProductsCheck', () => {
 
   it('matches when a variant of the product is listed, ignoring quantity', async () => {
     expect(await run({ productVariantIds: ['12'], minimum: 5 })).toBe(true)
+  })
+
+  it('queries only non-deleted variants of the product', async () => {
+    await run({ productVariantIds: ['12'] })
+    const where = find.mock.calls[find.mock.calls.length - 1][0].where
+    expect(where.productId).toBe('1')
+    expect(where.deletedAt).toEqual(IsNull())
   })
 
   it('matches numeric ids against string ids', async () => {

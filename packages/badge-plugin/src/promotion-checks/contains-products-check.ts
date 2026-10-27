@@ -1,4 +1,5 @@
 import { idsAreEqual, ProductVariant, TransactionalConnection } from '@vendure/core'
+import { IsNull } from 'typeorm'
 import type { PromotionProductCheck } from './promotion-product-check'
 
 /**
@@ -14,7 +15,7 @@ export const containsProductsCheck: PromotionProductCheck = {
     const variants = await injector
       .get(TransactionalConnection)
       .getRepository(ctx, ProductVariant)
-      .find({ where: { productId, deletedAt: null as unknown as undefined }, select: { id: true } })
+      .find({ where: { productId, deletedAt: IsNull() }, select: { id: true } })
     return variants.some((variant) => listed.some((id) => idsAreEqual(id, variant.id)))
   },
 }

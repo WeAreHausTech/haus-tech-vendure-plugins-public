@@ -8,6 +8,10 @@ import type { PromotionProductCheck } from './promotion-product-check'
 
 type ArgsParser = { argsArrayToHash(args: ConfigurableOperation['args']): Record<string, unknown> }
 
+function findDefinition(definitions: PromotionCondition[], condition: ConfigurableOperation) {
+  return definitions.find((d) => d.code === condition.code)
+}
+
 export function buildCheckRegistry(
   custom: PromotionProductCheck[] | undefined,
 ): Map<string, PromotionProductCheck> {
@@ -34,24 +38,28 @@ export async function evaluateConditions(input: {
   const { ctx, injector, productId, conditions, definitions, registry } = input
   const results: ConditionResult[] = []
   for (const condition of conditions) {
-    const definition = definitions.find((d) => d.code === condition.code)
+    const definition = findDefinition(definitions, condition)
     const check = registry.get(condition.code)
     if (!definition || !check) {
       results.push('unchecked')
       continue
     }
+    let matched: boolean
     try {
       const args = (definition as unknown as ArgsParser).argsArrayToHash(condition.args)
-      const matched = await check.matches({ ctx, injector, productId, args })
-      results.push(matched ? 'match' : 'no-match')
+      matched = await check.matches({ ctx, injector, productId, args })
     } catch (error) {
       Logger.error(
         `Product check for promotion condition "${condition.code}" failed: ${error instanceof Error ? error.message : String(error)}`,
         loggerCtx,
       )
-      results.push('no-match')
+      matched = false
     }
-    if (results[results.length - 1] === 'no-match') break
+    if (!matched) {
+      results.push('no-match')
+      break
+    }
+    results.push('match')
   }
   return results
 }
@@ -62,6 +70,6 @@ export function uncheckedConditionCodes(
   registry: Map<string, PromotionProductCheck>,
 ): string[] {
   return conditions
-    .filter((c) => !definitions.some((d) => d.code === c.code) || !registry.has(c.code))
+    .filter((c) => !findDefinition(definitions, c) || !registry.has(c.code))
     .map((c) => c.code)
 }
