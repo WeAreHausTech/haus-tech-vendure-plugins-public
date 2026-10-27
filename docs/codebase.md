@@ -33,13 +33,15 @@ Each plugin follows the same layout: `src/<name>.plugin.ts` (the `@VendurePlugin
 
 ### `packages/badge-plugin` — `@haus-tech/badge-plugin`
 
-Image badges (e.g. "New", "Sale") attached to collections and inherited by every product in those collections. Channel-aware; exposed on `Product`, `ProductVariant`, and `SearchResult` via the **Shop API** as well as the Admin API. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`; plugin `compatibility: '^3.6.0'`. The only plugin here with shop-API extensions.
+Image badges (e.g. "New", "Sale") attached to a collection or a promotion and shown on every product in the collection or satisfying the promotion's conditions. Channel-aware; exposed on `Product`, `ProductVariant`, and `SearchResult` via the **Shop API** as well as the Admin API. License MIT. `peerDependencies`: `@vendure/core ^3.6.0`; plugin `compatibility: '^3.6.0'`. The only plugin here with shop-API extensions.
 
 | Path                            | Purpose                                                                       |
 | ------------------------------- | ----------------------------------------------------------------------------- |
 | `src/badge.plugin.ts`           | Plugin definition; admin + shop API extensions, `Badge` entity, Dashboard, Admin UI (route `badges`) |
 | `src/entity/badge.entity.ts`    | `Badge` TypeORM entity                                                        |
 | `src/service/badge.service.ts`  | Badge CRUD, channel assignment, collection→product inheritance (exported)     |
+| `src/promotion-checks/`         | `PromotionProductCheck` registry, `containsProductsCheck`, condition evaluation (`promotionProductChecks` option) |
+| `src/service/promotion-badge-rule.ts` | Whether a promotion badge is active and which conditions are unchecked |
 | `src/api/api-extensions.ts`     | Admin + shop GraphQL schema extensions                                        |
 | `src/api/admin.resolver.ts`     | Admin API resolver                                                            |
 | `src/api/shop.resolver.ts`      | Shop resolvers, incl. `Product` / `ProductVariant` / `SearchResult` field resolvers |
