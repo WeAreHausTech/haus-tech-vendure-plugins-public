@@ -10,6 +10,7 @@ import {
   EntityHydrator,
   EntityNotFoundError,
   ID,
+  idsAreEqual,
   Injector,
   ListQueryBuilder,
   ListQueryOptions,
@@ -168,10 +169,11 @@ export class BadgeService {
     }
 
     // An omitted key keeps the stored value, an explicit null clears it.
-    const collectionId = 'collectionId' in input ? input.collectionId : badge.collectionId
-    const promotionId = 'promotionId' in input ? input.promotionId : badge.promotionId
+    const collectionId = input.collectionId !== undefined ? input.collectionId : badge.collectionId
+    const promotionId = input.promotionId !== undefined ? input.promotionId : badge.promotionId
     this.assertNotBoth(collectionId, promotionId)
-    if (promotionId) {
+    // A promotion that was deleted since linking must not block unrelated edits.
+    if (promotionId && !idsAreEqual(promotionId, badge.promotionId)) {
       await this.findPromotion(ctx, promotionId)
     }
 
@@ -179,7 +181,7 @@ export class BadgeService {
       position: input.position ?? badge.position,
       text: input.text ?? badge.text,
       collectionId: input.collectionId,
-      promotionId: 'promotionId' in input ? (input.promotionId ?? null) : undefined,
+      promotionId: input.promotionId !== undefined ? (input.promotionId ?? null) : undefined,
       assetId: input.assetId || badge.assetId,
     })
 
@@ -230,7 +232,7 @@ export class BadgeService {
     }
     const collectionBadges = await this.findByCollectionIds(
       ctx,
-      variant.collections.map((c) => c.id),
+      variant.collections.filter((c) => !c.isPrivate).map((c) => c.id),
     )
     const promotionBadges = await this.findPromotionBadgesForProduct(ctx, variant.productId)
     return sortBadges([...collectionBadges, ...promotionBadges])
@@ -289,7 +291,13 @@ export class BadgeService {
   private async loadPromotionBadgeCandidates(
     ctx: RequestContext,
   ): Promise<{ badge: Badge; promotion: Promotion }[]> {
-    const promotions = await this.promotionService.getActivePromotionsInChannel(ctx)
+    const active = await this.promotionService.getActivePromotionsInChannel(ctx)
+    // Skip promotions whose global usage limit is used up, as Vendure does for orders.
+    const exhausted =
+      active.length > 0 && typeof this.promotionService.getExhaustedPromotionIds === 'function'
+        ? await this.promotionService.getExhaustedPromotionIds(ctx, active)
+        : new Set<string>()
+    const promotions = active.filter((p) => !exhausted.has(String(p.id)))
     if (promotions.length === 0) {
       return []
     }
@@ -337,8 +345,8 @@ export class BadgeService {
     if (!badge.promotionId) {
       return []
     }
-    const promotion =
-      badge.promotion ?? (await this.promotionService.findOne(ctx, badge.promotionId))
+    // Always load through the service, so a deleted or other-channel promotion gives none.
+    const promotion = await this.promotionService.findOne(ctx, badge.promotionId)
     if (!promotion) {
       return []
     }

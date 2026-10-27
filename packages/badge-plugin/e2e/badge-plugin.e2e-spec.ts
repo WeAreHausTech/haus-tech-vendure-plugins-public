@@ -8,6 +8,7 @@ import {
   defaultPromotionConditions,
   mergeConfig,
   PromotionCondition,
+  PromotionService,
   RequestContextService,
 } from '@vendure/core'
 import { LanguageCode } from '@vendure/common/lib/generated-types'
@@ -18,7 +19,7 @@ import {
   testConfig,
 } from '@vendure/testing'
 import gql from 'graphql-tag'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { BadgePlugin } from '../src/badge.plugin'
 import { BadgeService } from '../src/service/badge.service'
@@ -131,6 +132,14 @@ const UPDATE_PROMOTION = gql`
   }
 `
 
+const DELETE_PROMOTION = gql`
+  mutation DeleteBadgeTestPromotion($id: ID!) {
+    deletePromotion(id: $id) {
+      result
+    }
+  }
+`
+
 const REINDEX = gql`
   mutation BadgeTestReindex {
     reindex {
@@ -239,6 +248,7 @@ const GET_BADGES = gql`
           id
           name
         }
+        unmatchedConditionCodes
         assetId
       }
     }
@@ -785,6 +795,148 @@ describe('BadgePlugin e2e', () => {
       })
       expect(updateBadge.promotionId).toBeNull()
       expect(updateBadge.unmatchedConditionCodes).toEqual([])
+    })
+  })
+
+  describe('final review fixes', () => {
+    it('updates only the position of a badge whose promotion was deleted', async () => {
+      const promotion = await createPromotion('Doomed', [{ code: 'test_always', arguments: [] }])
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), promotionId: promotion },
+      })
+      await adminClient.query(DELETE_PROMOTION, { id: promotion })
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE, {
+        input: { id: createBadge.id, position: 'top-right' },
+      })
+      expect(updateBadge.position).toBe('top-right')
+      expect(updateBadge.promotionId).toBe(promotion)
+    })
+
+    it('reports no unchecked condition codes for a deleted promotion', async () => {
+      const promotion = await createPromotion('Doomed amount', [
+        {
+          code: 'minimum_order_amount',
+          arguments: [
+            { name: 'amount', value: '5000' },
+            { name: 'taxInclusive', value: 'false' },
+          ],
+        },
+      ])
+      await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), promotionId: promotion },
+      })
+      await adminClient.query(DELETE_PROMOTION, { id: promotion })
+      const { badges } = await adminClient.query(GET_BADGES)
+      const badge = badges.items.find((b: { promotionId: string }) => b.promotionId === promotion)
+      expect(badge.promotion).toBeNull()
+      expect(badge.unmatchedConditionCodes).toEqual([])
+    })
+
+    it('rejects an update where an explicit undefined collectionId hides the collection link', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), collectionId: await createCollectionId('undef') },
+      })
+      const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' })
+      await expect(
+        server.app.get(BadgeService).update(ctx, {
+          id: rawId(createBadge.id),
+          collectionId: undefined,
+          promotionId: rawId(containsPromotionId),
+        }),
+      ).rejects.toThrow(/collection or a promotion/i)
+    })
+
+    it('hides the badge of a promotion whose global usage limit is used up', async () => {
+      const promotion = await createPromotion('Limited', [{ code: 'test_always', arguments: [] }])
+      await adminClient.query(UPDATE_PROMOTION, { input: { id: promotion, usageLimit: 1 } })
+      await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), text: 'Limited badge', promotionId: promotion },
+      })
+      const { products } = await adminClient.query(gql`
+        query {
+          products {
+            items {
+              id
+            }
+          }
+        }
+      `)
+      const productId = products.items[0].id
+      const texts = async () => {
+        const { product } = await shopClient.query(SHOP_PRODUCT_BADGES, { id: productId })
+        return product.badges.map((b: { text: string }) => b.text)
+      }
+      expect(await texts()).toContain('Limited badge')
+      // Placing a completed order is too heavy for this harness, so the promotion
+      // service reports the promotion as exhausted, as it does after the last use.
+      const spy = vi
+        .spyOn(server.app.get(PromotionService), 'getExhaustedPromotionIds')
+        .mockResolvedValue(new Set([String(rawId(promotion))]))
+      try {
+        expect(await texts()).not.toContain('Limited badge')
+      } finally {
+        spy.mockRestore()
+      }
+      expect(await texts()).toContain('Limited badge')
+    })
+
+    it('shows a private collection badge on neither Product.badges nor ProductVariant.badges', async () => {
+      const { createProduct } = await adminClient.query(CREATE_PRODUCT, {
+        input: {
+          enabled: true,
+          translations: [
+            { languageCode: 'en', name: 'priv-prod', slug: 'priv-prod', description: '' },
+          ],
+        },
+      })
+      await adminClient.query(CREATE_VARIANTS, {
+        input: [
+          {
+            productId: createProduct.id,
+            sku: 'PRIV-1',
+            price: 1000,
+            translations: [{ languageCode: 'en', name: 'priv-prod' }],
+          },
+        ],
+      })
+      const makeCollection = async (slug: string, isPrivate: boolean, text: string) => {
+        const { createCollection } = await adminClient.query(CREATE_COLLECTION, {
+          input: {
+            isPrivate,
+            translations: [{ languageCode: 'en', name: slug, slug, description: '' }],
+            filters: [
+              {
+                code: 'product-id-filter',
+                arguments: [
+                  { name: 'productIds', value: JSON.stringify([createProduct.id]) },
+                  { name: 'combineWithAnd', value: 'false' },
+                ],
+              },
+            ],
+          },
+        })
+        await adminClient.query(CREATE_BADGE, {
+          input: { assetId: await createAsset(), text, collectionId: createCollection.id },
+        })
+      }
+      await makeCollection('priv-coll', true, 'Private badge')
+      await makeCollection('pub-coll', false, 'Public badge')
+      let result: { product: string[]; variants: string[] } = { product: [], variants: [] }
+      for (let i = 0; i < 50; i++) {
+        const { product } = await shopClient.query(SHOP_PRODUCT_BADGES, { id: createProduct.id })
+        result = {
+          product: product.badges.map((b: { text: string }) => b.text),
+          variants: product.variants.flatMap((v: { badges: { text: string }[] }) =>
+            v.badges.map((b) => b.text),
+          ),
+        }
+        if (result.product.includes('Public badge')) break
+        await new Promise((resolve) => setTimeout(resolve, 200))
+      }
+      expect(result.product).toContain('Public badge')
+      expect(result.variants).toContain('Public badge')
+      expect(result.product).not.toContain('Private badge')
+      expect(result.variants).not.toContain('Private badge')
     })
   })
 })
