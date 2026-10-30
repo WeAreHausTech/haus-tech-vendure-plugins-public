@@ -67,6 +67,21 @@ export const badgeListRoute: DashboardRouteDefinition = {
               )
             },
           },
+          promotion: {
+            cell: ({ row }) => {
+              const badge = row.original
+              return badge.promotion ? (
+                <Link
+                  to={`/promotions/${badge.promotion.id}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {badge.promotion.name}
+                </Link>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )
+            },
+          },
         }}
         rowActions={[
           {
@@ -85,9 +100,10 @@ export const badgeListRoute: DashboardRouteDefinition = {
           asset: true,
           position: true,
           collection: true,
+          promotion: true,
           updatedAt: true,
         }}
-        defaultColumnOrder={['asset', 'position', 'collection', 'updatedAt']}
+        defaultColumnOrder={['asset', 'position', 'collection', 'promotion', 'updatedAt']}
       >
         <ActionBarItem itemId="create-button">
           <Button render={<Link to="./new" />}>

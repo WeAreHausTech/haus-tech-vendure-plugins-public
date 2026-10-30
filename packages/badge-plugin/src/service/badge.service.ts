@@ -1,27 +1,59 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { ModuleRef } from '@nestjs/core'
 import { In } from 'typeorm'
 import {
   AssetService,
   ChannelService,
   Collection,
+  ConfigService,
   CollectionService,
   EntityHydrator,
   EntityNotFoundError,
   ID,
+  idsAreEqual,
+  Injector,
   ListQueryBuilder,
   ListQueryOptions,
   PaginatedList,
   Product,
+  ProductVariant,
+  Promotion,
+  PromotionService,
   RequestContext,
+  RequestContextCacheService,
   TransactionalConnection,
   UserInputError,
 } from '@vendure/core'
 import { Badge } from '../entity/badge.entity'
-import { CreateBadgeInput, DeletionResponse, DeletionResult, UpdateBadgeInput } from '../gql/generated'
+import {
+  CreateBadgeInput,
+  DeletionResponse,
+  DeletionResult,
+  UpdateBadgeInput,
+} from '../gql/generated'
 import { SearchResult } from '@vendure/common/lib/generated-shop-types'
 import { AssignBadgesToChannelInput } from '../types'
 import { PLUGIN_INIT_OPTIONS } from '../constants'
 import { BadgePluginOptions } from '../badge.plugin'
+import {
+  buildCheckRegistry,
+  evaluateConditions,
+  uncheckedConditionCodes,
+} from '../promotion-checks/evaluate-conditions'
+import { shouldShowPromotionBadge } from './promotion-badge-rule'
+
+const PROMOTION_BADGES_CACHE_KEY = 'badge-plugin:promotion-badges'
+
+function compareIds(a: ID, b: ID): number {
+  const numA = Number(a)
+  const numB = Number(b)
+  if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB
+  return String(a).localeCompare(String(b))
+}
+
+function sortBadges(badges: Badge[]): Badge[] {
+  return [...badges].sort((a, b) => a.order - b.order || compareIds(a.id, b.id))
+}
 
 /**
  * @description
@@ -42,12 +74,20 @@ export class BadgeService {
     private entityHydratorService: EntityHydrator,
     private collectionService: CollectionService,
     private channelService: ChannelService,
-  ) {}
+    private promotionService: PromotionService,
+    private configService: ConfigService,
+    private requestCache: RequestContextCacheService,
+    moduleRef: ModuleRef,
+  ) {
+    this.injector = new Injector(moduleRef)
+  }
+
+  private readonly injector: Injector
 
   async findOne(ctx: RequestContext, id: ID): Promise<Badge | null> {
     return this.connection
       .getRepository(ctx, Badge)
-      .findOne({ where: { id }, relations: ['collection', 'asset', 'channels'] })
+      .findOne({ where: { id }, relations: ['collection', 'promotion', 'asset', 'channels'] })
   }
 
   async findAll(
@@ -55,7 +95,7 @@ export class BadgeService {
     options?: ListQueryOptions<Badge>,
   ): Promise<PaginatedList<Badge>> {
     return this.listQueryBuilder
-      .build(Badge, options, { relations: ['collection', 'asset', 'channels'], ctx })
+      .build(Badge, options, { relations: ['collection', 'promotion', 'asset', 'channels'], ctx })
       .leftJoin('badge.channels', 'channel')
       .andWhere('channel.id = :channelId', { channelId: ctx.channel.id })
       .getManyAndCount()
@@ -70,6 +110,7 @@ export class BadgeService {
     if (!asset) {
       throw new UserInputError(`No asset with the id "${input.assetId}" could be found`)
     }
+    this.assertNotBoth(input.collectionId, input.promotionId)
     const badge = new Badge({ position, text: input.text ?? undefined })
     // `asset` and `collection` each share their FK column with the relation. On save()
     // TypeORM takes the FK from the relation *object*, so a scalar-only id is discarded
@@ -86,6 +127,14 @@ export class BadgeService {
     } else {
       badge.collection = null
       badge.collectionId = null
+    }
+    if (input.promotionId) {
+      const promotion = await this.findPromotion(ctx, input.promotionId)
+      badge.promotion = promotion
+      badge.promotionId = promotion.id
+    } else {
+      badge.promotion = null
+      badge.promotionId = null
     }
     const created = await this.connection.getRepository(ctx, Badge).save(badge)
     // ManyToMany channel membership isn't written from a constructor array — use the
@@ -119,10 +168,35 @@ export class BadgeService {
       throw new EntityNotFoundError('Badge', input.id)
     }
 
+    // An omitted key keeps the stored value, an explicit null clears it.
+    const collectionId = input.collectionId !== undefined ? input.collectionId : badge.collectionId
+    let promotionId = input.promotionId !== undefined ? input.promotionId : badge.promotionId
+    // Vendure soft-deletes promotions: a stored link that no longer resolves is gone,
+    // so it is cleared instead of blocking a new collection link.
+    let clearStaleLink = false
+    if (input.promotionId === undefined && promotionId && collectionId) {
+      const stored = await this.promotionService.findOne(ctx, promotionId)
+      if (!stored) {
+        promotionId = null
+        clearStaleLink = true
+      }
+    }
+    this.assertNotBoth(collectionId, promotionId)
+    // A promotion that was deleted since linking must not block unrelated edits.
+    if (promotionId && !idsAreEqual(promotionId, badge.promotionId)) {
+      await this.findPromotion(ctx, promotionId)
+    }
+
     await repository.update(input.id, {
       position: input.position ?? badge.position,
       text: input.text ?? badge.text,
       collectionId: input.collectionId,
+      promotionId:
+        input.promotionId !== undefined
+          ? (input.promotionId ?? null)
+          : clearStaleLink
+            ? null
+            : undefined,
       assetId: input.assetId || badge.assetId,
     })
 
@@ -157,26 +231,102 @@ export class BadgeService {
   }
 
   async findBadgesForProduct(ctx: RequestContext, product: Product): Promise<Badge[]> {
-    const collections = await this.collectionService.getCollectionsByProductId(
-      ctx,
-      product.id,
-      true,
-    )
-    const collectionIds = collections.map((c) => c.id)
-    return this.findByCollectionIds(ctx, collectionIds)
+    return this.findBadgesForProductId(ctx, product.id)
   }
 
   async findBadgesForSearchResult(
     ctx: RequestContext,
     searchResult: SearchResult,
   ): Promise<Badge[]> {
-    const collections = await this.collectionService.getCollectionsByProductId(
+    return this.findBadgesForProductId(ctx, searchResult.productId)
+  }
+
+  async findBadgesForVariant(ctx: RequestContext, variant: ProductVariant): Promise<Badge[]> {
+    if (!variant.collections) {
+      await this.entityHydratorService.hydrate(ctx, variant, { relations: ['collections'] })
+    }
+    const collectionBadges = await this.findByCollectionIds(
       ctx,
-      searchResult.productId,
-      true,
+      variant.collections.filter((c) => !c.isPrivate).map((c) => c.id),
     )
-    const collectionIds = collections.map((c) => c.id)
-    return this.findByCollectionIds(ctx, collectionIds)
+    const promotionBadges = await this.findPromotionBadgesForProduct(ctx, variant.productId)
+    return sortBadges([...collectionBadges, ...promotionBadges])
+  }
+
+  /**
+   * The badges linked to an active promotion whose conditions the product satisfies.
+   * Promotions with a condition that has no registered product check never match.
+   */
+  async findPromotionBadgesForProduct(ctx: RequestContext, productId: ID): Promise<Badge[]> {
+    return this.requestCache.get(ctx, `${PROMOTION_BADGES_CACHE_KEY}:${productId}`, () =>
+      this.loadPromotionBadgesForProduct(ctx, productId),
+    )
+  }
+
+  private async findBadgesForProductId(ctx: RequestContext, productId: ID): Promise<Badge[]> {
+    const collections = await this.collectionService.getCollectionsByProductId(ctx, productId, true)
+    const collectionBadges = await this.findByCollectionIds(
+      ctx,
+      collections.map((c) => c.id),
+    )
+    const promotionBadges = await this.findPromotionBadgesForProduct(ctx, productId)
+    return sortBadges([...collectionBadges, ...promotionBadges])
+  }
+
+  private async loadPromotionBadgesForProduct(
+    ctx: RequestContext,
+    productId: ID,
+  ): Promise<Badge[]> {
+    const candidates = await this.requestCache.get(ctx, PROMOTION_BADGES_CACHE_KEY, () =>
+      this.loadPromotionBadgeCandidates(ctx),
+    )
+    if (candidates.length === 0) {
+      return []
+    }
+    const definitions = this.configService.promotionOptions.promotionConditions ?? []
+    const registry = buildCheckRegistry(this.options.promotionProductChecks)
+    const now = new Date()
+    const shown: Badge[] = []
+    for (const { badge, promotion } of candidates) {
+      const results = await evaluateConditions({
+        ctx,
+        injector: this.injector,
+        productId,
+        conditions: promotion.conditions,
+        definitions,
+        registry,
+      })
+      if (shouldShowPromotionBadge(promotion, results, now)) {
+        shown.push(badge)
+      }
+    }
+    return shown
+  }
+
+  private async loadPromotionBadgeCandidates(
+    ctx: RequestContext,
+  ): Promise<{ badge: Badge; promotion: Promotion }[]> {
+    const active = await this.promotionService.getActivePromotionsInChannel(ctx)
+    // Skip promotions whose global usage limit is used up, as Vendure does for orders.
+    const exhausted =
+      active.length > 0 && typeof this.promotionService.getExhaustedPromotionIds === 'function'
+        ? await this.promotionService.getExhaustedPromotionIds(ctx, active)
+        : new Set<string>()
+    const promotions = active.filter((p) => !exhausted.has(String(p.id)))
+    if (promotions.length === 0) {
+      return []
+    }
+    const byId = new Map(promotions.map((p) => [String(p.id), p]))
+    const badges = await this.connection.getRepository(ctx, Badge).find({
+      where: { promotionId: In(promotions.map((p) => p.id)) },
+      relations: ['channels'],
+    })
+    return badges
+      .filter((badge) => badge.channels.some((channel) => channel.id === ctx.channel.id))
+      .flatMap((badge) => {
+        const promotion = byId.get(String(badge.promotionId))
+        return promotion ? [{ badge, promotion }] : []
+      })
   }
 
   async assignToChannel(ctx: RequestContext, input: AssignBadgesToChannelInput): Promise<Badge[]> {
@@ -200,6 +350,40 @@ export class BadgeService {
       ctx.channelId,
       {},
     )
+  }
+
+  /**
+   * The condition codes of the badge's promotion that cannot be checked per product,
+   * so the admin can warn that the badge may show on products the promotion ignores.
+   */
+  async unmatchedConditionCodes(ctx: RequestContext, badge: Badge): Promise<string[]> {
+    if (!badge.promotionId) {
+      return []
+    }
+    // Always load through the service, so a deleted or other-channel promotion gives none.
+    const promotion = await this.promotionService.findOne(ctx, badge.promotionId)
+    if (!promotion) {
+      return []
+    }
+    return uncheckedConditionCodes(
+      promotion.conditions,
+      this.configService.promotionOptions.promotionConditions ?? [],
+      buildCheckRegistry(this.options.promotionProductChecks),
+    )
+  }
+
+  private async findPromotion(ctx: RequestContext, id: ID): Promise<Promotion> {
+    const promotion = await this.promotionService.findOne(ctx, id)
+    if (!promotion) {
+      throw new UserInputError(`No promotion with the id "${id}" could be found`)
+    }
+    return promotion
+  }
+
+  private assertNotBoth(collectionId?: ID | null, promotionId?: ID | null): void {
+    if (collectionId && promotionId) {
+      throw new UserInputError('A badge links a collection or a promotion, not both')
+    }
   }
 
   /**

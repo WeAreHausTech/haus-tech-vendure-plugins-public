@@ -1,4 +1,4 @@
-import { Args, Query, Resolver, Mutation } from '@nestjs/graphql'
+import { Args, Query, Resolver, Mutation, ResolveField, Parent } from '@nestjs/graphql'
 import {
   Allow,
   Ctx,
@@ -6,6 +6,8 @@ import {
   ListQueryOptions,
   PaginatedList,
   Permission,
+  Promotion,
+  PromotionService,
   RequestContext,
   Transaction,
 } from '@vendure/core'
@@ -90,5 +92,28 @@ export class BadgeAdminResolver {
   @Allow(Permission.ReadCatalog)
   getBadgePluginConfig() {
     return this.config
+  }
+}
+
+@Resolver('Badge')
+export class BadgeAdminEntityResolver {
+  constructor(
+    private badgeService: BadgeService,
+    private promotionService: PromotionService,
+  ) {}
+
+  /** Loaded through PromotionService so the translated name is filled in. */
+  @ResolveField()
+  async promotion(@Ctx() ctx: RequestContext, @Parent() badge: Badge): Promise<Promotion | null> {
+    if (!badge.promotionId) return null
+    return (await this.promotionService.findOne(ctx, badge.promotionId)) ?? null
+  }
+
+  @ResolveField()
+  async unmatchedConditionCodes(
+    @Ctx() ctx: RequestContext,
+    @Parent() badge: Badge,
+  ): Promise<string[]> {
+    return this.badgeService.unmatchedConditionCodes(ctx, badge)
   }
 }

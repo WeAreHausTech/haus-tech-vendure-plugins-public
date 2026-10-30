@@ -30,6 +30,7 @@ import {
   updateBadgeDocument,
   getBadgePluginConfigDocument,
   getCollectionsDocument,
+  getPromotionsDocument,
   createAssetsDocument,
 } from './gql'
 import { UploadIcon } from 'lucide-react'
@@ -77,6 +78,13 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
     placeholder: 'Search collections...',
   }
 
+  const promotionSelectorConfig = {
+    listQuery: getPromotionsDocument,
+    idKey: 'id' as const,
+    labelKey: 'name' as const,
+    placeholder: 'Search promotions...',
+  }
+
   const setValuesForUpdate = useCallback(
     (
       badge:
@@ -84,6 +92,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
           id: string
           position: string
           collectionId: string | null
+          promotionId: string | null
           assetId: string
           asset: {
             id: string
@@ -105,6 +114,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
         id: badge?.id ?? '',
         position: position || 'top-left',
         collectionId: badge?.collectionId ?? null,
+        promotionId: badge?.promotionId ?? null,
         assetId: badge?.assetId ?? '',
       }
     },
@@ -207,6 +217,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
 
       // Always sync collection - set it immediately
       form.setValue('collectionId', entityCollectionId ?? null, { shouldDirty: false })
+      form.setValue('promotionId', badge.promotionId ?? null, { shouldDirty: false })
       form.setValue('assetId', badge.assetId ?? '', { shouldDirty: false })
     }
 
@@ -214,6 +225,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
     if (creatingNewEntity && availablePositions.length > 0) {
       form.setValue('position', availablePositions[0])
       form.setValue('collectionId', null)
+      form.setValue('promotionId', null)
     }
   }, [entity, availablePositions, creatingNewEntity, form])
 
@@ -248,6 +260,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
             assetId: uploadedAsset.id,
             position: formValues.position || availablePositions[0] || 'top-left',
             collectionId: formValues.collectionId || null,
+            promotionId: formValues.promotionId || null,
           },
         })
 
@@ -281,6 +294,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       : (entity?.asset && currentAsset.id === entity.asset.id
         ? entity.asset
         : { ...currentAsset, type: 'IMAGE' }) as ComponentProps<typeof VendureImage>['asset']
+  const unmatchedConditionCodes = entity?.unmatchedConditionCodes ?? []
   const hasAssetChanged = Boolean(
     !creatingNewEntity && uploadedAsset?.id && uploadedAsset.id !== entity?.assetId,
   )
@@ -376,11 +390,40 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
                   <RelationSelector
                     config={collectionSelectorConfig}
                     value={field.value ?? undefined}
-                    onChange={(val) => field.onChange(val ?? null)}
+                    onChange={(val) => {
+                      field.onChange(val ?? null)
+                      if (val) {
+                        form.setValue('promotionId', null, { shouldDirty: true })
+                      }
+                    }}
                     selectorLabel="No collection"
                   />
                 )}
               />
+              <FormFieldWrapper
+                control={form.control}
+                name="promotionId"
+                label="Promotion"
+                render={({ field }) => (
+                  <RelationSelector
+                    config={promotionSelectorConfig}
+                    value={field.value ?? undefined}
+                    onChange={(val) => {
+                      field.onChange(val ?? null)
+                      if (val) {
+                        form.setValue('collectionId', null, { shouldDirty: true })
+                      }
+                    }}
+                    selectorLabel="No promotion"
+                  />
+                )}
+              />
+              {unmatchedConditionCodes.length > 0 && (
+                <p className="text-sm text-destructive">
+                  This promotion's conditions can't be checked per product:{' '}
+                  {unmatchedConditionCodes.join(', ')}. This badge will not show.
+                </p>
+              )}
             </div>
           </div>
         </PageBlock>

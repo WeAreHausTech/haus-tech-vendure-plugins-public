@@ -21,6 +21,7 @@ Badges are managed from the Admin UI and read from the Shop API, are **channel-a
 
 - **Image badges** – Each badge is an uploaded asset rendered at a chosen position on the product
 - **Collection-based** – Assign a badge to a collection; all products in that collection (and its sub-collections) inherit it
+- **Promotion-based** – Or link a badge to a promotion; products that satisfy the promotion's conditions show it while the promotion is active
 - **Configurable positions** – Restrict badges to a fixed set of positions (e.g. `top-left`, `top-right`); invalid positions are rejected
 - **Channel-aware** – Badges are scoped per channel; admins and storefronts only see badges for the active channel
 - **Admin UI** – Manage badges from a dedicated section in the Vendure Admin UI / Dashboard
@@ -68,24 +69,64 @@ npx vendure migrate
 (Or generate one with your project's existing migration workflow.) Then restart the server.
 Badges appear under their own section in the Admin UI.
 
+**Upgrading:** the `badge` table gets a new nullable `promotionId` column (a link to a
+promotion). Generate and run a migration after updating. Collection and promotion badges
+are now returned ordered by `order`, then by id. `ProductVariant.badges` now uses only public
+collections, matching `Product.badges`, so a badge on a private collection no longer shows on
+variants.
+
 ## Configuration options
 
 | Option               | Type       | Default                                                  | Description                                                                                                |
 | -------------------- | ---------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `availablePositions` | `string[]` | `['top-left', 'top-right', 'bottom-left', 'bottom-right']` | Available positions selecteble in the ui   |
+| `promotionProductChecks` | `PromotionProductCheck[]` | `[]` | Extra checks that answer whether a product satisfies a promotion condition (see below) |
 
 The configured positions are also exposed on the Admin API via the `getBadgePluginConfig`
-query, so the Admin UI can offer them as choices.
+query, so the Admin UI and the React Dashboard can offer them as choices.
+
+### Promotion product checks
+
+A promotion badge shows on a product when every condition of the promotion is satisfied by
+that product. A condition is only checked if a `PromotionProductCheck` is registered for its
+code. The plugin ships `containsProductsCheck` for `contains_products` (registered by
+default, the required quantity is ignored). A promotion with a condition that has no check
+never shows its badge, and the React Dashboard lists the unchecked condition codes.
+
+Register a check for your own condition:
+
+```typescript
+import { BadgePlugin, PromotionProductCheck } from '@haus-tech/badge-plugin'
+
+const inFacetCheck: PromotionProductCheck = {
+  code: 'my_facet_condition',
+  async matches({ ctx, injector, productId, args }) {
+    // args are the condition's arguments, parsed as Vendure parses them
+    return await myService.productHasFacetValue(ctx, productId, args.facetValueId as string)
+  },
+}
+
+BadgePlugin.init({ promotionProductChecks: [inFacetCheck] })
+```
+
+A check that throws counts as no match and is logged.
+
+The badge follows the promotion's conditions, not its actions. A promotion that limits its
+discount to some products only through its action (for example `products_percentage_discount`
+with no condition) shows the badge on every product. Give it a product condition such as
+`contains_products` to scope the badge.
 
 ## How it works
 
 A **badge** holds an image asset, a position and a link to
-one collection. Products are never badged directly, they inherit badges from the collections
-they belong to:
+one collection **or** one promotion, never both. Products are never badged directly, they inherit
+badges from the collections they belong to or the promotions they satisfy:
 
 1. **Create a badge** in the Admin UI: upload an image, pick a position, and assign it to a collection.
 2. **Products inherit it** – every product in that collection, including products in its
-   sub-collections, gets the badge automatically through the Shop API.
+   sub-collections, gets the badge automatically through the Shop API. A promotion badge is
+   shown on products that satisfy all of the promotion's conditions, while the promotion is
+   enabled and within its dates.
 3. **The storefront reads it** – fetch the `badges` field on a product (or search result) and
    render each badge's image at its `position`.
 
@@ -112,7 +153,7 @@ The Shop API badge queries are public, matching the rest of the Vendure shop API
 Once installed, manage badges from the dedicated **Badges** section in the Admin UI. From there you can:
 
 - Create a badge by uploading an image asset and choosing a position.
-- Assign the badge to a collection.
+- Assign the badge to a collection or to a promotion (picking one clears the other; the promotion picker is in the React Dashboard). A warning shows when the promotion has conditions that cannot be checked per product.
 - Update or delete existing badges. Deleting a badge also deletes its image asset.
 
 ### Shop API
@@ -122,9 +163,9 @@ The plugin extends the Shop API with badge queries and adds a `badges` resolver 
 
 | Field / Query                            | Returns         | Description                                                              |
 | ---------------------------------------- | --------------- | ------------------------------------------------------------------------ |
-| `Product.badges`                         | `[Badge!]!`     | Badges inherited from all collections the product belongs to             |
-| `ProductVariant.badges`                  | `[Badge!]!`     | Badges from the variant's collections                                    |
-| `SearchResult.badges`                    | `[Badge!]!`     | Badges for a search result (resolved via its product's collections)      |
+| `Product.badges`                         | `[Badge!]!`     | Badges inherited from the product's collections and matching active promotions            |
+| `ProductVariant.badges`                  | `[Badge!]!`     | Badges from the variant's collections and matching active promotions     |
+| `SearchResult.badges`                    | `[Badge!]!`     | Badges for a search result (its product's collections and matching active promotions) |
 | `badges(options)`                        | `BadgeList!`    | Paginated list of all badges in the active channel                       |
 | `getBadgeFromCollection(collectionId)`   | `Badge`         | The badge assigned to a single collection, if any                        |
 | `getBadgesFromCollections(collectionIds)`| `[Badge!]!`     | Badges assigned to any of the given collections                          |
