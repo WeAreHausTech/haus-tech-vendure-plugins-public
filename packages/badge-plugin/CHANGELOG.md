@@ -1,3 +1,9 @@
+## 4.1.0
+
+### 🚀 Features
+
+- **badge-plugin:** link a badge to a promotion ([#67](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/67))
+
 ## 4.0.9
 
 ### 🚀 Features
