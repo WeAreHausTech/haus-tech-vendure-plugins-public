@@ -76,6 +76,15 @@
           }
         ],
         "matcher": "*"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "haus sync --session-hook"
+          }
+        ],
+        "matcher": "*"
       }
     ],
     "PostToolUse": [
@@ -100,7 +109,8 @@
       "hook.workspace.worktree-check",
       "hook.workspace.worktree-autohydrate",
       "haus.guard-auto-merge",
-      "haus.pr-after-merge"
+      "haus.pr-after-merge",
+      "haus.sync-session"
     ],
     "hookCommands": [
       "haus guard file-access --from-hook",
@@ -111,7 +121,8 @@
       "haus workspace worktree doctor --from-hook",
       "haus workspace worktree autohydrate --from-hook",
       "haus guard auto-merge --from-hook",
-      "haus pr after-merge --from-hook"
+      "haus pr after-merge --from-hook",
+      "haus sync --session-hook"
     ],
     "denyRules": [
       "Bash(sudo:*)",
@@ -158,26 +169,17 @@
       "Bash(haus apply:*)",
       "Bash(haus doctor:*)",
       "Bash(haus scan:*)",
-      "Bash(haus recommend:*)",
-      "Bash(haus explain-recommendation:*)",
-      "Bash(haus fetch-refs:*)",
-      "Bash(haus rescan:*)",
       "Bash(haus clone:*)",
       "Bash(haus new:*)",
       "Bash(haus update:*)",
       "Bash(haus install:*)",
-      "Bash(haus configs:*)",
       "Bash(haus ci-gate:*)",
-      "Bash(haus catalog-audit:*)",
-      "Bash(haus validate-catalog:*)",
       "Bash(haus backups list:*)",
       "Bash(haus guard file-access:*)",
       "Bash(haus guard bash:*)",
       "Bash(haus guard auto-merge:*)",
       "Bash(haus deploy freeze:*)",
       "Bash(haus deploy status:*)",
-      "Bash(haus catalog bundle export:*)",
-      "Bash(haus catalog bundle import:*)",
       "Bash(haus decisions check:*)",
       "Bash(haus decisions suggest:*)",
       "Bash(haus decisions next-number:*)",
@@ -192,7 +194,6 @@
       "Bash(haus workspace scan:*)",
       "Bash(haus workspace setup:*)",
       "Bash(haus workspace doctor:*)",
-      "Bash(haus workspace link-context:*)",
       "Bash(haus workspace worktree add:*)",
       "Bash(haus workspace worktree hydrate:*)",
       "Bash(haus workspace worktree autohydrate:*)",
@@ -275,23 +276,14 @@
       "Bash(haus apply:*)",
       "Bash(haus doctor:*)",
       "Bash(haus scan:*)",
-      "Bash(haus recommend:*)",
-      "Bash(haus explain-recommendation:*)",
-      "Bash(haus fetch-refs:*)",
-      "Bash(haus rescan:*)",
       "Bash(haus clone:*)",
       "Bash(haus new:*)",
       "Bash(haus update:*)",
       "Bash(haus install:*)",
-      "Bash(haus configs:*)",
       "Bash(haus ci-gate:*)",
-      "Bash(haus catalog-audit:*)",
-      "Bash(haus validate-catalog:*)",
       "Bash(haus backups list:*)",
       "Bash(haus guard file-access:*)",
       "Bash(haus guard bash:*)",
-      "Bash(haus catalog bundle export:*)",
-      "Bash(haus catalog bundle import:*)",
       "Bash(haus decisions check:*)",
       "Bash(haus decisions suggest:*)",
       "Bash(haus decisions next-number:*)",
@@ -306,7 +298,6 @@
       "Bash(haus workspace scan:*)",
       "Bash(haus workspace setup:*)",
       "Bash(haus workspace doctor:*)",
-      "Bash(haus workspace link-context:*)",
       "Bash(haus workspace worktree add:*)",
       "Bash(haus workspace worktree hydrate:*)",
       "Bash(haus workspace worktree autohydrate:*)",

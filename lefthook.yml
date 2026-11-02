@@ -1,4 +1,4 @@
-# Written by `haus init`. Yours to edit, haus will not rewrite this file.
+# Written by `haus init`. Yours to edit: haus only adds its own haus-gate and haus-sync commands, never edits yours.
 #
 # Runs the haus gate before every push (ADR-0161):
 #   - haus doctor: is this project's haus setup intact?
@@ -18,4 +18,19 @@ pre-push:
         fi
         if [ ! -f .haus-workflow/recommendation.json ]; then haus recommend >/dev/null; fi
         haus ci-gate --no-update
-      fail_text: 'The haus gate failed; the lines above say which check. A setup finding: run haus doctor and follow its fix. A decision finding: run haus decisions suggest and add the ADR under docs/decisions/, or put [adr-skip] on its own line in a commit body for a non-security change. If haus says unknown option --no-update, update it: npm install -g @haus-tech/haus-workflow.'
+      fail_text: 'The haus gate failed; the lines above say which check. A setup finding: run haus doctor and follow its fix. A decision finding: run haus decisions suggest and add the ADR under docs/decisions/, or put [adr-skip] on its own line in a commit body for a non-security change. If haus says unknown option --no-update, update it: npm install -g @haus-tech/haus-workflow. If haus says unknown command or that a haus block does not match its expected imports, your haus is older than the one that last ran apply here: update it (npm install -g @haus-tech/haus-workflow, then haus update).'
+
+# haus sync: writes the packages haus.json names after a checkout, merge or rebase (ADR-0190).
+# haus added these three commands; haus undo takes them out again.
+post-checkout:
+  commands:
+    haus-sync:
+      run: 'command -v haus >/dev/null 2>&1 || exit 0; haus sync --quiet --from-hook 2>/dev/null || exit 0'
+post-merge:
+  commands:
+    haus-sync:
+      run: 'command -v haus >/dev/null 2>&1 || exit 0; haus sync --quiet --from-hook 2>/dev/null || exit 0'
+post-rewrite:
+  commands:
+    haus-sync:
+      run: 'command -v haus >/dev/null 2>&1 || exit 0; haus sync --quiet --from-hook 2>/dev/null || exit 0'
