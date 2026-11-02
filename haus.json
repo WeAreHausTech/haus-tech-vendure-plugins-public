@@ -1,0 +1,9 @@
+{
+  "release": "7.2.0",
+  "packages": [
+    "software-engineering",
+    "web-react",
+    "commerce-vendure",
+    "nx"
+  ]
+}
