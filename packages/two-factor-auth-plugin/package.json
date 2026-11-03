@@ -1,0 +1,37 @@
+{
+  "name": "@haus-tech/two-factor-auth-plugin",
+  "version": "3.8.0",
+  "description": "Vendure plugin that adds two-factor authentication (TOTP and backup codes) to administrator sign-in",
+  "author": "Haus Tech",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "vendure",
+    "plugin",
+    "2fa",
+    "two-factor",
+    "totp",
+    "mfa",
+    "security"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "peerDependencies": {
+    "@vendure/core": "^3.8.0",
+    "@vendure/dashboard": "^3.8.0"
+  }
+}
