@@ -66,6 +66,21 @@ Applies a configured display language, region and content language to every admi
 | `src/dashboard/constants.ts`                  | Mirror of the settings store key; the extension must not import server code (`src/constants.spec.ts` keeps them equal) |
 | `e2e/`                                        | `dashboard-locale-plugin.e2e-spec.ts` + fixtures                                 |
 
+### `packages/two-factor-auth-plugin`: `@haus-tech/two-factor-auth-plugin`
+
+TOTP and backup-code two-factor authentication for administrator sign-in. No session is created from a password alone for an administrator who has it on. License MIT. `peerDependencies`: `@vendure/core ^3.8.0`, `@vendure/dashboard ^3.8.0`; dependency `qrcode`.
+
+| Path                                     | Purpose                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/two-factor-auth.plugin.ts`          | Plugin definition; `configuration()` wraps the admin `native` strategy and adds the `twoFactor` one |
+| `src/strategy/`                          | `TwoFactorNativeAuthenticationStrategy` (password step) and `TwoFactorCodeAuthenticationStrategy` (code step) |
+| `src/service/two-factor.service.ts`      | Challenges, enrolment, code checks, replay protection, lockout, reset                              |
+| `src/crypto/`                            | TOTP (RFC 6238), AES-256-GCM secret encryption, tokens and backup codes; all have unit specs       |
+| `src/entity/`                            | `TwoFactorCredential`, `TwoFactorChallenge`                                                         |
+| `src/api/`                               | Admin GraphQL schema, resolvers, and the `resetPassword` override                                  |
+| `src/dashboard/`                         | Sign-in page, settings page, login and reset-password redirects, Reset 2FA action                  |
+| `e2e/`                                   | `two-factor-auth-plugin.e2e-spec.ts` + fixtures                                                    |
+
 ### `packages/elastic-search-synonyms` — `@haus-tech/elastic-search-synonyms`
 
 Manage Elasticsearch synonym sets from the Vendure admin UI / Dashboard. Synonym groups are persisted in the DB and synced to Elasticsearch on startup and on change via the Elasticsearch Synonyms API (ES 8.x/9.x). License MIT. `peerDependencies`: `@elastic/elasticsearch ^8 || ^9`, `@vendure/core ^3.6.0`.
@@ -124,7 +139,7 @@ This is the only plugin exposing **REST controllers** rather than only GraphQL; 
 
 ## Tests
 
-- Unit specs: `packages/<plugin>/src/**/*.spec.ts`, run by each plugin's `vitest.config.ts` via the Nx `test` target. Only `elastic-search-synonyms` and `dashboard-locale-plugin` have any today.
-- E2E specs: `packages/**/*.e2e-spec.ts`, run by the root `vitest.config.ts` (`badge-plugin/e2e/`, `dashboard-locale-plugin/e2e/`, `product-import-export-plugin/e2e/`).
+- Unit specs: `packages/<plugin>/src/**/*.spec.ts`, run by each plugin's `vitest.config.ts` via the Nx `test` target. Only `elastic-search-synonyms`, `dashboard-locale-plugin` and `two-factor-auth-plugin` have any today.
+- E2E specs: `packages/**/*.e2e-spec.ts`, run by the root `vitest.config.ts` (`badge-plugin/e2e/`, `dashboard-locale-plugin/e2e/`, `product-import-export-plugin/e2e/`, `two-factor-auth-plugin/e2e/`).
 - Every project sets `passWithNoTests: true` — a green `yarn test` does not imply coverage.
 - `node_modules` is not committed; `yarn install` is required before running tests locally.

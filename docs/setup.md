@@ -48,7 +48,7 @@ Releases are run **manually** via `nx release`; there is no publish pipeline in 
 
 - `yarn build` produces `dist/packages/<plugin>/`.
 - `yarn test` reports passing (or "no tests" — several projects pass with none) for each plugin.
-- `npx nx show projects` lists `badge-plugin`, `dashboard-locale-plugin`, `elastic-search-synonyms`, and `product-import-export-plugin`.
+- `npx nx show projects` lists `badge-plugin`, `dashboard-locale-plugin`, `elastic-search-synonyms`, `product-import-export-plugin`, and `two-factor-auth-plugin`.
 
 ## Troubleshooting
 

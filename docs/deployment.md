@@ -4,10 +4,11 @@
 
 ## What is published
 
-Four public npm packages under the `@haus-tech/` scope, built to `dist/packages/<plugin>/`:
+Five public npm packages under the `@haus-tech/` scope, built to `dist/packages/<plugin>/`:
 
 - `@haus-tech/badge-plugin`
 - `@haus-tech/dashboard-locale-plugin`
+- `@haus-tech/two-factor-auth-plugin`
 - `@haus-tech/elastic-search-synonyms`
 - `@haus-tech/product-import-export-plugin`
 
@@ -17,7 +18,7 @@ Four public npm packages under the `@haus-tech/` scope, built to `dist/packages/
 
 Plugin versions track the supported **Vendure major.minor** (e.g. Vendure 3.6.x → plugin `3.6.x`), where the patch segment is a build number. Only major+minor are taken from Vendure. See [README.md](../README.md) ("Package versioning").
 
-> CONFIRM-WITH-TEAM: `badge-plugin` is at `4.0.x` while the repo targets Vendure `3.6.3`, so it does not follow this convention. Confirm whether badge-plugin is intentionally versioned independently and document the exception (or realign it).
+> CONFIRM-WITH-TEAM: `badge-plugin` is at `4.0.x` while the repo targets Vendure `3.8.1`, so it does not follow this convention. Confirm whether badge-plugin is intentionally versioned independently and document the exception (or realign it).
 
 ## Releasing with Nx Release
 
