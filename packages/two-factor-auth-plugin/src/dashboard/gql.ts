@@ -1,3 +1,5 @@
+// Mirrors of the GraphQL types in ../types.ts. The Dashboard extension is its own TypeScript
+// project and is compiled by the host app, so it does not import server files.
 export type TwoFactorErrorCode =
   | 'INVALID_CODE'
   | 'INVALID_PASSWORD'
@@ -7,6 +9,12 @@ export type TwoFactorErrorCode =
   | 'NOT_ENABLED'
   | 'NO_PENDING_ENROLMENT'
   | 'REQUIRED'
+
+type TwoFactorLoginStatus =
+  | 'NOT_REQUIRED'
+  | 'CODE_REQUIRED'
+  | 'ENROLMENT_REQUIRED'
+  | 'INVALID_CREDENTIALS'
 
 export interface EnrolmentSecret {
   secret: string
@@ -33,7 +41,7 @@ export const twoFactorLoginDocument = /* GraphQL */ `
 `
 export interface TwoFactorLoginResult {
   twoFactorLogin: {
-    status: 'NOT_REQUIRED' | 'CODE_REQUIRED' | 'ENROLMENT_REQUIRED' | 'INVALID_CREDENTIALS'
+    status: TwoFactorLoginStatus
     challengeToken: string | null
     enrolment: EnrolmentSecret | null
   }
@@ -175,12 +183,13 @@ const errorMessages: Record<string, string> = {
   NOT_ENABLED: 'Two-factor authentication is not enabled.',
   NO_PENDING_ENROLMENT: 'Start the setup again.',
   REQUIRED: 'Two-factor authentication is required for your account and cannot be turned off.',
-  TWO_FACTOR_INVALID_CODE: 'That code is not valid. Check the time on your device and try again.',
-  TWO_FACTOR_CHALLENGE_EXPIRED: 'The sign-in took too long. Please start again.',
-  TWO_FACTOR_LOCKED: 'Too many wrong codes. Two-factor sign-in is locked for a while.',
-  TWO_FACTOR_ENROLMENT_INCOMPLETE: 'Finish setting up your authenticator app first.',
+  ENROLMENT_INCOMPLETE: 'Finish setting up your authenticator app first.',
 }
 
+/** Takes a `TwoFactorErrorCode` or an `authenticationError` such as `TWO_FACTOR_INVALID_CODE`. */
 export function errorMessage(code: string | null | undefined): string {
-  return (code && errorMessages[code]) || 'Something went wrong. Please try again.'
+  return (
+    (code && errorMessages[code.replace(/^TWO_FACTOR_/, '')]) ||
+    'Something went wrong. Please try again.'
+  )
 }

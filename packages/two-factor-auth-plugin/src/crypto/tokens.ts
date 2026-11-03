@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from 'crypto'
 
+import { base32Encode } from './totp'
+
 // Crockford base32: no I, L, O or U, so codes are easy to read aloud and type.
 const BACKUP_CODE_ALPHABET = '0123456789abcdefghjkmnpqrstvwxyz'
 const BACKUP_CODE_BYTES = 10 // 80 bits, 16 characters
@@ -13,25 +15,10 @@ export function generateToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
-function encodeBackupCode(bytes: Buffer): string {
-  let bits = 0
-  let value = 0
-  let output = ''
-  for (const byte of bytes) {
-    value = (value << 8) | byte
-    bits += 8
-    while (bits >= 5) {
-      output += BACKUP_CODE_ALPHABET[(value >>> (bits - 5)) & 31]
-      bits -= 5
-    }
-  }
-  return output
-}
-
 /** Codes formatted as `xxxx-xxxx-xxxx-xxxx`. */
 export function generateBackupCodes(count: number): string[] {
   return Array.from({ length: count }, () =>
-    encodeBackupCode(randomBytes(BACKUP_CODE_BYTES)).match(/.{4}/g)!.join('-'),
+    base32Encode(randomBytes(BACKUP_CODE_BYTES), BACKUP_CODE_ALPHABET).match(/.{4}/g)!.join('-'),
   )
 }
 

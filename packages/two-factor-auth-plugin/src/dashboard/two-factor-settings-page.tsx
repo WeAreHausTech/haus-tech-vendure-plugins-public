@@ -2,19 +2,25 @@ import {
   api,
   Button,
   DashboardRouteDefinition,
-  Input,
   Label,
   Page,
   PageBlock,
   PageLayout,
   PageTitle,
+  PasswordInput,
 } from '@vendure/dashboard'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ShieldCheckIcon } from 'lucide-react'
 import { FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 
-import { BackupCodeList, CodeForm, EnrolmentInstructions } from './components'
+import {
+  BackupCodeList,
+  CodeForm,
+  EnrolmentInstructions,
+  ErrorLine,
+  usePendingAction,
+} from './components'
 import {
   beginEnrolmentDocument,
   confirmEnrolmentDocument,
@@ -51,20 +57,8 @@ function TwoFactorSettingsPage() {
   const status = data?.activeAdministratorTwoFactor
   const [panel, setPanel] = useState<Panel>({ name: 'idle' })
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string>()
-  const [isPending, setIsPending] = useState(false)
+  const { run, error, setError, isPending } = usePendingAction()
 
-  const run = async (action: () => Promise<void>) => {
-    setIsPending(true)
-    setError(undefined)
-    try {
-      await action()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : errorMessage(null))
-    } finally {
-      setIsPending(false)
-    }
-  }
   const refresh = () => queryClient.invalidateQueries({ queryKey: statusQueryKey })
 
   const submitPassword = (event: FormEvent) => {
@@ -92,7 +86,7 @@ function TwoFactorSettingsPage() {
         }
       })
 
-  const errorLine = error && <p className="text-sm text-destructive">{error}</p>
+  const errorLine = <ErrorLine error={error} />
 
   return (
     <Page pageId="two-factor-settings">
@@ -151,9 +145,8 @@ function TwoFactorSettingsPage() {
                 <form className="flex flex-col gap-4" onSubmit={submitPassword}>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="two-factor-current-password">Confirm your password</Label>
-                    <Input
+                    <PasswordInput
                       id="two-factor-current-password"
-                      type="password"
                       autoComplete="current-password"
                       autoFocus
                       value={password}

@@ -4,6 +4,7 @@
     "outDir": "../../dist/packages/two-factor-auth-plugin",
     "rootDir": "./src",
     "types": ["node"],
+    "useDefineForClassFields": false,
     "lib": ["es2022", "dom"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.config.ts", "src/dashboard/**/*"],

@@ -6,17 +6,26 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   DashboardRouteDefinition,
   Input,
   Label,
   LogoMark,
+  LS_KEY_SELECTED_CHANNEL_TOKEN,
+  PasswordInput,
   useAuth,
 } from '@vendure/dashboard'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate } from '@tanstack/react-router'
 import { FormEvent, useEffect, useState } from 'react'
 
-import { BackupCodeList, CodeForm, EnrolmentInstructions } from './components'
+import {
+  BackupCodeList,
+  CodeForm,
+  EnrolmentInstructions,
+  ErrorLine,
+  usePendingAction,
+} from './components'
 import {
   authenticateTwoFactorDocument,
   AuthenticateTwoFactorResult,
@@ -31,9 +40,6 @@ import {
 } from './gql'
 
 export const TWO_FACTOR_LOGIN_PATH = '/two-factor-login'
-
-// Same key as the Dashboard's own channel selection.
-const SELECTED_CHANNEL_TOKEN_KEY = 'vendure-selected-channel-token'
 
 type Step =
   | { name: 'credentials' }
@@ -59,8 +65,7 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
-  const [error, setError] = useState<string>()
-  const [isPending, setIsPending] = useState(false)
+  const { run, error, setError, isPending } = usePendingAction()
   const [signedIn, setSignedIn] = useState(false)
 
   // Navigate once the Dashboard's auth state has caught up with the new session.
@@ -69,18 +74,6 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
       navigate({ to: target })
     }
   }, [signedIn, auth.isAuthenticated, navigate, target])
-
-  const run = async (action: () => Promise<void>) => {
-    setIsPending(true)
-    setError(undefined)
-    try {
-      await action()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : errorMessage(null))
-    } finally {
-      setIsPending(false)
-    }
-  }
 
   const startOver = (message: string) => {
     setStep({ name: 'credentials' })
@@ -94,9 +87,9 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
     const channels = me?.channels ?? []
     let stored: string | null = null
     try {
-      stored = localStorage.getItem(SELECTED_CHANNEL_TOKEN_KEY)
+      stored = localStorage.getItem(LS_KEY_SELECTED_CHANNEL_TOKEN)
       if (channels.length && !channels.some((c) => c.token === stored)) {
-        localStorage.setItem(SELECTED_CHANNEL_TOKEN_KEY, channels[0].token)
+        localStorage.setItem(LS_KEY_SELECTED_CHANNEL_TOKEN, channels[0].token)
       }
     } catch {
       // Storage can be unavailable; the Dashboard then picks the first channel itself.
@@ -195,23 +188,22 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
                         Forgot password?
                       </Link>
                     </div>
-                    <Input
+                    <PasswordInput
                       id="two-factor-password"
-                      type="password"
                       autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="two-factor-remember-me"
                       checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
                     />
-                    Remember me
-                  </label>
-                  {loginError && <p className="text-sm text-destructive">{loginError}</p>}
+                    <Label htmlFor="two-factor-remember-me">Remember me</Label>
+                  </div>
+                  <ErrorLine error={loginError} />
                   <Button type="submit" disabled={isPending || !username || !password}>
                     Sign in
                   </Button>
@@ -234,7 +226,7 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
                   isPending={isPending}
                   onSubmit={(code) => run(() => redeem(step.challengeToken, code))}
                 >
-                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  <ErrorLine error={error} />
                 </CodeForm>
                 <Button variant="link" className="mt-2 w-full" onClick={() => startOver('')}>
                   Use another account
@@ -278,7 +270,7 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
                     })
                   }
                 >
-                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  <ErrorLine error={error} />
                 </CodeForm>
               </CardContent>
             </>
@@ -291,7 +283,7 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <BackupCodeList codes={step.backupCodes} />
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                <ErrorLine error={error} />
                 <Button disabled={isPending} onClick={() => run(() => redeem(step.challengeToken))}>
                   I have saved my codes, continue
                 </Button>

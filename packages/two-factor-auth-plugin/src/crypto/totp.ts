@@ -2,13 +2,14 @@ import { createHmac, randomBytes, timingSafeEqual } from 'crypto'
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
-export const TOTP_PERIOD_SECONDS = 30
-export const TOTP_DIGITS = 6
+const TOTP_PERIOD_SECONDS = 30
+const TOTP_DIGITS = 6
 /** Accepted clock drift, in time steps on either side of the current one. */
-export const TOTP_DRIFT_STEPS = 1
+const TOTP_DRIFT_STEPS = 1
+const TOTP_CODE_FORMAT = new RegExp(`^\\d{${TOTP_DIGITS}}$`)
 
-/** RFC 4648 base32, without padding, as authenticator apps expect it. */
-export function base32Encode(data: Buffer): string {
+/** Base32 without padding, RFC 4648 alphabet by default, as authenticator apps expect it. */
+export function base32Encode(data: Buffer, alphabet = BASE32_ALPHABET): string {
   let bits = 0
   let value = 0
   let output = ''
@@ -16,12 +17,12 @@ export function base32Encode(data: Buffer): string {
     value = (value << 8) | byte
     bits += 8
     while (bits >= 5) {
-      output += BASE32_ALPHABET[(value >>> (bits - 5)) & 31]
+      output += alphabet[(value >>> (bits - 5)) & 31]
       bits -= 5
     }
   }
   if (bits > 0) {
-    output += BASE32_ALPHABET[(value << (5 - bits)) & 31]
+    output += alphabet[(value << (5 - bits)) & 31]
   }
   return output
 }
@@ -65,6 +66,10 @@ export function hotp(secret: Buffer, counter: number, digits = TOTP_DIGITS): str
   return (binary % 10 ** digits).toString().padStart(digits, '0')
 }
 
+export function isTotpCodeFormat(code: string): boolean {
+  return TOTP_CODE_FORMAT.test(code)
+}
+
 export function timeStep(nowMs: number): number {
   return Math.floor(nowMs / 1000 / TOTP_PERIOD_SECONDS)
 }
@@ -79,7 +84,7 @@ export function findMatchingStep(
   nowMs: number,
   lastUsedStep?: number | null,
 ): number | undefined {
-  if (!new RegExp(`^\\d{${TOTP_DIGITS}}$`).test(code)) {
+  if (!isTotpCodeFormat(code)) {
     return undefined
   }
   const secret = base32Decode(secretBase32)

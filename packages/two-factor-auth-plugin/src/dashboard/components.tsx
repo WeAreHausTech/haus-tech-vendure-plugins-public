@@ -1,9 +1,31 @@
 import { Button, Input, Label } from '@vendure/dashboard'
 import { CopyIcon } from 'lucide-react'
-import { FormEvent, ReactNode, useState } from 'react'
+import { FormEvent, ReactNode, useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import type { EnrolmentSecret } from './gql'
+import { EnrolmentSecret, errorMessage } from './gql'
+
+/** Runs one async action at a time and keeps its error message. */
+export function usePendingAction() {
+  const [error, setError] = useState<string>()
+  const [isPending, setIsPending] = useState(false)
+  const run = useCallback(async (action: () => Promise<void>) => {
+    setIsPending(true)
+    setError(undefined)
+    try {
+      await action()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : errorMessage(null))
+    } finally {
+      setIsPending(false)
+    }
+  }, [])
+  return { run, error, setError, isPending }
+}
+
+export function ErrorLine({ error }: Readonly<{ error?: string }>) {
+  return error ? <p className="text-sm text-destructive">{error}</p> : null
+}
 
 /** QR code plus the secret in text, for apps that cannot scan. */
 export function EnrolmentInstructions({ enrolment }: Readonly<{ enrolment: EnrolmentSecret }>) {

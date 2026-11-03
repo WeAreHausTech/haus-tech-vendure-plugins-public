@@ -1,8 +1,13 @@
-import { api, Button } from '@vendure/dashboard'
+import { api, Button, ConfirmationDialog } from '@vendure/dashboard'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { administratorTwoFactorDocument, errorMessage, resetAdministratorDocument } from './gql'
+import {
+  administratorTwoFactorDocument,
+  errorMessage,
+  resetAdministratorDocument,
+  TwoFactorMutationResult,
+} from './gql'
 
 /** Action on the administrator detail page, for an administrator who has lost their device. */
 export function ResetAdministratorTwoFactorButton({
@@ -23,30 +28,32 @@ export function ResetAdministratorTwoFactorButton({
     return null
   }
   const reset = async () => {
-    if (
-      !window.confirm(
-        'Reset two-factor authentication for this administrator? They are signed out everywhere and set it up again at their next sign-in.',
-      )
-    ) {
-      return
-    }
     try {
-      const { resetAdministratorTwoFactor } = (await api.mutate(resetAdministratorDocument, {
-        administratorId,
-      })) as { resetAdministratorTwoFactor: { success: boolean; error: string | null } }
-      if (resetAdministratorTwoFactor.success) {
+      const { resetAdministratorTwoFactor: result } = (await api.mutate(
+        resetAdministratorDocument,
+        {
+          administratorId,
+        },
+      )) as { resetAdministratorTwoFactor: TwoFactorMutationResult }
+      if (result.success) {
         toast.success('Two-factor authentication was reset')
         await queryClient.invalidateQueries({ queryKey })
       } else {
-        toast.error(errorMessage(resetAdministratorTwoFactor.error))
+        toast.error(errorMessage(result.error))
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : errorMessage(null))
     }
   }
   return (
-    <Button variant="outline" onClick={reset}>
-      Reset 2FA
-    </Button>
+    <ConfirmationDialog
+      title="Reset two-factor authentication?"
+      description="The administrator is signed out everywhere and sets up two-factor authentication again at their next sign-in."
+      confirmText="Reset"
+      destructive
+      onConfirm={reset}
+    >
+      <Button variant="outline">Reset 2FA</Button>
+    </ConfirmationDialog>
   )
 }

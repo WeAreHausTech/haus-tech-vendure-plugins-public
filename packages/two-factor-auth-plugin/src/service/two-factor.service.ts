@@ -1,22 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common'
 import {
-  Administrator,
   AuthenticatedSession,
   ConfigService,
   EventBus,
   ID,
   Logger,
   RequestContext,
+  SessionService,
   TransactionalConnection,
   User,
+  UserService,
 } from '@vendure/core'
 import { toDataURL } from 'qrcode'
-import { IsNull, LessThan } from 'typeorm'
+import { LessThan } from 'typeorm'
 
 import { loggerCtx, PLUGIN_INIT_OPTIONS, TwoFactorAuthError } from '../constants'
 import { SecretCipher } from '../crypto/secret-cipher'
 import { generateBackupCodes, generateToken, hashBackupCode, sha256Hex } from '../crypto/tokens'
-import { buildOtpauthUri, findMatchingStep, generateTotpSecret } from '../crypto/totp'
+import {
+  buildOtpauthUri,
+  findMatchingStep,
+  generateTotpSecret,
+  isTotpCodeFormat,
+} from '../crypto/totp'
 import {
   TwoFactorChallenge,
   TwoFactorChallengePurpose,
@@ -37,6 +43,9 @@ import type {
 
 export type LoginRequirement = 'none' | 'code' | 'enrolment'
 type CodeCheck = 'ok' | 'invalid' | 'locked'
+
+const codeError = (check: Exclude<CodeCheck, 'ok'>): TwoFactorErrorCode =>
+  check === 'locked' ? 'LOCKED' : 'INVALID_CODE'
 
 const fail = (error: TwoFactorErrorCode) => ({ success: false as const, error })
 
@@ -61,6 +70,8 @@ export class TwoFactorService {
     private connection: TransactionalConnection,
     private configService: ConfigService,
     private eventBus: EventBus,
+    private sessionService: SessionService,
+    private userService: UserService,
     @Inject(PLUGIN_INIT_OPTIONS) private options: ResolvedTwoFactorAuthPluginOptions,
   ) {
     this.cipher = new SecretCipher(options.encryptionKeys)
@@ -175,21 +186,21 @@ export class TwoFactorService {
     if (!(await this.consumeChallenge(ctx, challenge))) {
       return TwoFactorAuthError.CHALLENGE_EXPIRED
     }
-    const user = await this.connection.getRepository(ctx, User).findOne({
-      where: { id: challenge.userId, deletedAt: IsNull() },
-      relations: { roles: { channels: true }, authenticationMethods: true },
-    })
-    // The native strategy refuses unverified users too. Administrators are normally verified.
-    return user?.verified ? user : TwoFactorAuthError.CHALLENGE_EXPIRED
+    const user = await this.userService.getUserById(ctx, challenge.userId)
+    // The native strategy refuses deleted and unverified users too.
+    return user && !user.deletedAt && user.verified ? user : TwoFactorAuthError.CHALLENGE_EXPIRED
   }
 
   async getStatus(ctx: RequestContext, user: User): Promise<TwoFactorStatus> {
-    const credential = await this.findCredential(ctx, user.id)
+    const [credential, required] = await Promise.all([
+      this.findCredential(ctx, user.id),
+      this.isRequired(ctx, user),
+    ])
     const enabled = !!credential?.enabled
     return {
       enabled,
       enabledAt: enabled ? (credential?.enabledAt ?? null) : null,
-      required: await this.isRequired(ctx, user),
+      required,
       backupCodesRemaining: enabled ? (credential?.backupCodeHashes.length ?? 0) : 0,
     }
   }
@@ -233,11 +244,9 @@ export class TwoFactorService {
     const secret = this.cipher.decrypt(credential.pendingSecret, secretOwner(userId))
     const step = findMatchingStep(secret, code.trim(), Date.now())
     if (step === undefined) {
-      return fail(
-        (await this.registerFailure(ctx, credential)) === 'locked' ? 'LOCKED' : 'INVALID_CODE',
-      )
+      return fail(codeError(await this.registerFailure(ctx, credential)))
     }
-    const backupCodes = await this.enable(ctx, userId, secret, step)
+    const backupCodes = await this.enable(ctx, credential, secret, step)
     await this.deleteOtherSessions(ctx, userId)
     return { success: true, backupCodes }
   }
@@ -253,7 +262,7 @@ export class TwoFactorService {
     }
     const check = await this.checkCode(ctx, credential, code)
     if (check !== 'ok') {
-      return fail(check === 'locked' ? 'LOCKED' : 'INVALID_CODE')
+      return fail(codeError(check))
     }
     await this.connection.getRepository(ctx, TwoFactorCredential).delete({ id: credential.id })
     await this.deleteOtherSessions(ctx, user.id)
@@ -273,7 +282,7 @@ export class TwoFactorService {
     }
     const check = await this.checkCode(ctx, credential, code)
     if (check !== 'ok') {
-      return fail(check === 'locked' ? 'LOCKED' : 'INVALID_CODE')
+      return fail(codeError(check))
     }
     const backupCodes = generateBackupCodes(this.options.backupCodeCount)
     await this.connection
@@ -293,24 +302,18 @@ export class TwoFactorService {
     if (!deleted.affected) {
       return false
     }
-    await this.deleteSessions(ctx, userId)
+    await this.sessionService.deleteSessionsByUser(ctx, new User({ id: userId }))
     await this.publish(ctx, userId, 'reset', ctx.activeUserId)
     return true
   }
 
   /** {@link reset} by the administrator's email address, for recovery scripts. */
   async resetByIdentifier(ctx: RequestContext, identifier: string): Promise<boolean> {
-    const administrator = await this.connection
-      .getRepository(ctx, Administrator)
-      .createQueryBuilder('administrator')
-      .innerJoinAndSelect('administrator.user', 'user')
-      .where('LOWER(user.identifier) = LOWER(:identifier)', { identifier })
-      .andWhere('administrator.deletedAt IS NULL')
-      .getOne()
-    if (!administrator) {
+    const user = await this.userService.getUserByEmailAddress(ctx, identifier, 'administrator')
+    if (!user) {
       throw new Error(`No administrator found with identifier ${identifier}`)
     }
-    return this.reset(ctx, administrator.user.id)
+    return this.reset(ctx, user.id)
   }
 
   async isEnabledForUser(ctx: RequestContext, userId: ID): Promise<boolean> {
@@ -353,14 +356,20 @@ export class TwoFactorService {
     })
   }
 
+  /** Pass the user's credential when it is already loaded, or the user id to create or load it. */
   private async enable(
     ctx: RequestContext,
-    userId: ID,
+    credentialOrUserId: TwoFactorCredential | ID,
     secret: string,
     step: number,
   ): Promise<string[]> {
     const backupCodes = generateBackupCodes(this.options.backupCodeCount)
-    const credential = (await this.findCredential(ctx, userId)) ?? this.newCredential(userId)
+    const credential =
+      credentialOrUserId instanceof TwoFactorCredential
+        ? credentialOrUserId
+        : ((await this.findCredential(ctx, credentialOrUserId)) ??
+          this.newCredential(credentialOrUserId))
+    const { userId } = credential
     Object.assign(credential, {
       secret: this.cipher.encrypt(secret, secretOwner(userId)),
       pendingSecret: null,
@@ -403,14 +412,10 @@ export class TwoFactorService {
       return 'locked'
     }
     const code = rawCode.trim()
-    if (/^\d{6}$/.test(code.replace(/\s/g, ''))) {
+    const digits = code.replace(/\s/g, '')
+    if (isTotpCodeFormat(digits)) {
       const secret = this.cipher.decrypt(credential.secret!, secretOwner(credential.userId))
-      const step = findMatchingStep(
-        secret,
-        code.replace(/\s/g, ''),
-        Date.now(),
-        credential.lastUsedStep,
-      )
+      const step = findMatchingStep(secret, digits, Date.now(), credential.lastUsedStep)
       if (step !== undefined && (await this.claimStep(ctx, credential, step))) {
         await this.onVerified(ctx, credential, secret)
         return 'ok'
@@ -566,20 +571,15 @@ export class TwoFactorService {
     return result.affected === 1
   }
 
+  /** Like `SessionService.deleteSessionsByUser`, but keeps the current session. */
   private async deleteOtherSessions(ctx: RequestContext, userId: ID) {
-    await this.deleteSessions(ctx, userId, ctx.session?.token)
-  }
-
-  private async deleteSessions(ctx: RequestContext, userId: ID, keepToken?: string) {
     const repo = this.connection.getRepository(ctx, AuthenticatedSession)
     const sessions = (await repo.find({ where: { user: { id: userId } } })).filter(
-      (s) => s.token !== keepToken,
+      (s) => s.token !== ctx.session?.token,
     )
     await repo.remove(sessions)
     const cache = this.configService.authOptions.sessionCacheStrategy
-    for (const session of sessions) {
-      await cache.delete(session.token)
-    }
+    await Promise.all(sessions.map((session) => cache.delete(session.token)))
   }
 
   private publish(ctx: RequestContext, userId: ID, type: TwoFactorEventType, resetByUserId?: ID) {
