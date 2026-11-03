@@ -45,7 +45,7 @@ import { initialData } from './fixtures/initial-data'
 // Own data dir (a sibling of `__data__`), because vitest runs spec files in parallel and this
 // spec needs its own custom field schema.
 const sqliteDataDir = path.join(__dirname, '__data-relation-by-sku__')
-const SQLITE_SCHEMA_VERSION = '3.6-test-tag'
+const SQLITE_SCHEMA_VERSION = '3.8-test-tag'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')

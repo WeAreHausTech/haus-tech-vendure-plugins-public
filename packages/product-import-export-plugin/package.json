@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@vendure/email-plugin": "3.6.3",
+    "@vendure/email-plugin": "3.8.1",
     "csv-parse": "^6.0.0",
     "csv-stringify": "^6.6.0"
   },

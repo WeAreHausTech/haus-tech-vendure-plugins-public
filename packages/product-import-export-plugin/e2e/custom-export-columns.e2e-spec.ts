@@ -21,7 +21,7 @@ import { initialData } from './fixtures/initial-data'
 // A sibling of the shared `__data__` dir, not a child of it: the main spec removes `__data__`
 // recursively in its beforeAll on a schema bump, and vitest runs spec files in parallel.
 const sqliteDataDir = path.join(__dirname, '__data-custom-columns__')
-const SQLITE_SCHEMA_VERSION = '3.6'
+const SQLITE_SCHEMA_VERSION = '3.8'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')

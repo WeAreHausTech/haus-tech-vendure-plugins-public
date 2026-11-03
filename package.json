@@ -42,12 +42,12 @@
     "@typescript-eslint/eslint-plugin": "8.56.1",
     "@typescript-eslint/parser": "8.56.1",
     "@vendure-community/elasticsearch-plugin": "1.1.0",
-    "@vendure/admin-ui-plugin": "3.6.3",
-    "@vendure/asset-server-plugin": "3.6.3",
-    "@vendure/core": "3.6.3",
-    "@vendure/dashboard": "3.6.3",
-    "@vendure/testing": "3.6.3",
-    "@vendure/ui-devkit": "3.6.3",
+    "@vendure/admin-ui-plugin": "3.8.1",
+    "@vendure/asset-server-plugin": "3.8.1",
+    "@vendure/core": "3.8.1",
+    "@vendure/dashboard": "3.8.1",
+    "@vendure/testing": "3.8.1",
+    "@vendure/ui-devkit": "3.8.1",
     "@vitest/coverage-v8": "4.1.2",
     "@vitest/ui": "4.1.2",
     "copyfiles": "2.4.1",
@@ -75,7 +75,7 @@
   "packageManager": "yarn@4.15.0",
   "dependencies": {
     "@elastic/elasticsearch": "^9.0.0",
-    "@nestjs/graphql": "13.4.0",
+    "@nestjs/graphql": "14.0.3",
     "bottleneck": "2.19.5"
   },
   "resolutions": {
