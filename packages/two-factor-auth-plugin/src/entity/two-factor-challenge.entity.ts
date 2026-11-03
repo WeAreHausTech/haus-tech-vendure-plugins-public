@@ -14,6 +14,10 @@ export type TwoFactorChallengePurpose = 'login' | 'enrolment'
 export class TwoFactorChallenge extends VendureEntity {
   constructor(input?: DeepPartial<TwoFactorChallenge>) {
     super(input)
+    // Class fields are re-initialised after super() when emitted as ES2022 fields.
+    if (input) {
+      Object.assign(this, input)
+    }
   }
 
   @Index({ unique: true })
