@@ -2,7 +2,9 @@ import path from 'path'
 import { randomBytes } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import {
+  AttemptedLoginEvent,
   AuthenticatedSession,
+  EventBus,
   mergeConfig,
   NativeAuthenticationMethod,
   TransactionalConnection,
@@ -333,6 +335,18 @@ describe('TwoFactorAuthPlugin e2e', () => {
         password: 'wrong',
       })
       expect(twoFactorLogin.status).toBe('INVALID_CREDENTIALS')
+    })
+
+    it('publishes AttemptedLoginEvent for the password step, like login does', async () => {
+      const attempts: string[] = []
+      const subscription = server.app
+        .get(EventBus)
+        .ofType(AttemptedLoginEvent)
+        .subscribe((event) => attempts.push(`${event.strategy}:${event.identifier}`))
+      await adminClient.query(TWO_FACTOR_LOGIN, { username: bob.emailAddress, password: 'wrong' })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      subscription.unsubscribe()
+      expect(attempts).toEqual([`native:${bob.emailAddress}`])
     })
   })
 

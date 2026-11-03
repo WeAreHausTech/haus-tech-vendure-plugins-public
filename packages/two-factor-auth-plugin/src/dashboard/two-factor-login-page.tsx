@@ -32,6 +32,9 @@ import {
   completeLoginEnrolmentDocument,
   EnrolmentSecret,
   errorMessage,
+  loginDocument,
+  LoginResult,
+  logoutDocument,
   meChannelsDocument,
   MeChannelsResult,
   twoFactorLoginDocument,
@@ -85,10 +88,16 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
   const finishSignIn = async () => {
     const { me } = (await api.query(meChannelsDocument)) as MeChannelsResult
     const channels = me?.channels ?? []
+    if (!channels.length) {
+      // The Dashboard cannot be used without a channel, so end the new session again.
+      await api.mutate(logoutDocument, {})
+      startOver('You do not have access to any channel.')
+      return
+    }
     let stored: string | null = null
     try {
       stored = localStorage.getItem(LS_KEY_SELECTED_CHANNEL_TOKEN)
-      if (channels.length && !channels.some((c) => c.token === stored)) {
+      if (!channels.some((c) => c.token === stored)) {
         localStorage.setItem(LS_KEY_SELECTED_CHANNEL_TOKEN, channels[0].token)
       }
     } catch {
@@ -126,8 +135,20 @@ function TwoFactorLoginPage({ route }: Readonly<{ route: DashboardRoute }>) {
       })) as TwoFactorLoginResult
       switch (twoFactorLogin.status) {
         case 'NOT_REQUIRED':
-          // No second factor applies: the Dashboard's own login sets everything up.
-          auth.login(username, password, () => navigate({ to: target }))
+          // No second factor applies. Sign in here rather than with auth.login, which
+          // cannot pass rememberMe.
+          {
+            const { login } = (await api.mutate(loginDocument, {
+              username,
+              password,
+              rememberMe,
+            })) as LoginResult
+            if (login.__typename === 'CurrentUser') {
+              await finishSignIn()
+            } else {
+              setError(login.message ?? errorMessage(null))
+            }
+          }
           break
         case 'CODE_REQUIRED':
           setStep({ name: 'code', challengeToken: twoFactorLogin.challengeToken! })

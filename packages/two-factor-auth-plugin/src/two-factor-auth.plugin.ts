@@ -33,23 +33,32 @@ const defaultOptions: Omit<ResolvedTwoFactorAuthPluginOptions, 'encryptionKeys'>
   backupCodeCount: 10,
 }
 
-function configureAuth(config: RuntimeVendureConfig): RuntimeVendureConfig {
+export function configureAuth(config: RuntimeVendureConfig): RuntimeVendureConfig {
   if (!TwoFactorAuthPlugin.options) {
     throw new Error(
       'TwoFactorAuthPlugin: call TwoFactorAuthPlugin.init({ encryptionKeys }) in the plugins list',
     )
   }
+  // Vendure can run plugin configuration more than once in a process (runMigrations, then
+  // bootstrap) on the same strategy arrays, so every step checks what is already there.
   const strategies = config.authOptions.adminAuthenticationStrategy
   const index = strategies.findIndex((s) => s.name === NATIVE_AUTH_STRATEGY_NAME)
   const native = strategies[index]
-  if (!(native instanceof NativeAuthenticationStrategy)) {
-    throw new Error(
-      'TwoFactorAuthPlugin needs the NativeAuthenticationStrategy (or a subclass) in authOptions.adminAuthenticationStrategy',
-    )
+  if (!(native instanceof TwoFactorNativeAuthenticationStrategy)) {
+    if (!(native instanceof NativeAuthenticationStrategy)) {
+      throw new Error(
+        'TwoFactorAuthPlugin needs the NativeAuthenticationStrategy (or a subclass) in authOptions.adminAuthenticationStrategy',
+      )
+    }
+    strategies[index] = new TwoFactorNativeAuthenticationStrategy(native)
   }
-  strategies[index] = new TwoFactorNativeAuthenticationStrategy(native)
-  strategies.push(new TwoFactorCodeAuthenticationStrategy())
-  config.authOptions.customPermissions.push(resetTwoFactorPermission)
+  if (!strategies.some((s) => s instanceof TwoFactorCodeAuthenticationStrategy)) {
+    strategies.push(new TwoFactorCodeAuthenticationStrategy())
+  }
+  const { customPermissions } = config.authOptions
+  if (!customPermissions.some((p) => p.Permission === resetTwoFactorPermission.Permission)) {
+    customPermissions.push(resetTwoFactorPermission)
+  }
   return config
 }
 

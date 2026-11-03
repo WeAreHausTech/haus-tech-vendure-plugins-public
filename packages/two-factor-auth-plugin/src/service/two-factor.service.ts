@@ -1,10 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 import {
+  AttemptedLoginEvent,
   AuthenticatedSession,
   ConfigService,
   EventBus,
   ID,
   Logger,
+  NATIVE_AUTH_STRATEGY_NAME,
   RequestContext,
   SessionService,
   TransactionalConnection,
@@ -94,6 +96,8 @@ export class TwoFactorService {
     username: string,
     password: string,
   ): Promise<TwoFactorLoginResult> {
+    // Same event core publishes for `login`, so login monitoring still sees password attempts.
+    await this.eventBus.publish(new AttemptedLoginEvent(ctx, NATIVE_AUTH_STRATEGY_NAME, username))
     const user = await this.nativeStrategy().verifyPassword(ctx, { username, password })
     if (!user) {
       return { status: 'INVALID_CREDENTIALS' }

@@ -77,6 +77,28 @@ export interface AuthenticateTwoFactorResult {
   authenticate: { __typename: string; authenticationError?: string; message?: string }
 }
 
+export const loginDocument = /* GraphQL */ `
+  mutation TwoFactorPageLogin($username: String!, $password: String!, $rememberMe: Boolean) {
+    login(username: $username, password: $password, rememberMe: $rememberMe) {
+      __typename
+      ... on ErrorResult {
+        message
+      }
+    }
+  }
+`
+export interface LoginResult {
+  login: { __typename: string; message?: string }
+}
+
+export const logoutDocument = /* GraphQL */ `
+  mutation TwoFactorPageLogout {
+    logout {
+      success
+    }
+  }
+`
+
 export const meChannelsDocument = /* GraphQL */ `
   query TwoFactorMeChannels {
     me {
