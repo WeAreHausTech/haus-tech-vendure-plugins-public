@@ -232,7 +232,7 @@ const carol = {
 
 describe('TwoFactorAuthPlugin e2e', () => {
   const config = mergeConfig(testConfig, {
-    apiOptions: { port: 3071 },
+    apiOptions: { port: 3080 },
     plugins: [
       TwoFactorAuthPlugin.init({
         encryptionKeys: [randomBytes(32).toString('base64')],
@@ -244,7 +244,7 @@ describe('TwoFactorAuthPlugin e2e', () => {
   })
   const { server, adminClient } = createTestEnvironment(config)
   /** A second browser, for sessions on "another device". */
-  const otherDevice = new SimpleGraphQLClient(config, 'http://localhost:3071/admin-api')
+  const otherDevice = new SimpleGraphQLClient(config, 'http://localhost:3080/admin-api')
 
   const adminIds: Record<string, string> = {}
   let aliceSecret = ''
