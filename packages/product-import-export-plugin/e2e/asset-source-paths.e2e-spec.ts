@@ -32,7 +32,7 @@ import { initialData } from './fixtures/initial-data'
 
 // A sibling of the shared `__data__` dir, like the other specs, since vitest runs spec files in parallel.
 const sqliteDataDir = path.join(__dirname, '__data-asset-source-paths__')
-const SQLITE_SCHEMA_VERSION = '3.6'
+const SQLITE_SCHEMA_VERSION = '3.8'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')

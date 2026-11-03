@@ -1,7 +1,7 @@
 {
   "name": "@haus-tech/haus-vendure-plugins-public",
   "author": "Haus Tech",
-  "license": "ISC",
+  "license": "MIT",
   "version": "1.0.0",
   "description": "Plugins for the Vendure ecommerce platform that provide extended functionality",
   "scripts": {
@@ -38,16 +38,17 @@
     "@types/multer": "1.4.13",
     "@types/node": "20.19.35",
     "@types/progress": "2.0.7",
+    "@types/qrcode": "1.5.6",
     "@types/slug": "5.0.9",
     "@typescript-eslint/eslint-plugin": "8.56.1",
     "@typescript-eslint/parser": "8.56.1",
     "@vendure-community/elasticsearch-plugin": "1.1.0",
-    "@vendure/admin-ui-plugin": "3.6.3",
-    "@vendure/asset-server-plugin": "3.6.3",
-    "@vendure/core": "3.6.3",
-    "@vendure/dashboard": "3.6.3",
-    "@vendure/testing": "3.6.3",
-    "@vendure/ui-devkit": "3.6.3",
+    "@vendure/admin-ui-plugin": "3.8.1",
+    "@vendure/asset-server-plugin": "3.8.1",
+    "@vendure/core": "3.8.1",
+    "@vendure/dashboard": "3.8.1",
+    "@vendure/testing": "3.8.1",
+    "@vendure/ui-devkit": "3.8.1",
     "@vitest/coverage-v8": "4.1.2",
     "@vitest/ui": "4.1.2",
     "copyfiles": "2.4.1",
@@ -75,7 +76,7 @@
   "packageManager": "yarn@4.15.0",
   "dependencies": {
     "@elastic/elasticsearch": "^9.0.0",
-    "@nestjs/graphql": "13.4.0",
+    "@nestjs/graphql": "14.0.3",
     "bottleneck": "2.19.5"
   },
   "resolutions": {
@@ -123,6 +124,7 @@
     "tar": "7.5.15",
     "vite@npm:6.4.1": "6.4.2",
     "vite@npm:^6.0.0": "6.4.2",
-    "vite@npm:^7.0.0": "7.3.1"
+    "vite@npm:^7.0.0": "7.3.1",
+    "@graphql-tools/utils@npm:12.0.1": "12.1.0"
   }
 }

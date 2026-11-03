@@ -28,7 +28,7 @@ import { initialData } from './fixtures/initial-data'
 const E2E_DEFAULT_CHANNEL_TOKEN = 'e2e-default-channel'
 const sqliteDataDir = path.join(__dirname, '__data__')
 /** Bump when Vendure upgrades change the sqljs schema (invalidates cached e2e DB). */
-const SQLITE_SCHEMA_VERSION = '3.6.0-badge-promotion-link-search'
+const SQLITE_SCHEMA_VERSION = '3.8.0-badge-promotion-link-search'
 
 async function ensureFreshE2eDatabase(): Promise<void> {
   const versionFile = path.join(sqliteDataDir, '.schema-version')

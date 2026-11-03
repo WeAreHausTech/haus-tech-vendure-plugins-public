@@ -1,0 +1,68 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "two-factor-auth-plugin",
+  "root": "packages/two-factor-auth-plugin",
+  "sourceRoot": "packages/two-factor-auth-plugin/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/two-factor-auth-plugin",
+        "main": "packages/two-factor-auth-plugin/src/index.ts",
+        "tsConfig": "packages/two-factor-auth-plugin/tsconfig.json",
+        "assets": [
+          "packages/two-factor-auth-plugin/README.md",
+          "packages/two-factor-auth-plugin/CHANGELOG.md",
+          {
+            "input": "packages/two-factor-auth-plugin/src/dashboard",
+            "glob": "**/*",
+            "output": "./src/dashboard",
+            "ignore": ["**/*.spec.ts"]
+          }
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "config": "packages/two-factor-auth-plugin/vitest.config.ts",
+        "passWithNoTests": true,
+        "coverage": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "packages/two-factor-auth-plugin/**/*.ts",
+          "packages/two-factor-auth-plugin/**/*.tsx"
+        ]
+      }
+    },
+    "upgrade:vendure": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm update @vendure/* --save",
+        "cwd": "packages/two-factor-auth-plugin"
+      }
+    },
+    "version": {
+      "executor": "@nx/workspace:version",
+      "dependsOn": ["update-readme"],
+      "options": {
+        "changelog": true,
+        "push": true
+      }
+    },
+    "update-readme": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx scripts/update-readmes.ts two-factor-auth-plugin"
+      }
+    }
+  }
+}
