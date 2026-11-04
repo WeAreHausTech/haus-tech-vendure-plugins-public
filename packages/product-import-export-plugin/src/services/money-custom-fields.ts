@@ -1,36 +1,17 @@
 import { CustomFieldConfig, InternalServerError } from '@vendure/core'
 
-interface ProductCustomFields {
-  Product: CustomFieldConfig[]
-  ProductVariant: CustomFieldConfig[]
-}
+/** The component Vendure's dashboard and Admin UI enter an amount in major units with. */
+const CURRENCY_COMPONENT = 'currency-form-input'
 
 /**
- * Checks `moneyCustomFields` against the custom field config and returns the `<owner>:<field>`
- * keys. Throws for a key that names no custom field, and for a field that is not a single `int`,
- * since an amount in minor units is stored as an integer like Vendure's own price.
+ * Whether a custom field holds an amount in minor units, like Vendure's own price. The field
+ * declares this itself: a single `int` the dashboard shows with the currency input, which reads
+ * and writes major units. The CSV then gives and gets it in major units, as the `price` column.
  */
-export function resolveMoneyCustomFields(
-  keys: string[] | undefined,
-  customFields: ProductCustomFields,
-): Set<string> {
-  const resolved = new Set<string>()
-  for (const key of keys ?? []) {
-    const [owner, fieldName, ...rest] = key.split(':')
-    if ((owner !== 'product' && owner !== 'variant') || !fieldName || rest.length > 0) {
-      throw configError(`'${key}' must be 'product:<field>' or 'variant:<field>'`)
-    }
-    const entityName = owner === 'product' ? 'Product' : 'ProductVariant'
-    const config = customFields[entityName].find((field) => field.name === fieldName)
-    if (!config) {
-      throw configError(`${entityName} has no custom field named '${fieldName}'`)
-    }
-    if (config.type !== 'int' || config.list === true) {
-      throw configError(`'${key}' is not a single int custom field`)
-    }
-    resolved.add(key)
-  }
-  return resolved
+export function isMoneyCustomField(config: CustomFieldConfig): boolean {
+  return (
+    config.type === 'int' && config.list !== true && config.ui?.component === CURRENCY_COMPONENT
+  )
 }
 
 /** The minor units of an amount the CSV gives in major units (`164.5` is 16450), as for `price`. */
@@ -45,8 +26,4 @@ export function moneyCellToMinorUnits(fieldName: string, cell: string): number {
 /** The major units the CSV gets for an amount stored in minor units (16450 is `164.5`). */
 export function minorUnitsToMoneyCell(value: number): number {
   return value / 100
-}
-
-function configError(message: string): Error {
-  return new Error(`moneyCustomFields: ${message}`)
 }

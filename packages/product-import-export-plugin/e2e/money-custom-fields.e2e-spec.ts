@@ -57,8 +57,9 @@ const HEADER =
   'name,slug,description,optionGroups,sku,optionValues,price,taxCategory,stockOnHand,variant:listPrice:int,variant:packSize:int'
 
 /**
- * `listPrice` is an amount stored in minor units like Vendure's own price, `packSize` a plain
- * number. Only the field named in `moneyCustomFields` is read and written in major units.
+ * `listPrice` is an amount stored in minor units like Vendure's own price, shown with the currency
+ * input; `packSize` is a plain number. Only the currency field is read and written in major units,
+ * with nothing to configure.
  */
 describe('money custom fields', () => {
   const apiPort = 3068
@@ -80,7 +81,6 @@ describe('money custom fields', () => {
         ProductImportExportPlugin.init({
           importOptions: {},
           exportOptions: {},
-          moneyCustomFields: ['variant:listPrice'],
         }),
       ],
     }),

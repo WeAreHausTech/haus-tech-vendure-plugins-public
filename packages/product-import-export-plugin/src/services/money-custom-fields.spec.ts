@@ -1,42 +1,28 @@
 import { CustomFieldConfig } from '@vendure/core'
 import { describe, expect, it } from 'vitest'
 import {
+  isMoneyCustomField,
   minorUnitsToMoneyCell,
   moneyCellToMinorUnits,
-  resolveMoneyCustomFields,
 } from './money-custom-fields'
 
-const customFields = {
-  Product: [{ name: 'deposit', type: 'int' }] as CustomFieldConfig[],
-  ProductVariant: [
-    { name: 'listPrice', type: 'int' },
-    { name: 'weight', type: 'float' },
-    { name: 'tiers', type: 'int', list: true },
-  ] as CustomFieldConfig[],
-}
+const currency = { component: 'currency-form-input' }
 
-const resolve = (keys: string[] | undefined) => resolveMoneyCustomFields(keys, customFields)
-
-describe('resolveMoneyCustomFields', () => {
-  it('keeps each configured int field', () => {
-    expect([...resolve(['product:deposit', 'variant:listPrice'])]).toEqual([
-      'product:deposit',
-      'variant:listPrice',
-    ])
-  })
-
-  it('has no fields without the option', () => {
-    expect(resolve(undefined).size).toBe(0)
+describe('isMoneyCustomField', () => {
+  it('is an int field shown with the currency input', () => {
+    expect(isMoneyCustomField({ name: 'listPrice', type: 'int', ui: currency })).toBe(true)
   })
 
   it.each([
-    ['listPrice', `'listPrice' must be 'product:<field>' or 'variant:<field>'`],
-    ['order:listPrice', `'order:listPrice' must be 'product:<field>' or 'variant:<field>'`],
-    ['variant:missing', `ProductVariant has no custom field named 'missing'`],
-    ['variant:weight', `'variant:weight' is not a single int custom field`],
-    ['variant:tiers', `'variant:tiers' is not a single int custom field`],
-  ])('rejects %s', (key, message) => {
-    expect(() => resolve([key])).toThrow(`moneyCustomFields: ${message}`)
+    ['a plain int', { name: 'packSize', type: 'int' }],
+    ['an int with another component', { name: 'rank', type: 'int', ui: { component: 'x' } }],
+    ['a float with the currency input', { name: 'rate', type: 'float', ui: currency }],
+    [
+      'an int list with the currency input',
+      { name: 'tiers', type: 'int', list: true, ui: currency },
+    ],
+  ])('is not %s', (_, config) => {
+    expect(isMoneyCustomField(config as CustomFieldConfig)).toBe(false)
   })
 })
 

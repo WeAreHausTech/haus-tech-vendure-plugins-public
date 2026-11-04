@@ -109,16 +109,6 @@ export interface PluginInitOptions {
      */
     relationLookups?: Record<string, string>
   }
-  /**
-   * @description
-   * Optional. `int` custom fields that hold an amount in minor units, like Vendure's own price
-   * (typically shown with the `currency-form-input` component), keyed `<owner>:<field>`, e.g.
-   * `['variant:listPrice']`. The CSV gives and gets these in major units, as the `price` column
-   * does: the import stores `164.5` as `16450` and the export writes `16450` as `164.5`, so an
-   * export imports again unchanged. A key that names no single `int` custom field stops the
-   * application from starting.
-   */
-  moneyCustomFields?: string[]
 }
 
 /**
