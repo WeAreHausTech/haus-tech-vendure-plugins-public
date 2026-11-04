@@ -39,6 +39,7 @@ import {
   relationLookupValues,
   resolveExportRelationLookups,
 } from './export-relation-lookups'
+import { minorUnitsToMoneyCell, resolveMoneyCustomFields } from './money-custom-fields'
 import {
   loadColumnValues,
   loadSelfRelationCustomFieldIds,
@@ -86,6 +87,8 @@ const VARIANT_LOAD_CHUNK_SIZE = 100
 export class ProductExportService implements OnApplicationBootstrap {
   /** `exportOptions.relationLookups`, checked against the custom fields, keyed `<owner>:<field>`. */
   private relationLookups = new Map<string, ExportRelationLookup>()
+  /** `moneyCustomFields`, checked against the custom fields, keyed `<owner>:<field>`. */
+  private moneyCustomFields = new Set<string>()
 
   constructor(
     @Inject(PRODUCT_IMPORT_EXPORT_PLUGIN_OPTIONS) private options: PluginInitOptions,
@@ -97,13 +100,17 @@ export class ProductExportService implements OnApplicationBootstrap {
     private moduleRef: ModuleRef,
   ) {}
 
-  /** @internal Fails the bootstrap on a lookup the import could not read back. */
+  /** @internal Fails the bootstrap on a lookup or money field the import could not read back. */
   onApplicationBootstrap(): void {
     this.relationLookups = resolveExportRelationLookups(
       this.options.exportOptions.relationLookups,
       this.configService.customFields,
       (entity, column) =>
         findTextColumn(this.connection.rawConnection, entity, column) !== undefined,
+    )
+    this.moneyCustomFields = resolveMoneyCustomFields(
+      this.options.moneyCustomFields,
+      this.configService.customFields,
     )
   }
 
@@ -798,6 +805,10 @@ export class ProductExportService implements OnApplicationBootstrap {
       }
       const isList = this.isCustomFieldList(owner, fieldName)
       return isList ? values.join('|') : values[0]
+    }
+
+    if (this.moneyCustomFields.has(`${owner}:${fieldName}`)) {
+      return minorUnitsToMoneyCell(fieldValue)
     }
 
     if (typeof fieldValue === 'object') {

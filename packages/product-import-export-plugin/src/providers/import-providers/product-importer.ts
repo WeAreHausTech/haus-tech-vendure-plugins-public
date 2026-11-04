@@ -73,6 +73,7 @@ import {
   ChannelColumnResolver,
   ChannelsByToken,
 } from '../../services/channel-column-resolver'
+import { moneyCellToMinorUnits, resolveMoneyCustomFields } from '../../services/money-custom-fields'
 import {
   importCsvHeaders,
   importCsvLines,
@@ -137,6 +138,8 @@ export class ProductImporter {
   private facetValueIdCache = new Map<string, ID>()
 
   private slugStrategy: SlugStrategy
+  /** `moneyCustomFields`, checked against the custom fields, keyed `<owner>:<field>`. */
+  private moneyCustomFields: Set<string>
 
   constructor(
     private connection: TransactionalConnection,
@@ -161,6 +164,10 @@ export class ProductImporter {
     private channelColumnResolver: ChannelColumnResolver,
   ) {
     this.slugStrategy = this.configService.entityOptions.slugStrategy
+    this.moneyCustomFields = resolveMoneyCustomFields(
+      this.pluginOptions.moneyCustomFields,
+      this.configService.customFields,
+    )
   }
 
   parseAndImport(
@@ -1123,6 +1130,7 @@ export class ProductImporter {
         | string
         | string[]
         | boolean
+        | number
         | undefined
         | Record<string, unknown>
         | Record<string, unknown>[]
@@ -1336,6 +1344,11 @@ export class ProductImporter {
           }
           processed[inputKey] = relationId
         }
+        continue
+      }
+
+      if (this.moneyCustomFields.has(`${owner}:${fieldDef.name}`)) {
+        processed[fieldDef.name] = moneyCellToMinorUnits(fieldDef.name, value)
         continue
       }
 

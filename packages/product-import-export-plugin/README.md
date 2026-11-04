@@ -93,6 +93,12 @@ Available import storage strategies:
 | `storageStrategy`       | `'s3' \| 'disk'`      | `'disk'`                | Where exported files are stored                              |
 | `s3Options`             | `object`              | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`) |
 
+### Money custom fields
+
+| Option              | Type       | Default     | Description |
+| ------------------- | ---------- | ----------- | ----------- |
+| `moneyCustomFields` | `string[]` | `undefined` | `int` custom fields holding an amount in minor units, read and written in major units like `price`. See [Money custom fields in the CSV](#money-custom-fields-in-the-csv) below. |
+
 ### Storage strategy
 
 The plugin supports configurable storage for exported files:
@@ -276,6 +282,22 @@ ProductImportExportPlugin.init({
 - The export then writes the field under the lookup header (`variant:baseVariant:productvariant:sku`, `product:label:productlabel:code`) with the related rows' values, `VALUE|VALUE` for a list field. The import reads that header as described above, so the file imports again, also into another database where the ids differ.
 - The column must be a plain text column of the related entity, and the field must be a relation custom field that does not relate to `Asset`. Otherwise the application does not start and the error names the key.
 - A related row that is soft-deleted, or has no value in the column, is left out of the cell, since the import matches only live rows by a value. Values must be unique among live rows: a value two live rows share makes the import of the file fail with the lookup error above.
+
+#### Money custom fields in the CSV
+
+The `price` column is in major units (`164.5`) while Vendure stores minor units (`16450`). Other custom fields go through as they are, so an `int` custom field that holds an amount in minor units, typically shown with the `currency-form-input` component, needs its minor units in the file. Name such fields in `moneyCustomFields`, keyed `<owner>:<field>`, and the CSV gives and gets them in major units like `price`:
+
+```ts
+ProductImportExportPlugin.init({
+  importOptions: {},
+  exportOptions: {},
+  moneyCustomFields: ['variant:listPrice', 'product:deposit'],
+})
+```
+
+- The import stores `164` as `16400` and `164.5` as `16450`, rounded to whole minor units. A cell that is not a number (`164 kr`, `164,5`) gives an import error that names the field, and the row is not changed. An empty cell leaves the field as it is.
+- The export writes `16450` as `164.5`, so an export imports again unchanged.
+- Each key must name a single `int` custom field of `Product` or `ProductVariant`. Otherwise the application does not start and the error names the key.
 
 #### Sharing option groups
 
