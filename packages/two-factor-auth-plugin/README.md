@@ -154,4 +154,4 @@ await app.close()
 - **Plugin REST routes:** Vendure documents that REST controllers guarded only by admin permissions accept a Shop API session of an administrator's user. Check your own REST routes.
 - **Password guessing** is not rate-limited by Vendure or by this plugin. Limit sign-in requests at your proxy.
 - **Enrolment during sign-in** trusts whoever has the password the first time a required administrator signs in. Turn it on for existing administrators before you make it required, or reset their passwords first.
-- Report vulnerabilities as described in [SECURITY.md](../../SECURITY.md).
+- Report vulnerabilities as described in [SECURITY.md](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/blob/main/SECURITY.md).
