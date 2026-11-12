@@ -73,6 +73,7 @@ import {
   ChannelColumnResolver,
   ChannelsByToken,
 } from '../../services/channel-column-resolver'
+import { isMoneyCustomField, moneyCellToMinorUnits } from '../../services/money-custom-fields'
 import {
   importCsvHeaders,
   importCsvLines,
@@ -1123,6 +1124,7 @@ export class ProductImporter {
         | string
         | string[]
         | boolean
+        | number
         | undefined
         | Record<string, unknown>
         | Record<string, unknown>[]
@@ -1336,6 +1338,11 @@ export class ProductImporter {
           }
           processed[inputKey] = relationId
         }
+        continue
+      }
+
+      if (isMoneyCustomField(fieldDef)) {
+        processed[fieldDef.name] = moneyCellToMinorUnits(fieldDef.name, value)
         continue
       }
 

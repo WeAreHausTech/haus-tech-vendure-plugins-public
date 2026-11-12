@@ -39,6 +39,7 @@ import {
   relationLookupValues,
   resolveExportRelationLookups,
 } from './export-relation-lookups'
+import { isMoneyCustomField, minorUnitsToMoneyCell } from './money-custom-fields'
 import {
   loadColumnValues,
   loadSelfRelationCustomFieldIds,
@@ -753,6 +754,15 @@ export class ProductExportService implements OnApplicationBootstrap {
     return def?.list === true
   }
 
+  private isMoneyField(owner: 'product' | 'variant', fieldName: string): boolean {
+    const defs =
+      owner === 'product'
+        ? this.configService.customFields.Product
+        : this.configService.customFields.ProductVariant
+    const def = defs.find((f) => f.name === fieldName)
+    return def !== undefined && isMoneyCustomField(def)
+  }
+
   /**
    * Resolves a relation-type custom field on Product or ProductVariant (any related entity).
    */
@@ -798,6 +808,10 @@ export class ProductExportService implements OnApplicationBootstrap {
       }
       const isList = this.isCustomFieldList(owner, fieldName)
       return isList ? values.join('|') : values[0]
+    }
+
+    if (this.isMoneyField(owner, fieldName)) {
+      return minorUnitsToMoneyCell(fieldValue)
     }
 
     if (typeof fieldValue === 'object') {

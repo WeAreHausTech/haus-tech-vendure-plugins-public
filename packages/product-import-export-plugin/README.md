@@ -81,17 +81,17 @@ Available import storage strategies:
 
 ### Export options
 
-| Option                  | Type                  | Default                 | Description                                                  |
-| ----------------------- | --------------------- | ----------------------- | ------------------------------------------------------------ |
-| `defaultFileName`       | `string`              | `'products_export.csv'` | Default filename for exports                                 |
-| `exportAssetsAsOptions` | `('url' \| 'json')[]` | `['url', 'json']`       | Available formats for asset export                           |
-| `defaultExportAssetsAs` | `'url' \| 'json'`     | `'url'`                 | Default asset export format                                  |
-| `defaultExportFields`   | `string[]`            | See above               | Fields that will be pre-selected in the export UI            |
-| `requiredExportFields`  | `string[]`            | `['name', 'sku']`       | Fields that must always be included                          |
-| `customExportColumns`   | `CustomExportColumn[]`| `undefined`             | Extra CSV columns resolved per variant row. See [Custom export columns](#custom-export-columns) below. |
-| `relationLookups`       | `Record<string, string>` | `undefined`          | Relation custom fields written by a column of the related row instead of its id. See [Exporting relations by a column](#exporting-relations-by-a-column) below. |
-| `storageStrategy`       | `'s3' \| 'disk'`      | `'disk'`                | Where exported files are stored                              |
-| `s3Options`             | `object`              | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`) |
+| Option                  | Type                     | Default                 | Description                                                                                                                                                     |
+| ----------------------- | ------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultFileName`       | `string`                 | `'products_export.csv'` | Default filename for exports                                                                                                                                    |
+| `exportAssetsAsOptions` | `('url' \| 'json')[]`    | `['url', 'json']`       | Available formats for asset export                                                                                                                              |
+| `defaultExportAssetsAs` | `'url' \| 'json'`        | `'url'`                 | Default asset export format                                                                                                                                     |
+| `defaultExportFields`   | `string[]`               | See above               | Fields that will be pre-selected in the export UI                                                                                                               |
+| `requiredExportFields`  | `string[]`               | `['name', 'sku']`       | Fields that must always be included                                                                                                                             |
+| `customExportColumns`   | `CustomExportColumn[]`   | `undefined`             | Extra CSV columns resolved per variant row. See [Custom export columns](#custom-export-columns) below.                                                          |
+| `relationLookups`       | `Record<string, string>` | `undefined`             | Relation custom fields written by a column of the related row instead of its id. See [Exporting relations by a column](#exporting-relations-by-a-column) below. |
+| `storageStrategy`       | `'s3' \| 'disk'`         | `'disk'`                | Where exported files are stored                                                                                                                                 |
+| `s3Options`             | `object`                 | `undefined`             | S3 configuration (required when `storageStrategy` is `'s3'`)                                                                                                    |
 
 ### Storage strategy
 
@@ -196,21 +196,21 @@ export const config = {
 
 ### Optional columns
 
-| Column                        | Format                                                                                                                             | Example                                                                                    |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `name`, `slug`, `description` | Text, or `name:en`, `name:sv` for translations                                                                                     | `My Product`                                                                               |
-| `assets`                      | Pipe-separated URLs or existing asset sources, or JSON `[{"id":1,"url":"...","name":"..."}]`                                       | `https://example.com/1.jpg\|source/b6/2.jpg`                                               |
-| `channels`                    | Channel tokens, pipe-separated (see [Assigning products to channels](#assigning-products-to-channels))                            | `club-a\|club-b`                                                                          |
-| `facets`                      | `facet:value` pairs, pipe-separated                                                                                                | `Brand:Acme\|Category:Electronics`                                                         |
-| `optionGroups`                | Pipe-separated group names. Use `name:code` to share a group across products (see [Sharing option groups](#sharing-option-groups)) | `Size\|Color` or `size:shoe-size`                                                          |
-| `optionValues`                | Pipe-separated values (order matches option groups)                                                                                | `Large\|Blue`                                                                              |
-| `price`                       | Number (in smallest currency unit)                                                                                                 | `9999`                                                                                     |
-| `taxCategory`                 | Tax category name                                                                                                                  | `standard`                                                                                 |
-| `stockOnHand`                 | Number                                                                                                                             | `100`                                                                                      |
-| `trackInventory`              | `true` or `false`                                                                                                                  | `true`                                                                                     |
-| `variantAssets`               | Same format as `assets`                                                                                                            | `https://example.com/variant.jpg`                                                          |
-| `variantFacets`               | Same format as `facets`                                                                                                            | `Material:Cotton`                                                                          |
-| `enabled`                     | `true` or `false`                                                                                                                  | `true`                                                                                     |
+| Column                        | Format                                                                                                                             | Example                                                                                                                                                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`, `slug`, `description` | Text, or `name:en`, `name:sv` for translations                                                                                     | `My Product`                                                                                                                                                                                                                                            |
+| `assets`                      | Pipe-separated URLs or existing asset sources, or JSON `[{"id":1,"url":"...","name":"..."}]`                                       | `https://example.com/1.jpg\|source/b6/2.jpg`                                                                                                                                                                                                            |
+| `channels`                    | Channel tokens, pipe-separated (see [Assigning products to channels](#assigning-products-to-channels))                             | `club-a\|club-b`                                                                                                                                                                                                                                        |
+| `facets`                      | `facet:value` pairs, pipe-separated                                                                                                | `Brand:Acme\|Category:Electronics`                                                                                                                                                                                                                      |
+| `optionGroups`                | Pipe-separated group names. Use `name:code` to share a group across products (see [Sharing option groups](#sharing-option-groups)) | `Size\|Color` or `size:shoe-size`                                                                                                                                                                                                                       |
+| `optionValues`                | Pipe-separated values (order matches option groups)                                                                                | `Large\|Blue`                                                                                                                                                                                                                                           |
+| `price`                       | Number (in smallest currency unit)                                                                                                 | `9999`                                                                                                                                                                                                                                                  |
+| `taxCategory`                 | Tax category name                                                                                                                  | `standard`                                                                                                                                                                                                                                              |
+| `stockOnHand`                 | Number                                                                                                                             | `100`                                                                                                                                                                                                                                                   |
+| `trackInventory`              | `true` or `false`                                                                                                                  | `true`                                                                                                                                                                                                                                                  |
+| `variantAssets`               | Same format as `assets`                                                                                                            | `https://example.com/variant.jpg`                                                                                                                                                                                                                       |
+| `variantFacets`               | Same format as `facets`                                                                                                            | `Material:Cotton`                                                                                                                                                                                                                                       |
+| `enabled`                     | `true` or `false`                                                                                                                  | `true`                                                                                                                                                                                                                                                  |
 | Custom fields                 | Column name = custom field name; value depends on field type                                                                       | Add columns for any Product or ProductVariant custom fields defined in your Vendure config. Relation custom fields export the related entity's id (`id\|id` for list fields), including fields that relate a product or variant to its own entity type. |
 
 #### Import behavior rules
@@ -276,6 +276,21 @@ ProductImportExportPlugin.init({
 - The export then writes the field under the lookup header (`variant:baseVariant:productvariant:sku`, `product:label:productlabel:code`) with the related rows' values, `VALUE|VALUE` for a list field. The import reads that header as described above, so the file imports again, also into another database where the ids differ.
 - The column must be a plain text column of the related entity, and the field must be a relation custom field that does not relate to `Asset`. Otherwise the application does not start and the error names the key.
 - A related row that is soft-deleted, or has no value in the column, is left out of the cell, since the import matches only live rows by a value. Values must be unique among live rows: a value two live rows share makes the import of the file fail with the lookup error above.
+
+#### Money custom fields in the CSV
+
+The `price` column is in major units (`164.5`) while Vendure stores minor units (`16450`). A custom field of `Product` or `ProductVariant` that holds an amount the same way is read and written like `price`. The field says so itself: a single `int` shown with the `currency-form-input` component, which is also how the dashboard enters it in major units. Nothing else is configured:
+
+```ts
+ProductVariant: [
+  { name: 'listPrice', type: 'int', nullable: true, ui: { component: 'currency-form-input' } },
+]
+```
+
+- The import stores `164` as `16400` and `164.5` as `16450`, rounded to whole minor units. A cell that is not a number (`164 kr`, `164,5`) gives an import error that names the field, and the row is not changed. An empty cell leaves the field as it is.
+- The export writes `16450` as `164.5`, so an export imports again unchanged.
+- Any other `int` custom field goes through as it is.
+- Before this version such a field went through in minor units. A file written for an earlier version, with `16400` in a currency column, now imports as `1640000`: divide those columns by 100, or export again with this version.
 
 #### Sharing option groups
 
