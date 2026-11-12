@@ -1,3 +1,16 @@
+## 3.7.0
+
+### 🩹 Fixes
+
+- **product-import-export-plugin:** read and write currency custom fields in major units ([#70](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/70))
+- ⚠️  **product-import-export-plugin:** require the entity name in every lookup header ([#61](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/61))
+
+### ⚠️  Breaking Changes
+
+- **product-import-export-plugin:** require the entity name in every lookup header  ([#61](https://github.com/WeAreHausTech/haus-tech-vendure-plugins-public/pull/61))
+  a :sku lookup header must name the related entity in lower case as its third segment (variant:baseVariant:productvariant:sku); other third segments are rejected.
+  Co-authored-by: Claude Opus 5.5 <noreply@anthropic.com>
+
 ## 3.6.15
 
 ### 🩹 Fixes

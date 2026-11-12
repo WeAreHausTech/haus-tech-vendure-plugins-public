@@ -2,7 +2,7 @@
 name: product-import-export-plugin
 title: Product Import & Export
 description: Vendure plugin for importing and exporting product data via CSV.
-version: 3.6.4
+version: 3.7.0
 tags:
   - vendure
   - plugin
