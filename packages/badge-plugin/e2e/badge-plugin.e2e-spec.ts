@@ -955,4 +955,220 @@ describe('BadgePlugin e2e', () => {
       expect(result.variants).not.toContain('Private badge')
     })
   })
+
+  describe('text-only badges', () => {
+    const UPDATE_BADGE_ASSET = gql`
+      mutation UpdateBadgeAsset($input: UpdateBadgeInput!) {
+        updateBadge(input: $input) {
+          id
+          text
+          assetId
+          asset {
+            id
+          }
+        }
+      }
+    `
+
+    const GET_BADGE = gql`
+      query GetBadge($id: ID!) {
+        badge(id: $id) {
+          id
+          text
+          assetId
+          asset {
+            id
+          }
+        }
+      }
+    `
+
+    const SHOP_PRODUCT_BADGE_ASSETS = gql`
+      query ShopProductBadgeAssets($id: ID!) {
+        product(id: $id) {
+          badges {
+            id
+            text
+            asset {
+              preview
+            }
+          }
+        }
+      }
+    `
+
+    async function createProductId(slug: string): Promise<string> {
+      const { createProduct } = await adminClient.query(CREATE_PRODUCT, {
+        input: {
+          enabled: true,
+          translations: [{ languageCode: 'en', name: slug, slug, description: '' }],
+        },
+      })
+      await adminClient.query(CREATE_VARIANTS, {
+        input: [
+          {
+            productId: createProduct.id,
+            sku: slug.toUpperCase(),
+            price: 1000,
+            translations: [{ languageCode: 'en', name: slug }],
+          },
+        ],
+      })
+      return createProduct.id
+    }
+
+    async function createProductCollection(slug: string, productId: string): Promise<string> {
+      const { createCollection } = await adminClient.query(CREATE_COLLECTION, {
+        input: {
+          translations: [{ languageCode: 'en', name: slug, slug, description: '' }],
+          filters: [
+            {
+              code: 'product-id-filter',
+              arguments: [
+                { name: 'productIds', value: JSON.stringify([productId]) },
+                { name: 'combineWithAnd', value: 'false' },
+              ],
+            },
+          ],
+        },
+      })
+      return createCollection.id
+    }
+
+    it('creates a badge with a text and no image, and the shop api returns it with asset null', async () => {
+      const productId = await createProductId('text-only-prod')
+      const textCollectionId = await createProductCollection('text-only-coll', productId)
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { text: 'Club pick', collectionId: textCollectionId },
+      })
+      expect(createBadge.text).toBe('Club pick')
+      expect(createBadge.assetId).toBeNull()
+
+      let badges: { id: string; text: string; asset: unknown }[] = []
+      for (let i = 0; i < 50; i++) {
+        const { product } = await shopClient.query(SHOP_PRODUCT_BADGE_ASSETS, { id: productId })
+        badges = product.badges
+        if (badges.some((b) => b.id === createBadge.id)) break
+        await new Promise((resolve) => setTimeout(resolve, 200))
+      }
+      expect(badges.find((b) => b.id === createBadge.id)).toEqual({
+        id: createBadge.id,
+        text: 'Club pick',
+        asset: null,
+      })
+    })
+
+    it('rejects a badge with neither a text nor an image', async () => {
+      await expect(adminClient.query(CREATE_BADGE, { input: {} })).rejects.toThrow(
+        /needs a text or an image/i,
+      )
+      await expect(adminClient.query(CREATE_BADGE, { input: { text: '' } })).rejects.toThrow(
+        /needs a text or an image/i,
+      )
+    })
+
+    it('rejects a badge whose only text is whitespace', async () => {
+      await expect(adminClient.query(CREATE_BADGE, { input: { text: '   ' } })).rejects.toThrow(
+        /needs a text or an image/i,
+      )
+    })
+
+    it('still rejects an unknown asset when a text is given', async () => {
+      await expect(
+        adminClient.query(CREATE_BADGE, { input: { text: 'Has text', assetId: '999999' } }),
+      ).rejects.toThrow(/No asset with the id/i)
+    })
+
+    it('removes the image with assetId null and keeps the text', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), text: 'Keep me' },
+      })
+      expect(createBadge.assetId).toBeTruthy()
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE_ASSET, {
+        input: { id: createBadge.id, assetId: null },
+      })
+      expect(updateBadge).toEqual({ id: createBadge.id, text: 'Keep me', assetId: null, asset: null })
+      const { badge } = await adminClient.query(GET_BADGE, { id: createBadge.id })
+      expect(badge).toEqual({ id: createBadge.id, text: 'Keep me', assetId: null, asset: null })
+    })
+
+    it('keeps the image when assetId is omitted', async () => {
+      const assetId = await createAsset()
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId, text: 'Image stays' },
+      })
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE_ASSET, {
+        input: { id: createBadge.id, text: 'New text' },
+      })
+      expect(updateBadge.text).toBe('New text')
+      expect(updateBadge.assetId).toBe(createBadge.assetId)
+      expect(updateBadge.asset?.id).toBe(createBadge.assetId)
+    })
+
+    it('clears the text with null on a badge that keeps its image', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset(), text: 'Goes away' },
+      })
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE_ASSET, {
+        input: { id: createBadge.id, text: null },
+      })
+      expect(updateBadge.text).toBeNull()
+      expect(updateBadge.assetId).toBe(createBadge.assetId)
+    })
+
+    it('rejects an update that leaves neither a text nor an image', async () => {
+      const { createBadge: textOnly } = await adminClient.query(CREATE_BADGE, {
+        input: { text: 'Only text' },
+      })
+      await expect(
+        adminClient.query(UPDATE_BADGE_ASSET, { input: { id: textOnly.id, text: '  ' } }),
+      ).rejects.toThrow(/needs a text or an image/i)
+      await expect(
+        adminClient.query(UPDATE_BADGE_ASSET, { input: { id: textOnly.id, text: null } }),
+      ).rejects.toThrow(/needs a text or an image/i)
+
+      const { createBadge: imageOnly } = await adminClient.query(CREATE_BADGE, {
+        input: { assetId: await createAsset() },
+      })
+      await expect(
+        adminClient.query(UPDATE_BADGE_ASSET, { input: { id: imageOnly.id, assetId: null } }),
+      ).rejects.toThrow(/needs a text or an image/i)
+
+      const { badge: stillText } = await adminClient.query(GET_BADGE, { id: textOnly.id })
+      expect(stillText.text).toBe('Only text')
+      const { badge: stillImage } = await adminClient.query(GET_BADGE, { id: imageOnly.id })
+      expect(stillImage.assetId).toBe(imageOnly.assetId)
+    })
+
+    it('rejects an update to an unknown asset', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { text: 'Text first' },
+      })
+      await expect(
+        adminClient.query(UPDATE_BADGE_ASSET, { input: { id: createBadge.id, assetId: '999999' } }),
+      ).rejects.toThrow(/No asset with the id/i)
+    })
+
+    it('adds an image to a text-only badge', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { text: 'Gets an image' },
+      })
+      const assetId = await createAsset()
+      const { updateBadge } = await adminClient.query(UPDATE_BADGE_ASSET, {
+        input: { id: createBadge.id, assetId },
+      })
+      expect(rawId(updateBadge.assetId)).toBe(Number(assetId))
+      expect(updateBadge.asset?.id).toBe(updateBadge.assetId)
+    })
+
+    it('deletes a text-only badge', async () => {
+      const { createBadge } = await adminClient.query(CREATE_BADGE, {
+        input: { text: 'Delete me' },
+      })
+      const { deleteBadge } = await adminClient.query(DELETE_BADGE, { ids: [createBadge.id] })
+      expect(deleteBadge.result).toBe('DELETED')
+      const { badge } = await adminClient.query(GET_BADGE, { id: createBadge.id })
+      expect(badge).toBeNull()
+    })
+  })
 })

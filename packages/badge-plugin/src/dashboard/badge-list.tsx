@@ -37,15 +37,29 @@ export const badgeListRoute: DashboardRouteDefinition = {
               const badge = row.original
               return (
                 <div className="flex items-center gap-2">
-                  <VendureImage
-                    asset={badge.asset}
-                    alt={badge.asset.name}
-                    preset="thumb"
-                    className="w-12 h-12 object-cover rounded"
-                  />
+                  {badge.asset ? (
+                    <VendureImage
+                      asset={badge.asset}
+                      alt={badge.asset.name}
+                      preset="thumb"
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
                 </div>
               )
             },
+          },
+          text: {
+            // The list query only fetches the fields of visible columns, so a text-only
+            // badge needs its own column for the text to be loaded at all.
+            cell: ({ row }) =>
+              row.original.text ? (
+                <BadgeComponent variant="outline">{row.original.text}</BadgeComponent>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              ),
           },
           position: {
             cell: ({ row }) => {
@@ -98,12 +112,13 @@ export const badgeListRoute: DashboardRouteDefinition = {
         ]}
         defaultVisibility={{
           asset: true,
+          text: true,
           position: true,
           collection: true,
           promotion: true,
           updatedAt: true,
         }}
-        defaultColumnOrder={['asset', 'position', 'collection', 'promotion', 'updatedAt']}
+        defaultColumnOrder={['asset', 'text', 'position', 'collection', 'promotion', 'updatedAt']}
       >
         <ActionBarItem itemId="create-button">
           <Button render={<Link to="./new" />}>

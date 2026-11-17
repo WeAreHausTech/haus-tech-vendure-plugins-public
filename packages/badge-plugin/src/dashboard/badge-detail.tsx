@@ -17,6 +17,7 @@ import {
   SelectValue,
   RelationSelector,
   Label,
+  Input,
   VendureImage,
 } from '@vendure/dashboard'
 import { AnyRoute, useNavigate } from '@tanstack/react-router'
@@ -33,7 +34,7 @@ import {
   getPromotionsDocument,
   createAssetsDocument,
 } from './gql'
-import { UploadIcon } from 'lucide-react'
+import { UploadIcon, XIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 
 export const badgeDetailRoute: DashboardRouteDefinition = {
@@ -93,12 +94,13 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
           position: string
           collectionId: string | null
           promotionId: string | null
-          assetId: string
+          text?: string | null
+          assetId: string | null
           asset: {
             id: string
             name: string
             preview: string
-          }
+          } | null
         }
         | null
         | undefined,
@@ -115,7 +117,8 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
         position: position || 'top-left',
         collectionId: badge?.collectionId ?? null,
         promotionId: badge?.promotionId ?? null,
-        assetId: badge?.assetId ?? '',
+        text: badge?.text ?? '',
+        assetId: badge?.assetId ?? null,
       }
     },
     [availablePositions],
@@ -186,14 +189,16 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
     if (entity?.id && entity.id !== entityIdRef.current) {
       entityIdRef.current = entity.id
       syncedEntityIdRef.current = null // Reset sync tracking when entity changes
-      if (entity?.asset) {
-        setUploadedAsset({
-          id: entity.asset.id,
-          name: entity.asset.name,
-          preview: entity.asset.preview,
-          source: entity.asset.source,
-        })
-      }
+      setUploadedAsset(
+        entity?.asset
+          ? {
+            id: entity.asset.id,
+            name: entity.asset.name,
+            preview: entity.asset.preview,
+            source: entity.asset.source,
+          }
+          : null,
+      )
     }
   }, [entity?.id, entity?.asset])
 
@@ -218,7 +223,8 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       // Always sync collection - set it immediately
       form.setValue('collectionId', entityCollectionId ?? null, { shouldDirty: false })
       form.setValue('promotionId', badge.promotionId ?? null, { shouldDirty: false })
-      form.setValue('assetId', badge.assetId ?? '', { shouldDirty: false })
+      form.setValue('text', badge.text ?? '', { shouldDirty: false })
+      form.setValue('assetId', badge.assetId ?? null, { shouldDirty: false })
     }
 
     // Initialize default values for new badges
@@ -226,6 +232,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
       form.setValue('position', availablePositions[0])
       form.setValue('collectionId', null)
       form.setValue('promotionId', null)
+      form.setValue('text', '')
     }
   }, [entity, availablePositions, creatingNewEntity, form])
 
@@ -244,20 +251,31 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
     }
   }
 
+  const handleRemoveImage = () => {
+    setUploadedAsset(null)
+    form.setValue('assetId', null, { shouldDirty: true, shouldValidate: true })
+  }
+
+  const textValue: string = form.watch('text') ?? ''
+  const hasText = textValue.trim() !== ''
+  const hasImage = Boolean(uploadedAsset?.id)
+  const hasTextOrImage = hasText || hasImage
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (creatingNewEntity) {
-      if (!uploadedAsset?.id) {
-        toast.error('Please upload an image first')
-        return
-      }
+    if (!hasTextOrImage) {
+      toast.error('A badge needs a text or an image')
+      return
+    }
 
+    if (creatingNewEntity) {
       const formValues = form.getValues()
       try {
         const result = await api.mutate(createBadgeDocument, {
           input: {
-            assetId: uploadedAsset.id,
+            assetId: uploadedAsset?.id ?? null,
+            text: hasText ? formValues.text : null,
             position: formValues.position || availablePositions[0] || 'top-left',
             collectionId: formValues.collectionId || null,
             promotionId: formValues.promotionId || null,
@@ -278,16 +296,8 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
     await submitHandler(e)
   }
 
-  const currentAsset =
-    uploadedAsset ||
-    (entity?.asset
-      ? {
-        id: entity.asset.id,
-        name: entity.asset.name,
-        preview: entity.asset.preview,
-        source: entity.asset.source,
-      }
-      : null)
+  // uploadedAsset mirrors the entity's asset once loaded, and is null after "Remove image".
+  const currentAsset = uploadedAsset
   const currentAssetForPreview =
     currentAsset == null
       ? null
@@ -296,7 +306,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
         : { ...currentAsset, type: 'IMAGE' }) as ComponentProps<typeof VendureImage>['asset']
   const unmatchedConditionCodes = entity?.unmatchedConditionCodes ?? []
   const hasAssetChanged = Boolean(
-    !creatingNewEntity && uploadedAsset?.id && uploadedAsset.id !== entity?.assetId,
+    !creatingNewEntity && entity && (uploadedAsset?.id ?? null) !== (entity.assetId ?? null),
   )
 
   return (
@@ -309,9 +319,12 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
           <Button
             type="submit"
             disabled={
-              creatingNewEntity
-                ? !uploadedAsset || !form.formState.isValid || isPending || uploading
-                : (!form.formState.isDirty && !hasAssetChanged) || isPending || uploading
+              !hasTextOrImage ||
+              isPending ||
+              uploading ||
+              (creatingNewEntity
+                ? !form.formState.isValid
+                : !form.formState.isDirty && !hasAssetChanged)
             }
           >
             {isPending || uploading ? 'Saving...' : creatingNewEntity ? 'Create' : 'Update'}
@@ -322,7 +335,7 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
         <PageBlock column="main" blockId="main-form">
           <div className="space-y-4">
             <div className="space-y-2" style={{ maxWidth: '400px' }}>
-              <Label>Image</Label>
+              <Label>Image (optional when the badge has a text)</Label>
               <div className="space-y-4">
                 {currentAsset ? (
                   <div className="space-y-2">
@@ -353,11 +366,39 @@ function BadgeDetailPage({ route }: { route: AnyRoute }) {
                     <UploadIcon className="mr-2 h-4 w-4" />
                     {uploading ? 'Uploading...' : currentAsset ? 'Change Image' : 'Upload Image'}
                   </Button>
+                  {currentAsset && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleRemoveImage}
+                      disabled={uploading}
+                      className="w-full mt-2"
+                    >
+                      <XIcon className="mr-2 h-4 w-4" />
+                      Remove Image
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
 
             <div style={{ maxWidth: '700px' }} className="space-y-4">
+              <FormFieldWrapper
+                control={form.control}
+                name="text"
+                label="Text"
+                description="Shown as a label when the badge has no image."
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ''}
+                    placeholder="e.g. New, Sale"
+                  />
+                )}
+              />
+              {!hasTextOrImage && (
+                <p className="text-sm text-destructive">A badge needs a text or an image.</p>
+              )}
               <FormFieldWrapper
                 control={form.control}
                 name="position"

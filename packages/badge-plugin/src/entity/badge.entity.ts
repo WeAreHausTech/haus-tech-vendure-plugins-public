@@ -13,8 +13,9 @@ import { Column, Entity, OneToOne, ManyToOne, JoinColumn, ManyToMany, JoinTable 
 
 /**
  * @description
- * A product badge: an image {@link Asset} rendered at a fixed `position`, optionally
- * attached to a {@link Collection} so every product in that collection inherits it.
+ * A product badge: a text, an image {@link Asset} or both, rendered at a fixed `position`,
+ * optionally attached to a {@link Collection} so every product in that collection inherits it.
+ * A badge always has a text or an image.
  * Channel-aware, so each channel sees only its own badges.
  *
  * @category Entities
@@ -38,8 +39,8 @@ export class Badge extends VendureEntity implements ChannelAware {
   @Column({ default: 0 })
   order: number
 
-  @Column({ nullable: true })
-  text: string
+  @Column({ type: 'varchar', nullable: true })
+  text: string | null
 
   @OneToOne(() => Asset, {
     cascade: true,
@@ -49,10 +50,10 @@ export class Badge extends VendureEntity implements ChannelAware {
     name: 'assetId',
     referencedColumnName: 'id',
   })
-  asset: Asset
+  asset: Asset | null
 
   @EntityId({ nullable: true })
-  assetId: ID
+  assetId: ID | null
 
   @OneToOne(() => Collection, { nullable: true, eager: true })
   @JoinColumn({

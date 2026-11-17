@@ -12,8 +12,8 @@ export const adminApiExtensions = gql`
     unmatchedConditionCodes: [String!]!
     position: String!
     text: String
-    asset: Asset!
-    assetId: ID!
+    asset: Asset
+    assetId: ID
   }
 
   type BadgeList implements PaginatedList {
@@ -30,7 +30,7 @@ export const adminApiExtensions = gql`
   }
 
   input CreateBadgeInput {
-    assetId: ID!
+    assetId: ID
     position: String
     text: String
     collectionId: ID
@@ -77,8 +77,8 @@ export const shopApiExtensions = gql`
     promotionId: ID
     position: String!
     text: String
-    asset: Asset!
-    assetId: ID!
+    asset: Asset
+    assetId: ID
   }
 
   type BadgeList implements PaginatedList {

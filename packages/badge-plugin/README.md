@@ -13,13 +13,13 @@ tags:
 
 # Badge Plugin
 
-A Vendure plugin for creating image badges and showing them on products in your storefront. A badge is an image asset (e.g. "New", "Sale", "Best Seller") placed at a fixed position on a product image. Badges are attached to **collections**, and every product in a badged collection automatically inherits that collection's badge, so you label many products at once instead of one at a time.
+A Vendure plugin for creating badges and showing them on products in your storefront. A badge (e.g. "New", "Sale", "Best Seller") is a text, an image asset, or both, placed at a fixed position on a product image. Badges are attached to **collections**, and every product in a badged collection automatically inherits that collection's badge, so you label many products at once instead of one at a time.
 
 Badges are managed from the Admin UI and read from the Shop API, are **channel-aware** (each channel sees only its own badges), and expose a ready-to-use `badges` field on `Product`, `ProductVariant`, and `SearchResult`.
 
 ## Features
 
-- **Image badges** – Each badge is an uploaded asset rendered at a chosen position on the product
+- **Text or image badges** – Each badge has a text, an uploaded image asset, or both, rendered at a chosen position on the product. A badge with neither is rejected
 - **Collection-based** – Assign a badge to a collection; all products in that collection (and its sub-collections) inherit it
 - **Promotion-based** – Or link a badge to a promotion; products that satisfy the promotion's conditions show it while the promotion is active
 - **Configurable positions** – Restrict badges to a fixed set of positions (e.g. `top-left`, `top-right`); invalid positions are rejected
@@ -75,6 +75,13 @@ are now returned ordered by `order`, then by id. `ProductVariant.badges` now use
 collections, matching `Product.badges`, so a badge on a private collection no longer shows on
 variants.
 
+**Upgrading to the release after 4.1.0:** a badge no longer needs an image. `Badge.asset` and
+`Badge.assetId` are now nullable in both the Admin and the Shop API, and
+`CreateBadgeInput.assetId` is optional. A badge needs a non-empty `text` or an `assetId`
+(whitespace-only text counts as empty and is stored as `null`). Typed storefront clients must
+handle `asset: null`, for example by rendering the `text` as a label. No migration is needed:
+the `assetId` column was already nullable.
+
 ## Configuration options
 
 | Option               | Type       | Default                                                  | Description                                                                                                |
@@ -118,17 +125,19 @@ with no condition) shows the badge on every product. Give it a product condition
 
 ## How it works
 
-A **badge** holds an image asset, a position and a link to
+A **badge** holds a text, an image asset or both, a position and a link to
 one collection **or** one promotion, never both. Products are never badged directly, they inherit
 badges from the collections they belong to or the promotions they satisfy:
 
-1. **Create a badge** in the Admin UI: upload an image, pick a position, and assign it to a collection.
+1. **Create a badge** in the Admin UI: enter a text, upload an image, or both, pick a position,
+   and assign it to a collection or a promotion.
 2. **Products inherit it** – every product in that collection, including products in its
    sub-collections, gets the badge automatically through the Shop API. A promotion badge is
    shown on products that satisfy all of the promotion's conditions, while the promotion is
    enabled and within its dates.
 3. **The storefront reads it** – fetch the `badges` field on a product (or search result) and
-   render each badge's image at its `position`.
+   render each badge at its `position`: its image when `asset` is set, otherwise its `text` as a
+   styled label.
 
 Because badges are channel-aware, a badge is only visible in the channel it was created in.
 
@@ -152,9 +161,13 @@ The Shop API badge queries are public, matching the rest of the Vendure shop API
 
 Once installed, manage badges from the dedicated **Badges** section in the Admin UI. From there you can:
 
-- Create a badge by uploading an image asset and choosing a position.
+- Create a badge with a text, an image asset, or both, and choose a position. In the React
+  Dashboard the image is optional when the badge has a text, and **Remove Image** turns an image
+  badge into a text badge. The legacy Admin UI creates badges from uploaded images only, and
+  shows a text badge's text in place of the image.
 - Assign the badge to a collection or to a promotion (picking one clears the other; the promotion picker is in the React Dashboard). A warning shows when the promotion has conditions that cannot be checked per product.
-- Update or delete existing badges. Deleting a badge also deletes its image asset.
+- Update or delete existing badges. Deleting a badge also deletes its image asset, if it has
+  one. Removing or replacing a badge's image keeps the old asset in the asset library.
 
 ### Shop API
 
@@ -170,7 +183,8 @@ The plugin extends the Shop API with badge queries and adds a `badges` resolver 
 | `getBadgeFromCollection(collectionId)`   | `Badge`         | The badge assigned to a single collection, if any                        |
 | `getBadgesFromCollections(collectionIds)`| `[Badge!]!`     | Badges assigned to any of the given collections                          |
 
-The most common pattern is to read badges straight off a product:
+The most common pattern is to read badges straight off a product. `asset` is `null` for a
+badge that has only a text:
 
 ```graphql
 query ProductBadges($slug: String!) {
@@ -232,8 +246,10 @@ const res = await fetch('/shop-api', {
 })
 
 const { data } = await res.json()
-// data.product.badges -> [{ position: 'top-left', asset: { preview } }, ...]
-// Render each badge image absolutely positioned over the product image using `position`.
+// data.product.badges -> [{ position: 'top-left', text: 'Sale', asset: { preview } },
+//                         { position: 'top-right', text: 'New', asset: null }, ...]
+// Render each badge absolutely positioned over the product image using `position`:
+// its image when `asset` is set, otherwise its `text` as a styled label.
 ```
 
 ## Resources
