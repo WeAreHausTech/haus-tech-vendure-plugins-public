@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/badge-plugin",
-  "version": "4.1.0",
+  "version": "4.2.0-next.0",
   "description": "Vendure plugin for managing and displaying product badges via the admin UI and shop API",
   "author": "Haus Tech",
   "repository": {
