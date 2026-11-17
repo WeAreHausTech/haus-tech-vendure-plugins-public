@@ -27,7 +27,8 @@
             [disabled]="true"
             [hiddenWhenOff]="true"
           ></vdr-select-toggle>
-          <img class="asset-thumb" [src]="item.asset | assetPreview: 'medium'" />
+          <img *ngIf="item.asset" class="asset-thumb" [src]="item.asset | assetPreview: 'medium'" />
+          <div *ngIf="!item.asset" class="text-badge">{{ item.text }}</div>
         </div>
         <div class="detail">
           <span [title]="item.position">{{ item.position }}</span>
@@ -44,9 +45,15 @@
           </div>
           <img
             class="preview"
-            *ngIf="selectionManager.selection.length >= 1"
-            [src]="lastSelected().asset.preview + '?preset=medium'"
+            *ngIf="selectionManager.selection.length >= 1 && lastSelected().asset"
+            [src]="lastSelected().asset?.preview + '?preset=medium'"
           />
+          <div
+            class="text-badge"
+            *ngIf="selectionManager.selection.length >= 1 && !lastSelected().asset"
+          >
+            {{ lastSelected().text }}
+          </div>
         </div>
         <div class="card-block details" *ngIf="selectionManager.selection.length >= 1">
           <div *ngIf="selectionManager.selection.length === 1">

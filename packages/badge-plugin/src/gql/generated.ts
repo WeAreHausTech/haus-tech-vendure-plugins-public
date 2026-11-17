@@ -314,8 +314,8 @@ export type AuthenticationResult = CurrentUser | InvalidCredentialsError
 
 export type Badge = Node & {
   __typename?: 'Badge'
-  asset: Asset
-  assetId: Scalars['ID']['output']
+  asset?: Maybe<Asset>
+  assetId?: Maybe<Scalars['ID']['output']>
   collection?: Maybe<Collection>
   collectionId?: Maybe<Scalars['ID']['output']>
   createdAt: Scalars['DateTime']['output']
@@ -323,6 +323,7 @@ export type Badge = Node & {
   position: Scalars['String']['output']
   promotion?: Maybe<Promotion>
   promotionId?: Maybe<Scalars['ID']['output']>
+  text?: Maybe<Scalars['String']['output']>
   unmatchedConditionCodes: Array<Scalars['String']['output']>
   updatedAt: Scalars['DateTime']['output']
 }
@@ -819,7 +820,7 @@ export type CreateAssetInput = {
 export type CreateAssetResult = Asset | MimeTypeError
 
 export type CreateBadgeInput = {
-  assetId: Scalars['ID']['input']
+  assetId?: InputMaybe<Scalars['ID']['input']>
   position?: InputMaybe<Scalars['String']['input']>
   text?: InputMaybe<Scalars['String']['input']>
   collectionId?: InputMaybe<Scalars['ID']['input']>

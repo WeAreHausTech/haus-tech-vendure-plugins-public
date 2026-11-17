@@ -1,3 +1,9 @@
+## Unreleased
+
+### 🚀 Features
+
+- **badge-plugin:** a badge may have a text and no image. `Badge.asset` and `Badge.assetId` are nullable in the Admin and Shop API, `CreateBadgeInput.assetId` is optional, and a badge with neither a text nor an image is rejected. `updateBadge` with `assetId: null` removes the image, `text: null` or a blank text removes the text. The React Dashboard gets a text field and a Remove Image button.
+
 ## 4.1.0
 
 ### 🚀 Features

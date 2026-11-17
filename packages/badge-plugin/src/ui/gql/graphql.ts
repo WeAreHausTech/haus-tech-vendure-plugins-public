@@ -320,8 +320,8 @@ export type AuthenticationResult = CurrentUser | InvalidCredentialsError
 
 export type Badge = Node & {
   __typename?: 'Badge'
-  asset: Asset
-  assetId: Scalars['ID']['output']
+  asset?: Maybe<Asset>
+  assetId?: Maybe<Scalars['ID']['output']>
   collection?: Maybe<Collection>
   collectionId?: Maybe<Scalars['ID']['output']>
   createdAt: Scalars['DateTime']['output']
@@ -823,7 +823,7 @@ export type CreateAssetInput = {
 export type CreateAssetResult = Asset | MimeTypeError
 
 export type CreateBadgeInput = {
-  assetId: Scalars['ID']['input']
+  assetId?: InputMaybe<Scalars['ID']['input']>
   position?: InputMaybe<Scalars['String']['input']>
   text?: InputMaybe<Scalars['String']['input']>
 }
@@ -6677,7 +6677,7 @@ export type GetBadgesQuery = {
       position: string
       text?: string | null
       collection?: { __typename?: 'Collection'; id: string } | null
-      asset: {
+      asset?: {
         __typename?: 'Asset'
         id: string
         name: string
@@ -6688,7 +6688,7 @@ export type GetBadgesQuery = {
         fileSize: number
         source: string
         preview: string
-      }
+      } | null
     }>
   }
 }

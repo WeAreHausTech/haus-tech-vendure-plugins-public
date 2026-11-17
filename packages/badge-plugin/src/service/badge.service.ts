@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { In } from 'typeorm'
 import {
+  Asset,
   AssetService,
   ChannelService,
   Collection,
@@ -51,6 +52,11 @@ function compareIds(a: ID, b: ID): number {
   return String(a).localeCompare(String(b))
 }
 
+/** A blank or whitespace-only text counts as no text and is stored as null. */
+function normalizeText(text?: string | null): string | null {
+  return text != null && text.trim() !== '' ? text : null
+}
+
 function sortBadges(badges: Badge[]): Badge[] {
   return [...badges].sort((a, b) => a.order - b.order || compareIds(a.id, b.id))
 }
@@ -58,9 +64,9 @@ function sortBadges(badges: Badge[]): Badge[] {
 /**
  * @description
  * CRUD and lookup operations for {@link Badge} entities: creates/updates badges with
- * their asset and collection relations, resolves the badges that apply to a given
- * product or search result, and manages channel assignment. All reads are scoped to
- * the active channel.
+ * their optional asset and collection relations (a badge needs a text or an asset),
+ * resolves the badges that apply to a given product or search result, and manages
+ * channel assignment. All reads are scoped to the active channel.
  *
  * @category Services
  */
@@ -105,18 +111,17 @@ export class BadgeService {
   async create(ctx: RequestContext, input: CreateBadgeInput): Promise<Badge> {
     const position = input.position || 'top-left'
     this.validatePosition(position)
-    // A badge must have an image. Reject early so we never persist an asset-less badge.
-    const asset = await this.assetService.findOne(ctx, input.assetId)
-    if (!asset) {
-      throw new UserInputError(`No asset with the id "${input.assetId}" could be found`)
-    }
+    const text = normalizeText(input.text)
+    // A badge needs a text or an image. Reject early so we never persist an empty badge.
+    const asset = input.assetId ? await this.findAsset(ctx, input.assetId) : null
+    this.assertTextOrImage(text, asset?.id ?? null)
     this.assertNotBoth(input.collectionId, input.promotionId)
-    const badge = new Badge({ position, text: input.text ?? undefined })
+    const badge = new Badge({ position, text })
     // `asset` and `collection` each share their FK column with the relation. On save()
     // TypeORM takes the FK from the relation *object*, so a scalar-only id is discarded
     // (written NULL on Postgres). Assign the loaded relation so the FK actually persists.
     badge.asset = asset
-    badge.assetId = asset.id
+    badge.assetId = asset?.id ?? null
     if (input.collectionId) {
       const collection = await this.collectionService.findOne(ctx, input.collectionId)
       if (!collection) {
@@ -187,9 +192,20 @@ export class BadgeService {
       await this.findPromotion(ctx, promotionId)
     }
 
+    // An omitted key keeps the stored text or image; null (or a blank text) removes it.
+    const text = input.text !== undefined ? normalizeText(input.text) : badge.text
+    // An empty string keeps the image too, as it did before images became optional.
+    let assetId = badge.assetId
+    if (input.assetId === null) {
+      assetId = null
+    } else if (input.assetId && !idsAreEqual(input.assetId, badge.assetId ?? '')) {
+      assetId = (await this.findAsset(ctx, input.assetId)).id
+    }
+    this.assertTextOrImage(text, assetId)
+
     await repository.update(input.id, {
       position: input.position ?? badge.position,
-      text: input.text ?? badge.text,
+      text,
       collectionId: input.collectionId,
       promotionId:
         input.promotionId !== undefined
@@ -197,7 +213,7 @@ export class BadgeService {
           : clearStaleLink
             ? null
             : undefined,
-      assetId: input.assetId || badge.assetId,
+      assetId,
     })
 
     const updated = await this.findOne(ctx, input.id)
@@ -370,6 +386,20 @@ export class BadgeService {
       this.configService.promotionOptions.promotionConditions ?? [],
       buildCheckRegistry(this.options.promotionProductChecks),
     )
+  }
+
+  private async findAsset(ctx: RequestContext, id: ID): Promise<Asset> {
+    const asset = await this.assetService.findOne(ctx, id)
+    if (!asset) {
+      throw new UserInputError(`No asset with the id "${id}" could be found`)
+    }
+    return asset
+  }
+
+  private assertTextOrImage(text: string | null, assetId: ID | null): void {
+    if (!normalizeText(text) && !assetId) {
+      throw new UserInputError('A badge needs a text or an image')
+    }
   }
 
   private async findPromotion(ctx: RequestContext, id: ID): Promise<Promotion> {

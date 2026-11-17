@@ -17,6 +17,7 @@ export const getBadgeListDocument = graphql(`
           name
         }
         position
+        text
         asset {
           id
           name

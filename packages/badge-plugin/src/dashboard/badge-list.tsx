@@ -37,12 +37,16 @@ export const badgeListRoute: DashboardRouteDefinition = {
               const badge = row.original
               return (
                 <div className="flex items-center gap-2">
-                  <VendureImage
-                    asset={badge.asset}
-                    alt={badge.asset.name}
-                    preset="thumb"
-                    className="w-12 h-12 object-cover rounded"
-                  />
+                  {badge.asset ? (
+                    <VendureImage
+                      asset={badge.asset}
+                      alt={badge.asset.name}
+                      preset="thumb"
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <BadgeComponent variant="outline">{badge.text}</BadgeComponent>
+                  )}
                 </div>
               )
             },
