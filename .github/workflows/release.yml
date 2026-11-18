@@ -91,9 +91,9 @@ jobs:
           NODE_AUTH_TOKEN: ''
         run: |
           if [ -n "$PROJECTS" ]; then
-            yarn nx release publish --projects="$PROJECTS" --verbose
+            yarn nx release publish --projects="$PROJECTS" --tag next --verbose
           else
-            yarn nx release publish --verbose
+            yarn nx release publish --tag next --verbose
           fi
 
       - name: Show npm OIDC log lines on failure
