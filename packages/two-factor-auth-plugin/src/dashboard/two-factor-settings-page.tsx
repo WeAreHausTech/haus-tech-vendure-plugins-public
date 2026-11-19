@@ -2,6 +2,7 @@ import {
   api,
   Button,
   DashboardRouteDefinition,
+  Input,
   Label,
   Page,
   PageBlock,
@@ -23,7 +24,9 @@ import {
 } from './components'
 import {
   beginEnrolmentDocument,
+  beginReplacementDocument,
   confirmEnrolmentDocument,
+  confirmReplacementDocument,
   disableDocument,
   EnrolmentSecret,
   errorMessage,
@@ -38,14 +41,84 @@ const statusQueryKey = ['two-factor-status']
 type Panel =
   | { name: 'idle' }
   | { name: 'password' }
-  | { name: 'scan'; enrolment: EnrolmentSecret }
+  | { name: 'scan'; enrolment: EnrolmentSecret; replacing: boolean }
   | { name: 'codes'; backupCodes: string[] }
   | { name: 'disable' }
   | { name: 'regenerate' }
+  | { name: 'replace' }
 
 async function mutate(document: string, variables: Record<string, string>) {
   const data = (await api.mutate(document, variables)) as Record<string, TwoFactorMutationResult>
   return Object.values(data)[0]
+}
+
+/** Password plus a current code: the two proofs that start replacing the authenticator. */
+function ReplaceForm({
+  onStarted,
+  onCancel,
+}: Readonly<{ onStarted: (enrolment: EnrolmentSecret) => void; onCancel: () => void }>) {
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const { run, error, setError, isPending } = usePendingAction()
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    void run(async () => {
+      const result = await mutate(beginReplacementDocument, { password, code: code.trim() })
+      if (result.success && result.enrolment) {
+        onStarted(result.enrolment)
+        return
+      }
+      // A wrong password leaves the code unspent, so only the field that was wrong is cleared.
+      if (result.error === 'INVALID_PASSWORD') {
+        setPassword('')
+      } else {
+        setCode('')
+      }
+      setError(errorMessage(result.error))
+    })
+  }
+
+  return (
+    <form className="flex flex-col gap-4" onSubmit={submit}>
+      <p className="text-sm text-muted-foreground">
+        Set up a new authenticator app, for example on a new phone. Your current authenticator keeps
+        working until the new one is confirmed, which has to happen within a few minutes.
+      </p>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="two-factor-replace-password">Confirm your password</Label>
+        <PasswordInput
+          id="two-factor-replace-password"
+          autoComplete="current-password"
+          autoFocus
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="two-factor-replace-code">
+          Code from your current authenticator, or a backup code
+        </Label>
+        <Input
+          id="two-factor-replace-code"
+          name="code"
+          autoComplete="one-time-code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="123456 or a backup code"
+        />
+      </div>
+      <ErrorLine error={error} />
+      <div className="flex gap-2">
+        <Button type="submit" disabled={isPending || !password || !code.trim()}>
+          Continue
+        </Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
 }
 
 function TwoFactorSettingsPage() {
@@ -67,7 +140,7 @@ function TwoFactorSettingsPage() {
       const result = await mutate(beginEnrolmentDocument, { password })
       setPassword('')
       if (result.success && result.enrolment) {
-        setPanel({ name: 'scan', enrolment: result.enrolment })
+        setPanel({ name: 'scan', enrolment: result.enrolment, replacing: false })
       } else {
         setError(errorMessage(result.error))
       }
@@ -131,6 +204,9 @@ function TwoFactorSettingsPage() {
                       <Button variant="outline" onClick={() => setPanel({ name: 'regenerate' })}>
                         New backup codes
                       </Button>
+                      <Button variant="outline" onClick={() => setPanel({ name: 'replace' })}>
+                        Replace authenticator
+                      </Button>
                       {!status.required && (
                         <Button variant="destructive" onClick={() => setPanel({ name: 'disable' })}>
                           Turn off
@@ -169,23 +245,44 @@ function TwoFactorSettingsPage() {
                 </form>
               )}
 
+              {panel.name === 'replace' && (
+                <ReplaceForm
+                  onStarted={(enrolment) => {
+                    // The form has its own error; drop one left over from another panel.
+                    setError(undefined)
+                    setPanel({ name: 'scan', enrolment, replacing: true })
+                    // A backup code may have been spent.
+                    void refresh()
+                  }}
+                  onCancel={() => setPanel({ name: 'idle' })}
+                />
+              )}
+
               {panel.name === 'scan' && (
                 <div className="flex flex-col gap-6">
                   <EnrolmentInstructions enrolment={panel.enrolment} />
                   <CodeForm
-                    label="Code from the app"
-                    submitLabel="Turn on"
+                    label={panel.replacing ? 'Code from the new app' : 'Code from the app'}
+                    submitLabel={panel.replacing ? 'Replace authenticator' : 'Turn on'}
                     allowBackupCode={false}
                     isPending={isPending}
-                    onSubmit={withCode(confirmEnrolmentDocument, (result) => {
-                      setPanel({ name: 'codes', backupCodes: result.backupCodes ?? [] })
-                      toast.success(
-                        'Two-factor authentication is on. Your other sessions were signed out.',
-                      )
-                    })}
+                    onSubmit={withCode(
+                      panel.replacing ? confirmReplacementDocument : confirmEnrolmentDocument,
+                      (result) => {
+                        setPanel({ name: 'codes', backupCodes: result.backupCodes ?? [] })
+                        toast.success(
+                          panel.replacing
+                            ? 'Your authenticator was replaced. Your other sessions were signed out.'
+                            : 'Two-factor authentication is on. Your other sessions were signed out.',
+                        )
+                      },
+                    )}
                   >
                     {errorLine}
                   </CodeForm>
+                  <Button type="button" variant="ghost" onClick={() => setPanel({ name: 'idle' })}>
+                    Cancel
+                  </Button>
                 </div>
               )}
 

@@ -74,7 +74,7 @@ TOTP and backup-code two-factor authentication for administrator sign-in. No ses
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `src/two-factor-auth.plugin.ts`          | Plugin definition; `configuration()` wraps the admin `native` strategy and adds the `twoFactor` one |
 | `src/strategy/`                          | `TwoFactorNativeAuthenticationStrategy` (password step) and `TwoFactorCodeAuthenticationStrategy` (code step) |
-| `src/service/two-factor.service.ts`      | Challenges, enrolment, code checks, replay protection, lockout, reset                              |
+| `src/service/two-factor.service.ts`      | Challenges, enrolment, authenticator replacement, code checks, replay protection, lockout, reset                              |
 | `src/crypto/`                            | TOTP (RFC 6238), AES-256-GCM secret encryption, tokens and backup codes; all have unit specs       |
 | `src/entity/`                            | `TwoFactorCredential`, `TwoFactorChallenge`                                                         |
 | `src/api/`                               | Admin GraphQL schema, resolvers, and the `resetPassword` override                                  |

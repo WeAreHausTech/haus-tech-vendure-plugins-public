@@ -14,7 +14,7 @@ import {
   UserService,
 } from '@vendure/core'
 import { toDataURL } from 'qrcode'
-import { LessThan } from 'typeorm'
+import { LessThan, Not } from 'typeorm'
 
 import { loggerCtx, PLUGIN_INIT_OPTIONS, TwoFactorAuthError } from '../constants'
 import { SecretCipher } from '../crypto/secret-cipher'
@@ -139,6 +139,11 @@ export class TwoFactorService {
     ) {
       return fail('CHALLENGE_EXPIRED')
     }
+    // The second factor may have been turned on elsewhere since the challenge was issued.
+    if (await this.isEnabledForUser(ctx, challenge.userId)) {
+      await this.consumeChallenge(ctx, challenge)
+      return fail('CHALLENGE_EXPIRED')
+    }
     const secret = this.cipher.decrypt(challenge.pendingSecret, secretOwner(challenge.userId))
     const step = findMatchingStep(secret, code.trim(), Date.now())
     if (step === undefined) {
@@ -165,7 +170,8 @@ export class TwoFactorService {
     code: string,
   ): Promise<User | string> {
     const challenge = await this.findChallenge(ctx, challengeToken)
-    if (!challenge) {
+    // A replacement challenge never signs anyone in.
+    if (!challenge || challenge.purpose === 'replacement') {
       return TwoFactorAuthError.CHALLENGE_EXPIRED
     }
     if (challenge.purpose === 'enrolment') {
@@ -297,6 +303,77 @@ export class TwoFactorService {
   }
 
   /**
+   * Starts replacing the authenticator of a signed-in user. Needs the current password and a
+   * current code, so neither a stolen session nor a stolen password alone can bind a new
+   * authenticator. The new secret waits in a challenge of its own, so it expires and has its
+   * own count of wrong codes, and the current secret keeps working until
+   * {@link confirmReplacement}.
+   */
+  async beginReplacement(
+    ctx: RequestContext,
+    user: User,
+    password: string,
+    code: string,
+  ): Promise<TwoFactorEnrolmentStartResult> {
+    if (!(await this.nativeStrategy().verifyUserPassword(ctx, user.id, password))) {
+      return fail('INVALID_PASSWORD')
+    }
+    const credential = await this.findCredential(ctx, user.id)
+    if (!credential?.enabled) {
+      return fail('NOT_ENABLED')
+    }
+    const check = await this.checkCode(ctx, credential, code)
+    if (check !== 'ok') {
+      return fail(codeError(check))
+    }
+    const secret = generateTotpSecret()
+    await this.createChallenge(
+      ctx,
+      user.id,
+      'replacement',
+      this.cipher.encrypt(secret, secretOwner(user.id)),
+    )
+    return { success: true, enrolment: await this.enrolmentSecret(user, secret) }
+  }
+
+  /**
+   * Confirms a replacement with the first code from the new authenticator. The old secret and
+   * the old backup codes stop working, and the user's other sessions are signed out. Wrong
+   * codes count against the replacement only, never against sign-in.
+   */
+  async confirmReplacement(
+    ctx: RequestContext,
+    userId: ID,
+    code: string,
+  ): Promise<TwoFactorBackupCodesResult> {
+    const credential = await this.findCredential(ctx, userId)
+    if (!credential?.enabled) {
+      return fail('NOT_ENABLED')
+    }
+    const challenge = await this.connection
+      .getRepository(ctx, TwoFactorChallenge)
+      .findOne({ where: { userId, purpose: 'replacement' } })
+    if (!challenge?.pendingSecret || challenge.expiresAt.getTime() <= Date.now()) {
+      return fail('NO_PENDING_ENROLMENT')
+    }
+    if (this.isLocked(credential)) {
+      return fail('LOCKED')
+    }
+    const secret = this.cipher.decrypt(challenge.pendingSecret, secretOwner(userId))
+    const step = findMatchingStep(secret, code.trim(), Date.now())
+    if (step === undefined) {
+      await this.registerChallengeFailure(ctx, challenge)
+      return fail('INVALID_CODE')
+    }
+    if (!(await this.consumeChallenge(ctx, challenge))) {
+      return fail('NO_PENDING_ENROLMENT')
+    }
+    const backupCodes = await this.enable(ctx, credential, secret, step, 'replaced')
+    await this.deleteOtherSessions(ctx, userId)
+    return { success: true, backupCodes }
+  }
+
+  /**
    * Removes a user's second factor and signs out all of the user's sessions, for an
    * administrator who has lost their device. Returns false when there was nothing to reset.
    */
@@ -366,6 +443,7 @@ export class TwoFactorService {
     credentialOrUserId: TwoFactorCredential | ID,
     secret: string,
     step: number,
+    event: 'enabled' | 'replaced' = 'enabled',
   ): Promise<string[]> {
     const backupCodes = generateBackupCodes(this.options.backupCodeCount)
     const credential =
@@ -378,14 +456,15 @@ export class TwoFactorService {
       secret: this.cipher.encrypt(secret, secretOwner(userId)),
       pendingSecret: null,
       enabled: true,
-      enabledAt: new Date(),
+      // Set once: a replacement swaps the secret of a second factor that is already on.
+      enabledAt: credential.enabledAt ?? new Date(),
       lastUsedStep: step,
       backupCodeHashes: backupCodes.map(hashBackupCode),
       failedAttempts: 0,
       lockedUntil: null,
     })
     await this.connection.getRepository(ctx, TwoFactorCredential).save(credential)
-    await this.publish(ctx, userId, 'enabled')
+    await this.publish(ctx, userId, event)
     return backupCodes
   }
 
@@ -526,8 +605,12 @@ export class TwoFactorService {
     pendingSecret: string | null,
   ): Promise<{ challengeToken: string; expiresAt: Date }> {
     const repo = this.connection.getRepository(ctx, TwoFactorChallenge)
-    // One open challenge per user; expired ones of every user are swept on the way.
-    await repo.delete({ userId })
+    // One open sign-in challenge and one open replacement per user, so a sign-in elsewhere does
+    // not cancel a replacement. Expired ones of every user are swept on the way.
+    await repo.delete({
+      userId,
+      purpose: purpose === 'replacement' ? 'replacement' : Not('replacement'),
+    })
     await repo.delete({ expiresAt: LessThan(new Date(Date.now())) })
     const challengeToken = generateToken()
     const expiresAt = new Date(Date.now() + this.options.challengeTtlSeconds * 1000)

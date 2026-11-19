@@ -152,6 +152,28 @@ export class TwoFactorAdminResolver {
 
   @Transaction()
   @Mutation()
+  @Allow(Permission.Owner)
+  async beginTwoFactorReplacement(
+    @Ctx() ctx: RequestContext,
+    @Args() args: { password: string; code: string },
+  ) {
+    return this.twoFactorService.beginReplacement(
+      ctx,
+      await this.activeUser(ctx),
+      args.password,
+      args.code,
+    )
+  }
+
+  @Transaction()
+  @Mutation()
+  @Allow(Permission.Owner)
+  async confirmTwoFactorReplacement(@Ctx() ctx: RequestContext, @Args() args: { code: string }) {
+    return this.twoFactorService.confirmReplacement(ctx, (await this.activeUser(ctx)).id, args.code)
+  }
+
+  @Transaction()
+  @Mutation()
   @Allow(resetTwoFactorPermission.Permission)
   async resetAdministratorTwoFactor(
     @Ctx() ctx: RequestContext,
