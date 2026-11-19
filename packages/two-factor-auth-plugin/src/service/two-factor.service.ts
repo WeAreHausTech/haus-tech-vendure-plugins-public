@@ -239,20 +239,7 @@ export class TwoFactorService {
     if (credential?.enabled) {
       return fail('ALREADY_ENABLED')
     }
-    if (!credential?.pendingSecret) {
-      return fail('NO_PENDING_ENROLMENT')
-    }
-    if (this.isLocked(credential)) {
-      return fail('LOCKED')
-    }
-    const secret = this.cipher.decrypt(credential.pendingSecret, secretOwner(userId))
-    const step = findMatchingStep(secret, code.trim(), Date.now())
-    if (step === undefined) {
-      return fail(codeError(await this.registerFailure(ctx, credential)))
-    }
-    const backupCodes = await this.enable(ctx, credential, secret, step)
-    await this.deleteOtherSessions(ctx, userId)
-    return { success: true, backupCodes }
+    return this.confirmPending(ctx, credential, code, 'enabled')
   }
 
   /** Turns the second factor off. Needs a code. Signs out the user's other sessions. */
@@ -342,18 +329,32 @@ export class TwoFactorService {
     if (!credential?.enabled) {
       return fail('NOT_ENABLED')
     }
-    if (!credential.pendingSecret) {
+    return this.confirmPending(ctx, credential, code, 'replaced')
+  }
+
+  /**
+   * Makes the pending secret the active one when the code is its first code, and signs out the
+   * user's other sessions. Shared by a signed-in enrolment and a replacement.
+   */
+  private async confirmPending(
+    ctx: RequestContext,
+    credential: TwoFactorCredential | null,
+    code: string,
+    event: 'enabled' | 'replaced',
+  ): Promise<TwoFactorBackupCodesResult> {
+    if (!credential?.pendingSecret) {
       return fail('NO_PENDING_ENROLMENT')
     }
     if (this.isLocked(credential)) {
       return fail('LOCKED')
     }
+    const { userId } = credential
     const secret = this.cipher.decrypt(credential.pendingSecret, secretOwner(userId))
     const step = findMatchingStep(secret, code.trim(), Date.now())
     if (step === undefined) {
       return fail(codeError(await this.registerFailure(ctx, credential)))
     }
-    const backupCodes = await this.enable(ctx, credential, secret, step, 'replaced')
+    const backupCodes = await this.enable(ctx, credential, secret, step, event)
     await this.deleteOtherSessions(ctx, userId)
     return { success: true, backupCodes }
   }
@@ -422,10 +423,7 @@ export class TwoFactorService {
     })
   }
 
-  /**
-   * Pass the user's credential when it is already loaded, or the user id to create or load it.
-   * `replaced` swaps the secret of a second factor that is already on, which keeps `enabledAt`.
-   */
+  /** Pass the user's credential when it is already loaded, or the user id to create or load it. */
   private async enable(
     ctx: RequestContext,
     credentialOrUserId: TwoFactorCredential | ID,
@@ -444,7 +442,8 @@ export class TwoFactorService {
       secret: this.cipher.encrypt(secret, secretOwner(userId)),
       pendingSecret: null,
       enabled: true,
-      enabledAt: event === 'replaced' ? credential.enabledAt : new Date(),
+      // Set once: a replacement swaps the secret of a second factor that is already on.
+      enabledAt: credential.enabledAt ?? new Date(),
       lastUsedStep: step,
       backupCodeHashes: backupCodes.map(hashBackupCode),
       failedAttempts: 0,

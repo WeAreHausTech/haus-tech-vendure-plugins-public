@@ -52,6 +52,75 @@ async function mutate(document: string, variables: Record<string, string>) {
   return Object.values(data)[0]
 }
 
+/** Password plus a current code: the two proofs that start replacing the authenticator. */
+function ReplaceForm({
+  onStarted,
+  onCancel,
+}: Readonly<{ onStarted: (enrolment: EnrolmentSecret) => void; onCancel: () => void }>) {
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const { run, error, setError, isPending } = usePendingAction()
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    void run(async () => {
+      const result = await mutate(beginReplacementDocument, { password, code: code.trim() })
+      if (result.success && result.enrolment) {
+        onStarted(result.enrolment)
+        return
+      }
+      // A wrong password leaves the code unspent, so only the field that was wrong is cleared.
+      if (result.error === 'INVALID_PASSWORD') {
+        setPassword('')
+      } else {
+        setCode('')
+      }
+      setError(errorMessage(result.error))
+    })
+  }
+
+  return (
+    <form className="flex flex-col gap-4" onSubmit={submit}>
+      <p className="text-sm text-muted-foreground">
+        Set up a new authenticator app, for example on a new phone. Your current authenticator keeps
+        working until the new one is confirmed.
+      </p>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="two-factor-replace-password">Confirm your password</Label>
+        <PasswordInput
+          id="two-factor-replace-password"
+          autoComplete="current-password"
+          autoFocus
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="two-factor-replace-code">
+          Code from your current authenticator, or a backup code
+        </Label>
+        <Input
+          id="two-factor-replace-code"
+          name="code"
+          autoComplete="one-time-code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="123456 or a backup code"
+        />
+      </div>
+      <ErrorLine error={error} />
+      <div className="flex gap-2">
+        <Button type="submit" disabled={isPending || !password || !code.trim()}>
+          Continue
+        </Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 function TwoFactorSettingsPage() {
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({
@@ -61,7 +130,6 @@ function TwoFactorSettingsPage() {
   const status = data?.activeAdministratorTwoFactor
   const [panel, setPanel] = useState<Panel>({ name: 'idle' })
   const [password, setPassword] = useState('')
-  const [currentCode, setCurrentCode] = useState('')
   const { run, error, setError, isPending } = usePendingAction()
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: statusQueryKey })
@@ -74,37 +142,6 @@ function TwoFactorSettingsPage() {
       if (result.success && result.enrolment) {
         setPanel({ name: 'scan', enrolment: result.enrolment, replacing: false })
       } else {
-        setError(errorMessage(result.error))
-      }
-    })
-  }
-
-  const closeReplace = () => {
-    setPassword('')
-    setCurrentCode('')
-    setError(undefined)
-    setPanel({ name: 'idle' })
-  }
-
-  const submitReplace = (event: FormEvent) => {
-    event.preventDefault()
-    void run(async () => {
-      const result = await mutate(beginReplacementDocument, {
-        password,
-        code: currentCode.trim(),
-      })
-      if (result.success && result.enrolment) {
-        setPassword('')
-        setCurrentCode('')
-        setPanel({ name: 'scan', enrolment: result.enrolment, replacing: true })
-        await refresh()
-      } else {
-        // A wrong password leaves the code unspent, so only the field that was wrong is cleared.
-        if (result.error === 'INVALID_PASSWORD') {
-          setPassword('')
-        } else {
-          setCurrentCode('')
-        }
         setError(errorMessage(result.error))
       }
     })
@@ -209,44 +246,14 @@ function TwoFactorSettingsPage() {
               )}
 
               {panel.name === 'replace' && (
-                <form className="flex flex-col gap-4" onSubmit={submitReplace}>
-                  <p className="text-sm text-muted-foreground">
-                    Set up a new authenticator app, for example on a new phone. Your current
-                    authenticator keeps working until the new one is confirmed.
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="two-factor-replace-password">Confirm your password</Label>
-                    <PasswordInput
-                      id="two-factor-replace-password"
-                      autoComplete="current-password"
-                      autoFocus
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="two-factor-replace-code">
-                      Code from your current authenticator, or a backup code
-                    </Label>
-                    <Input
-                      id="two-factor-replace-code"
-                      name="code"
-                      autoComplete="one-time-code"
-                      value={currentCode}
-                      onChange={(e) => setCurrentCode(e.target.value)}
-                      placeholder="123456 or a backup code"
-                    />
-                  </div>
-                  {errorLine}
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={isPending || !password || !currentCode.trim()}>
-                      Continue
-                    </Button>
-                    <Button type="button" variant="ghost" onClick={closeReplace}>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
+                <ReplaceForm
+                  onStarted={(enrolment) => {
+                    setPanel({ name: 'scan', enrolment, replacing: true })
+                    // A backup code may have been spent.
+                    void refresh()
+                  }}
+                  onCancel={() => setPanel({ name: 'idle' })}
+                />
               )}
 
               {panel.name === 'scan' && (
