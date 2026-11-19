@@ -22,9 +22,9 @@ An administrator who has turned it on never gets a session from the password alo
 - **Authenticator apps**: any TOTP app (1Password, Google Authenticator, Microsoft Authenticator, ...), set up from a QR code
 - **Backup codes**: 10 single-use codes, stored as hashes and shown once
 - **Optional or required**: let each administrator choose, require it for everyone, or decide per user (for example by role). A required administrator sets it up during sign-in, before any session exists
-- **Dashboard pages**: a sign-in page that takes the second factor, a settings page to turn it on or off and renew backup codes, and a _Reset 2FA_ action on the administrator page
+- **Dashboard pages**: a sign-in page that takes the second factor, a settings page to turn it on or off, renew backup codes and replace the authenticator, and a _Reset 2FA_ action on the administrator page
 - **Hardened**: secrets encrypted at rest (AES-256-GCM, key rotation), a code is accepted once, wrong codes lock the second factor for a while, and the state lives in the database so it holds across server instances
-- **Events**: `TwoFactorEvent` for enrolment, disabling, resets, backup code use, wrong codes and lockouts
+- **Events**: `TwoFactorEvent` for enrolment, disabling, replaced authenticators, resets, backup code use, wrong codes and lockouts
 
 Customer sign-in on the Shop API is not affected.
 
@@ -117,12 +117,14 @@ mutation {
 
 Signed-in administrators manage their own second factor with `activeAdministratorTwoFactor`, `beginTwoFactorEnrolment(password)`, `confirmTwoFactorEnrolment(code)`, `disableTwoFactor(code)` and `regenerateTwoFactorBackupCodes(code)`. Turning it on or off signs out the administrator's other sessions. A required administrator cannot turn it off.
 
+An administrator who has a second factor replaces the authenticator, for example on a new phone, with `beginTwoFactorReplacement(password, code)` and `confirmTwoFactorReplacement(code)`. The first takes the password plus a code from the current authenticator or a backup code, and returns a new secret and QR code. The second takes the first code from the new authenticator. Until then the current authenticator keeps working. On confirmation the old secret and the old backup codes stop working, new backup codes are returned, and the administrator's other sessions are signed out. It works for a required administrator too.
+
 `resetAdministratorTwoFactor(administratorId)` removes another administrator's second factor and signs them out everywhere. It needs the `ResetTwoFactor` permission (superadmins have it). `Administrator.twoFactorEnabled` shows who has it on.
 
 ### Dashboard
 
 - The stock sign-in page sends the browser to `/two-factor-login`, which signs in every administrator, with or without a second factor.
-- **Settings → Two-factor authentication** turns it on or off and renews backup codes.
+- **Settings → Two-factor authentication** turns it on or off, renews backup codes and replaces the authenticator.
 - The administrator detail page gets a _Reset 2FA_ button when that administrator has it on.
 - After a password reset, an administrator with a second factor is sent to the sign-in page, since the new password alone does not sign them in.
 
@@ -132,7 +134,7 @@ Core's `resetPassword` signs the administrator in with the new password. The plu
 
 ## Recovery
 
-- **One administrator lost their device:** they sign in with a backup code, or another administrator with `ResetTwoFactor` uses _Reset 2FA_.
+- **One administrator lost their device:** they sign in with a backup code and set up a new authenticator under **Settings → Two-factor authentication → Replace authenticator**, or another administrator with `ResetTwoFactor` uses _Reset 2FA_.
 - **Nobody can sign in:** run a script on the server with access to the database:
 
 ```typescript
@@ -145,6 +147,27 @@ const ctx = await app.get(RequestContextService).create({ apiType: 'admin' })
 await app.get(TwoFactorService).resetByIdentifier(ctx, 'superadmin@example.com')
 await app.close()
 ```
+
+## Telling the administrator about changes
+
+The plugin sends no email. Tell an administrator when their authenticator is replaced, so a change they did not make is noticed. `TwoFactorEvent` carries the user id and a `type`, and an `EmailEventListener` for the core `EmailPlugin` can send the message:
+
+```typescript
+import { EmailEventListener } from '@vendure/email-plugin'
+import { UserService } from '@vendure/core'
+import { TwoFactorEvent } from '@haus-tech/two-factor-auth-plugin'
+
+export const authenticatorReplacedHandler = new EmailEventListener('two-factor-replaced')
+  .on(TwoFactorEvent)
+  .filter((event) => event.type === 'replaced')
+  .loadData(({ event, injector }) => injector.get(UserService).getUserById(event.ctx, event.userId))
+  .setRecipient((event) => event.data?.identifier ?? '')
+  .setFrom('{{ fromAddress }}')
+  .setSubject('Your authenticator app was replaced')
+  .setTemplateVars(() => ({}))
+```
+
+Add the handler to the `handlers` of `EmailPlugin.init` and a `two-factor-replaced` template. The same pattern works for `disabled`, `reset` and `backup-codes-regenerated`.
 
 ## Security notes
 

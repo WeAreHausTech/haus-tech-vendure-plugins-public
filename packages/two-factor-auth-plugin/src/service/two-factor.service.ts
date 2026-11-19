@@ -297,6 +297,68 @@ export class TwoFactorService {
   }
 
   /**
+   * Starts replacing the authenticator of a signed-in user. Needs the current password and a
+   * current code, so neither a stolen session nor a stolen password alone can bind a new
+   * authenticator. The current secret keeps working until {@link confirmReplacement}.
+   */
+  async beginReplacement(
+    ctx: RequestContext,
+    user: User,
+    password: string,
+    code: string,
+  ): Promise<TwoFactorEnrolmentStartResult> {
+    if (!(await this.nativeStrategy().verifyUserPassword(ctx, user.id, password))) {
+      return fail('INVALID_PASSWORD')
+    }
+    const credential = await this.findCredential(ctx, user.id)
+    if (!credential?.enabled) {
+      return fail('NOT_ENABLED')
+    }
+    const check = await this.checkCode(ctx, credential, code)
+    if (check !== 'ok') {
+      return fail(codeError(check))
+    }
+    const secret = generateTotpSecret()
+    // An update of the one column: checkCode has changed the row since it was loaded.
+    await this.connection
+      .getRepository(ctx, TwoFactorCredential)
+      .update(
+        { id: credential.id },
+        { pendingSecret: this.cipher.encrypt(secret, secretOwner(user.id)) },
+      )
+    return { success: true, enrolment: await this.enrolmentSecret(user, secret) }
+  }
+
+  /**
+   * Confirms a replacement with the first code from the new authenticator. The old secret and
+   * the old backup codes stop working, and the user's other sessions are signed out.
+   */
+  async confirmReplacement(
+    ctx: RequestContext,
+    userId: ID,
+    code: string,
+  ): Promise<TwoFactorBackupCodesResult> {
+    const credential = await this.findCredential(ctx, userId)
+    if (!credential?.enabled) {
+      return fail('NOT_ENABLED')
+    }
+    if (!credential.pendingSecret) {
+      return fail('NO_PENDING_ENROLMENT')
+    }
+    if (this.isLocked(credential)) {
+      return fail('LOCKED')
+    }
+    const secret = this.cipher.decrypt(credential.pendingSecret, secretOwner(userId))
+    const step = findMatchingStep(secret, code.trim(), Date.now())
+    if (step === undefined) {
+      return fail(codeError(await this.registerFailure(ctx, credential)))
+    }
+    const backupCodes = await this.enable(ctx, credential, secret, step, 'replaced')
+    await this.deleteOtherSessions(ctx, userId)
+    return { success: true, backupCodes }
+  }
+
+  /**
    * Removes a user's second factor and signs out all of the user's sessions, for an
    * administrator who has lost their device. Returns false when there was nothing to reset.
    */
@@ -360,12 +422,16 @@ export class TwoFactorService {
     })
   }
 
-  /** Pass the user's credential when it is already loaded, or the user id to create or load it. */
+  /**
+   * Pass the user's credential when it is already loaded, or the user id to create or load it.
+   * `replaced` swaps the secret of a second factor that is already on, which keeps `enabledAt`.
+   */
   private async enable(
     ctx: RequestContext,
     credentialOrUserId: TwoFactorCredential | ID,
     secret: string,
     step: number,
+    event: 'enabled' | 'replaced' = 'enabled',
   ): Promise<string[]> {
     const backupCodes = generateBackupCodes(this.options.backupCodeCount)
     const credential =
@@ -378,14 +444,14 @@ export class TwoFactorService {
       secret: this.cipher.encrypt(secret, secretOwner(userId)),
       pendingSecret: null,
       enabled: true,
-      enabledAt: new Date(),
+      enabledAt: event === 'replaced' ? credential.enabledAt : new Date(),
       lastUsedStep: step,
       backupCodeHashes: backupCodes.map(hashBackupCode),
       failedAttempts: 0,
       lockedUntil: null,
     })
     await this.connection.getRepository(ctx, TwoFactorCredential).save(credential)
-    await this.publish(ctx, userId, 'enabled')
+    await this.publish(ctx, userId, event)
     return backupCodes
   }
 

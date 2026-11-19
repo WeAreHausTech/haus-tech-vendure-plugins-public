@@ -171,6 +171,26 @@ export const regenerateBackupCodesDocument = /* GraphQL */ `
   }
 `
 
+export const beginReplacementDocument = /* GraphQL */ `
+  mutation BeginTwoFactorReplacement($password: String!, $code: String!) {
+    beginTwoFactorReplacement(password: $password, code: $code) {
+      success
+      error
+      ${enrolmentFields}
+    }
+  }
+`
+
+export const confirmReplacementDocument = /* GraphQL */ `
+  mutation ConfirmTwoFactorReplacement($code: String!) {
+    confirmTwoFactorReplacement(code: $code) {
+      success
+      error
+      backupCodes
+    }
+  }
+`
+
 export const resetAdministratorDocument = /* GraphQL */ `
   mutation ResetAdministratorTwoFactor($administratorId: ID!) {
     resetAdministratorTwoFactor(administratorId: $administratorId) {
