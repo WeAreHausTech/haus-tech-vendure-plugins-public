@@ -24,12 +24,13 @@ Asking for the password and a current code means neither a stolen session nor a 
 - The session alone, or the session plus password: simpler, but a stolen session or password would be enough to take over the second factor.
 - Use _Reset 2FA_ on yourself: works only for administrators with `ResetTwoFactor`, signs out every session and leaves the account without a second factor until the next sign-in.
 - Send the notification email from the plugin: every project would have to configure templates and a sender for it.
-- An expiry on the pending secret: it is useless without a signed-in session, the password and a current code, and signed-in enrolment has none either.
+- An expiry on the pending secret: it needs a new column and a migration in every project, and signed-in enrolment has none either. Left out for now, see Consequences.
 
 ## Consequences
 
 - No migration: the pending secret uses the existing `pendingSecret` column, which was only used before 2FA was on.
 - A backup code used to start a replacement is spent even when the replacement is never confirmed.
+- A started replacement stays pending until it is confirmed or a new one is started. Confirming it takes a signed-in session and the first code from the pending secret, so someone who saw that QR code and later holds a session could finish it. An expiry would close this and needs a migration.
 - Wrong codes at either step count toward the existing lockout, which also blocks sign-in while it lasts.
 - Projects that want the administrator told about a replacement add an email handler for the `replaced` event.
 - `TwoFactorEventType` gains a member, so a project with an exhaustive switch over it gets a compile error until it handles `replaced`.

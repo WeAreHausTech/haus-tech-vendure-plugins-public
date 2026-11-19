@@ -154,14 +154,16 @@ The plugin sends no email. Tell an administrator when their authenticator is rep
 
 ```typescript
 import { EmailEventListener } from '@vendure/email-plugin'
-import { UserService } from '@vendure/core'
+import { AdministratorService } from '@vendure/core'
 import { TwoFactorEvent } from '@haus-tech/two-factor-auth-plugin'
 
 export const authenticatorReplacedHandler = new EmailEventListener('two-factor-replaced')
   .on(TwoFactorEvent)
   .filter((event) => event.type === 'replaced')
-  .loadData(({ event, injector }) => injector.get(UserService).getUserById(event.ctx, event.userId))
-  .setRecipient((event) => event.data?.identifier ?? '')
+  .loadData(({ event, injector }) =>
+    injector.get(AdministratorService).findOneByUserId(event.ctx, event.userId),
+  )
+  .setRecipient((event) => event.data?.emailAddress ?? '')
   .setFrom('{{ fromAddress }}')
   .setSubject('Your authenticator app was replaced')
   .setTemplateVars(() => ({}))

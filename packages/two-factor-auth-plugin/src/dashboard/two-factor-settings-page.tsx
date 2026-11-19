@@ -248,6 +248,8 @@ function TwoFactorSettingsPage() {
               {panel.name === 'replace' && (
                 <ReplaceForm
                   onStarted={(enrolment) => {
+                    // The form has its own error; drop one left over from another panel.
+                    setError(undefined)
                     setPanel({ name: 'scan', enrolment, replacing: true })
                     // A backup code may have been spent.
                     void refresh()
