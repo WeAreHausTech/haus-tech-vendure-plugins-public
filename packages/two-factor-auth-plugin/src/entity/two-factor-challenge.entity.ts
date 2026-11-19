@@ -1,12 +1,15 @@
 import { DeepPartial, EntityId, ID, VendureEntity } from '@vendure/core'
 import { Column, Entity, Index } from 'typeorm'
 
-export type TwoFactorChallengePurpose = 'login' | 'enrolment'
+export type TwoFactorChallengePurpose = 'login' | 'enrolment' | 'replacement'
 
 /**
  * @description
  * A short-lived, single-use ticket issued after a correct password, and redeemed with the
  * second factor. Only the SHA-256 hash of the token is stored.
+ *
+ * A `replacement` challenge holds the new secret of a signed-in administrator who is replacing
+ * their authenticator. Its token is never handed out: it is found by its user.
  *
  * @category Entities
  */
@@ -34,7 +37,7 @@ export class TwoFactorChallenge extends VendureEntity {
   @Column({ type: 'int', default: 0 })
   attempts: number
 
-  /** For enrolment during sign-in: the new secret, encrypted, until the first code confirms it. */
+  /** For enrolment during sign-in and for a replacement: the new secret, encrypted, until the first code confirms it. */
   @Column({ type: 'text', nullable: true })
   pendingSecret: string | null
 

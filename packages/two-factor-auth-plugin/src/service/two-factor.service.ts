@@ -14,7 +14,7 @@ import {
   UserService,
 } from '@vendure/core'
 import { toDataURL } from 'qrcode'
-import { LessThan } from 'typeorm'
+import { LessThan, Not } from 'typeorm'
 
 import { loggerCtx, PLUGIN_INIT_OPTIONS, TwoFactorAuthError } from '../constants'
 import { SecretCipher } from '../crypto/secret-cipher'
@@ -139,6 +139,11 @@ export class TwoFactorService {
     ) {
       return fail('CHALLENGE_EXPIRED')
     }
+    // The second factor may have been turned on elsewhere since the challenge was issued.
+    if (await this.isEnabledForUser(ctx, challenge.userId)) {
+      await this.consumeChallenge(ctx, challenge)
+      return fail('CHALLENGE_EXPIRED')
+    }
     const secret = this.cipher.decrypt(challenge.pendingSecret, secretOwner(challenge.userId))
     const step = findMatchingStep(secret, code.trim(), Date.now())
     if (step === undefined) {
@@ -165,7 +170,8 @@ export class TwoFactorService {
     code: string,
   ): Promise<User | string> {
     const challenge = await this.findChallenge(ctx, challengeToken)
-    if (!challenge) {
+    // A replacement challenge never signs anyone in.
+    if (!challenge || challenge.purpose === 'replacement') {
       return TwoFactorAuthError.CHALLENGE_EXPIRED
     }
     if (challenge.purpose === 'enrolment') {
@@ -239,7 +245,20 @@ export class TwoFactorService {
     if (credential?.enabled) {
       return fail('ALREADY_ENABLED')
     }
-    return this.confirmPending(ctx, credential, code, 'enabled')
+    if (!credential?.pendingSecret) {
+      return fail('NO_PENDING_ENROLMENT')
+    }
+    if (this.isLocked(credential)) {
+      return fail('LOCKED')
+    }
+    const secret = this.cipher.decrypt(credential.pendingSecret, secretOwner(userId))
+    const step = findMatchingStep(secret, code.trim(), Date.now())
+    if (step === undefined) {
+      return fail(codeError(await this.registerFailure(ctx, credential)))
+    }
+    const backupCodes = await this.enable(ctx, credential, secret, step)
+    await this.deleteOtherSessions(ctx, userId)
+    return { success: true, backupCodes }
   }
 
   /** Turns the second factor off. Needs a code. Signs out the user's other sessions. */
@@ -286,7 +305,9 @@ export class TwoFactorService {
   /**
    * Starts replacing the authenticator of a signed-in user. Needs the current password and a
    * current code, so neither a stolen session nor a stolen password alone can bind a new
-   * authenticator. The current secret keeps working until {@link confirmReplacement}.
+   * authenticator. The new secret waits in a challenge of its own, so it expires and has its
+   * own count of wrong codes, and the current secret keeps working until
+   * {@link confirmReplacement}.
    */
   async beginReplacement(
     ctx: RequestContext,
@@ -306,19 +327,19 @@ export class TwoFactorService {
       return fail(codeError(check))
     }
     const secret = generateTotpSecret()
-    // An update of the one column: checkCode has changed the row since it was loaded.
-    await this.connection
-      .getRepository(ctx, TwoFactorCredential)
-      .update(
-        { id: credential.id },
-        { pendingSecret: this.cipher.encrypt(secret, secretOwner(user.id)) },
-      )
+    await this.createChallenge(
+      ctx,
+      user.id,
+      'replacement',
+      this.cipher.encrypt(secret, secretOwner(user.id)),
+    )
     return { success: true, enrolment: await this.enrolmentSecret(user, secret) }
   }
 
   /**
    * Confirms a replacement with the first code from the new authenticator. The old secret and
-   * the old backup codes stop working, and the user's other sessions are signed out.
+   * the old backup codes stop working, and the user's other sessions are signed out. Wrong
+   * codes count against the replacement only, never against sign-in.
    */
   async confirmReplacement(
     ctx: RequestContext,
@@ -329,32 +350,25 @@ export class TwoFactorService {
     if (!credential?.enabled) {
       return fail('NOT_ENABLED')
     }
-    return this.confirmPending(ctx, credential, code, 'replaced')
-  }
-
-  /**
-   * Makes the pending secret the active one when the code is its first code, and signs out the
-   * user's other sessions. Shared by a signed-in enrolment and a replacement.
-   */
-  private async confirmPending(
-    ctx: RequestContext,
-    credential: TwoFactorCredential | null,
-    code: string,
-    event: 'enabled' | 'replaced',
-  ): Promise<TwoFactorBackupCodesResult> {
-    if (!credential?.pendingSecret) {
+    const challenge = await this.connection
+      .getRepository(ctx, TwoFactorChallenge)
+      .findOne({ where: { userId, purpose: 'replacement' } })
+    if (!challenge?.pendingSecret || challenge.expiresAt.getTime() <= Date.now()) {
       return fail('NO_PENDING_ENROLMENT')
     }
     if (this.isLocked(credential)) {
       return fail('LOCKED')
     }
-    const { userId } = credential
-    const secret = this.cipher.decrypt(credential.pendingSecret, secretOwner(userId))
+    const secret = this.cipher.decrypt(challenge.pendingSecret, secretOwner(userId))
     const step = findMatchingStep(secret, code.trim(), Date.now())
     if (step === undefined) {
-      return fail(codeError(await this.registerFailure(ctx, credential)))
+      await this.registerChallengeFailure(ctx, challenge)
+      return fail('INVALID_CODE')
     }
-    const backupCodes = await this.enable(ctx, credential, secret, step, event)
+    if (!(await this.consumeChallenge(ctx, challenge))) {
+      return fail('NO_PENDING_ENROLMENT')
+    }
+    const backupCodes = await this.enable(ctx, credential, secret, step, 'replaced')
     await this.deleteOtherSessions(ctx, userId)
     return { success: true, backupCodes }
   }
@@ -591,8 +605,12 @@ export class TwoFactorService {
     pendingSecret: string | null,
   ): Promise<{ challengeToken: string; expiresAt: Date }> {
     const repo = this.connection.getRepository(ctx, TwoFactorChallenge)
-    // One open challenge per user; expired ones of every user are swept on the way.
-    await repo.delete({ userId })
+    // One open sign-in challenge and one open replacement per user, so a sign-in elsewhere does
+    // not cancel a replacement. Expired ones of every user are swept on the way.
+    await repo.delete({
+      userId,
+      purpose: purpose === 'replacement' ? 'replacement' : Not('replacement'),
+    })
     await repo.delete({ expiresAt: LessThan(new Date(Date.now())) })
     const challengeToken = generateToken()
     const expiresAt = new Date(Date.now() + this.options.challengeTtlSeconds * 1000)

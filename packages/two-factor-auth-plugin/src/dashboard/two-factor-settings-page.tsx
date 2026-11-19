@@ -83,7 +83,7 @@ function ReplaceForm({
     <form className="flex flex-col gap-4" onSubmit={submit}>
       <p className="text-sm text-muted-foreground">
         Set up a new authenticator app, for example on a new phone. Your current authenticator keeps
-        working until the new one is confirmed.
+        working until the new one is confirmed, which has to happen within a few minutes.
       </p>
       <div className="flex flex-col gap-2">
         <Label htmlFor="two-factor-replace-password">Confirm your password</Label>
@@ -280,6 +280,9 @@ function TwoFactorSettingsPage() {
                   >
                     {errorLine}
                   </CodeForm>
+                  <Button type="button" variant="ghost" onClick={() => setPanel({ name: 'idle' })}>
+                    Cancel
+                  </Button>
                 </div>
               )}
 

@@ -253,6 +253,8 @@ const carol = {
   password: 'carol-pw',
 }
 
+const requiredUsers = new Set([carol.emailAddress])
+
 describe('TwoFactorAuthPlugin e2e', () => {
   const config = mergeConfig(testConfig, {
     apiOptions: { port: 3080 },
@@ -260,8 +262,8 @@ describe('TwoFactorAuthPlugin e2e', () => {
       TwoFactorAuthPlugin.init({
         encryptionKeys: [randomBytes(32).toString('base64')],
         issuer: 'E2E Shop',
-        // Carol must use a second factor; everyone else may choose.
-        required: (_ctx, user) => user.identifier === carol.emailAddress,
+        // Carol must use a second factor; everyone else may choose, until a test adds them.
+        required: (_ctx, user) => requiredUsers.has(user.identifier),
       }),
     ],
   })
@@ -677,8 +679,9 @@ describe('TwoFactorAuthPlugin e2e', () => {
         .ofType(TwoFactorEvent)
         .subscribe((event) => events.push(event.type))
 
+      const confirmingCode = freshCode(newSecret)
       const { confirmTwoFactorReplacement } = await adminClient.query(CONFIRM_REPLACEMENT, {
-        code: freshCode(newSecret),
+        code: confirmingCode,
       })
       await new Promise((resolve) => setTimeout(resolve, 50))
       subscription.unsubscribe()
@@ -722,6 +725,8 @@ describe('TwoFactorAuthPlugin e2e', () => {
       expect((await redeem(freshCode(oldSecret))).authenticationError).toBe(
         'TWO_FACTOR_INVALID_CODE',
       )
+      // The code that confirmed the new authenticator is spent.
+      expect((await redeem(confirmingCode)).authenticationError).toBe('TWO_FACTOR_INVALID_CODE')
       expect((await redeem(oldBackupCode)).authenticationError).toBe('TWO_FACTOR_INVALID_CODE')
       expect((await redeem(freshCode(aliceSecret))).__typename).toBe('CurrentUser')
     })
@@ -731,6 +736,43 @@ describe('TwoFactorAuthPlugin e2e', () => {
         code: freshCode(aliceSecret),
       })
       expect(confirmTwoFactorReplacement.error).toBe('NO_PENDING_ENROLMENT')
+    })
+
+    const beginWithCurrentCode = async () => {
+      const { beginTwoFactorReplacement } = await adminClient.query(BEGIN_REPLACEMENT, {
+        password: alice.password,
+        code: freshCode(aliceSecret),
+      })
+      expect(beginTwoFactorReplacement.success).toBe(true)
+      return beginTwoFactorReplacement.enrolment.secret as string
+    }
+
+    it('gives up after repeated wrong codes, without locking sign-in', async () => {
+      const pendingSecret = await beginWithCurrentCode()
+      for (let i = 0; i < 5; i++) {
+        const { confirmTwoFactorReplacement } = await adminClient.query(CONFIRM_REPLACEMENT, {
+          code: wrongCode(pendingSecret),
+        })
+        expect(confirmTwoFactorReplacement.error).toBe('INVALID_CODE')
+      }
+      const { confirmTwoFactorReplacement } = await adminClient.query(CONFIRM_REPLACEMENT, {
+        code: freshCode(pendingSecret),
+      })
+      expect(confirmTwoFactorReplacement.error).toBe('NO_PENDING_ENROLMENT')
+      expect((await signInWithCode(alice, freshCode(aliceSecret))).__typename).toBe('CurrentUser')
+    })
+
+    it('expires when it is not confirmed in time', async () => {
+      const pendingSecret = await beginWithCurrentCode()
+      advanceClock(301_000)
+      const { confirmTwoFactorReplacement } = await adminClient.query(CONFIRM_REPLACEMENT, {
+        code: freshCode(pendingSecret),
+      })
+      expect(confirmTwoFactorReplacement.error).toBe('NO_PENDING_ENROLMENT')
+      expect((await signInWithCode(alice, freshCode(pendingSecret))).authenticationError).toBe(
+        'TWO_FACTOR_INVALID_CODE',
+      )
+      expect((await signInWithCode(alice, freshCode(aliceSecret))).__typename).toBe('CurrentUser')
     })
   })
 
@@ -913,6 +955,43 @@ describe('TwoFactorAuthPlugin e2e', () => {
         password: 'x',
       })
       expect(resetPassword.__typename).toBe('PasswordResetTokenInvalidError')
+    })
+  })
+
+  describe('enrolment during sign-in', () => {
+    it('does not replace a second factor that was turned on in the meantime', async () => {
+      const bobNow = { ...bob, password: 'bob-new-pw' }
+      // Bob keeps a session from before he had to use a second factor.
+      await otherDevice.asUserWithCredentials(bobNow.emailAddress, bobNow.password)
+      requiredUsers.add(bobNow.emailAddress)
+      await adminClient.asAnonymousUser()
+      const { twoFactorLogin } = await adminClient.query(TWO_FACTOR_LOGIN, {
+        username: bobNow.emailAddress,
+        password: bobNow.password,
+      })
+      expect(twoFactorLogin.status).toBe('ENROLMENT_REQUIRED')
+
+      const { beginTwoFactorEnrolment } = await otherDevice.query(BEGIN_ENROLMENT, {
+        password: bobNow.password,
+      })
+      const bobSecret = beginTwoFactorEnrolment.enrolment.secret
+      const { confirmTwoFactorEnrolment } = await otherDevice.query(CONFIRM_ENROLMENT, {
+        code: freshCode(bobSecret),
+      })
+      expect(confirmTwoFactorEnrolment.success).toBe(true)
+
+      const { completeTwoFactorLoginEnrolment } = await adminClient.query(
+        COMPLETE_LOGIN_ENROLMENT,
+        {
+          challengeToken: twoFactorLogin.challengeToken,
+          code: freshCode(twoFactorLogin.enrolment.secret),
+        },
+      )
+      expect(completeTwoFactorLoginEnrolment).toMatchObject({
+        success: false,
+        error: 'CHALLENGE_EXPIRED',
+      })
+      expect((await signInWithCode(bobNow, freshCode(bobSecret))).__typename).toBe('CurrentUser')
     })
   })
 })

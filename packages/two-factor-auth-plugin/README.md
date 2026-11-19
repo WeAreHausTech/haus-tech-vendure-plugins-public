@@ -66,15 +66,15 @@ The plugin adds two database tables (`two_factor_credential`, `two_factor_challe
 
 ## Configuration options
 
-| Option                | Type                                                    | Default   | Description                                                                                                      |
-| --------------------- | ------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------- |
-| `encryptionKeys`      | `string[]`                                              | none      | Required. Base64-encoded 32-byte keys. The first encrypts; older keys after it still decrypt (see Key rotation). |
-| `issuer`              | `string`                                                | `Vendure` | The name shown in authenticator apps.                                                                            |
-| `required`            | `boolean \| (ctx, user) => boolean \| Promise<boolean>` | `false`   | Whether an administrator must use 2FA. The function gets the `User` with its roles loaded.                       |
-| `challengeTtlSeconds` | `number`                                                | `300`     | How long the challenge from the password step stays valid.                                                       |
-| `maxFailedAttempts`   | `number`                                                | `5`       | Wrong codes in a row before the second factor is locked.                                                         |
-| `lockoutSeconds`      | `number`                                                | `900`     | How long the lock lasts.                                                                                         |
-| `backupCodeCount`     | `number`                                                | `10`      | How many backup codes to issue.                                                                                  |
+| Option                | Type                                                    | Default   | Description                                                                                                                   |
+| --------------------- | ------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `encryptionKeys`      | `string[]`                                              | none      | Required. Base64-encoded 32-byte keys. The first encrypts; older keys after it still decrypt (see Key rotation).              |
+| `issuer`              | `string`                                                | `Vendure` | The name shown in authenticator apps.                                                                                         |
+| `required`            | `boolean \| (ctx, user) => boolean \| Promise<boolean>` | `false`   | Whether an administrator must use 2FA. The function gets the `User` with its roles loaded.                                    |
+| `challengeTtlSeconds` | `number`                                                | `300`     | How long the challenge from the password step stays valid, and how long a started authenticator replacement can be confirmed. |
+| `maxFailedAttempts`   | `number`                                                | `5`       | Wrong codes in a row before the second factor is locked.                                                                      |
+| `lockoutSeconds`      | `number`                                                | `900`     | How long the lock lasts.                                                                                                      |
+| `backupCodeCount`     | `number`                                                | `10`      | How many backup codes to issue.                                                                                               |
 
 Require it for every administrator with a given role:
 
@@ -117,7 +117,7 @@ mutation {
 
 Signed-in administrators manage their own second factor with `activeAdministratorTwoFactor`, `beginTwoFactorEnrolment(password)`, `confirmTwoFactorEnrolment(code)`, `disableTwoFactor(code)` and `regenerateTwoFactorBackupCodes(code)`. Turning it on or off signs out the administrator's other sessions. A required administrator cannot turn it off.
 
-An administrator who has a second factor replaces the authenticator, for example on a new phone, with `beginTwoFactorReplacement(password, code)` and `confirmTwoFactorReplacement(code)`. The first takes the password plus a code from the current authenticator or a backup code, and returns a new secret and QR code. The second takes the first code from the new authenticator. Until then the current authenticator keeps working. On confirmation the old secret and the old backup codes stop working, new backup codes are returned, and the administrator's other sessions are signed out. It works for a required administrator too.
+An administrator who has a second factor replaces the authenticator, for example on a new phone, with `beginTwoFactorReplacement(password, code)` and `confirmTwoFactorReplacement(code)`. The first takes the password plus a code from the current authenticator or a backup code, and returns a new secret and QR code. The second takes the first code from the new authenticator, within `challengeTtlSeconds` of the first; after that, or after `maxFailedAttempts` wrong codes, the replacement is dropped and has to be started again. Wrong codes here do not count toward the sign-in lock. Until the confirmation the current authenticator keeps working. On confirmation the old secret and the old backup codes stop working, new backup codes are returned, and the administrator's other sessions are signed out. It works for a required administrator too.
 
 `resetAdministratorTwoFactor(administratorId)` removes another administrator's second factor and signs them out everywhere. It needs the `ResetTwoFactor` permission (superadmins have it). `Administrator.twoFactorEnabled` shows who has it on.
 
