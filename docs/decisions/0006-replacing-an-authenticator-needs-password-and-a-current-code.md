@@ -1,6 +1,6 @@
 # ADR-0006: Replacing an authenticator needs the password and a current code
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-19
 - **Decided by:** Tim Cifuentes Vargas (draft by Claude)
 - **Affects:** packages/two-factor-auth-plugin (`TwoFactorService`, Admin API schema, Dashboard settings page, `TwoFactorEvent`)
