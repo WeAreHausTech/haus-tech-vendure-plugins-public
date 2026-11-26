@@ -83,6 +83,10 @@ export const adminApiExtensions = gql`
     confirmTwoFactorEnrolment(code: String!): TwoFactorBackupCodesResult!
     disableTwoFactor(code: String!): TwoFactorResult!
     regenerateTwoFactorBackupCodes(code: String!): TwoFactorBackupCodesResult!
+    "Starts replacing the signed-in administrator's authenticator. Needs the password and a current code or backup code. The current authenticator keeps working until the new one is confirmed."
+    beginTwoFactorReplacement(password: String!, code: String!): TwoFactorEnrolmentStartResult!
+    "Confirms the replacement with the first code from the new authenticator. Issues new backup codes and signs out the administrator's other sessions."
+    confirmTwoFactorReplacement(code: String!): TwoFactorBackupCodesResult!
     "Removes another administrator's second factor and signs them out everywhere."
     resetAdministratorTwoFactor(administratorId: ID!): TwoFactorResult!
   }

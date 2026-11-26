@@ -3,6 +3,7 @@ import { ID, RequestContext, VendureEvent } from '@vendure/core'
 export type TwoFactorEventType =
   | 'enabled'
   | 'disabled'
+  | 'replaced'
   | 'reset'
   | 'backup-codes-regenerated'
   | 'backup-code-used'
@@ -12,8 +13,8 @@ export type TwoFactorEventType =
 /**
  * @description
  * Published when an administrator's second factor changes or is used in a way worth recording:
- * enrolment, disabling, a reset by another administrator, a backup code being spent, a wrong
- * code, or a lockout. Subscribe to it to write history entries or send alerts.
+ * enrolment, disabling, a replaced authenticator, a reset by another administrator, a backup
+ * code being spent, a wrong code, or a lockout. Subscribe to it to write history entries or send alerts.
  *
  * @category Events
  */
