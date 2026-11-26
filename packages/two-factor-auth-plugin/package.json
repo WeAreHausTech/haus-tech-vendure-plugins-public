@@ -1,6 +1,6 @@
 {
   "name": "@haus-tech/two-factor-auth-plugin",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "description": "Vendure plugin that adds two-factor authentication (TOTP and backup codes) to administrator sign-in",
   "author": "Haus Tech",
   "repository": {
